@@ -4,13 +4,19 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { examQueries, credentialQueries, fileQueries, repositoryQueries, adminQueries, generatePassword, generateUsername } = require('../database');
+const { db, generatePassword, generateUsername } = require('../database');
 const { requireAdmin } = require('../middleware/auth');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -39,10 +45,29 @@ router.get('/', requireAdmin, (req, res) => {
 });
 
 // Admin dashboard data
-router.get('/dashboard-data', requireAdmin, (req, res) => {
-    const stats = credentialQueries.getStats.all();
-    const activeExam = examQueries.findActive.get();
-    res.json({ stats, activeExam, adminUsername: req.session.admin.username });
+router.get('/dashboard-data', requireAdmin, async (req, res) => {
+    try {
+        const statsResult = await db.execute(`
+            SELECT e.id, e.name, e.is_active,
+                   COUNT(c.id) as total_credentials,
+                   SUM(CASE WHEN c.is_used = 1 THEN 1 ELSE 0 END) as used_credentials
+            FROM exams e
+            LEFT JOIN credentials c ON e.id = c.exam_id
+            GROUP BY e.id
+            ORDER BY e.created_at DESC
+        `);
+
+        const activeResult = await db.execute('SELECT * FROM exams WHERE is_active = 1 LIMIT 1');
+
+        res.json({
+            stats: statsResult.rows,
+            activeExam: activeResult.rows[0] || null,
+            adminUsername: req.session.admin.username
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load dashboard data' });
+    }
 });
 
 // === EXAM MANAGEMENT ===
@@ -51,52 +76,66 @@ router.get('/exams', requireAdmin, (req, res) => {
     res.sendFile('admin/exams.html', { root: './views' });
 });
 
-router.get('/exams/list', requireAdmin, (req, res) => {
-    const exams = examQueries.findAll.all();
-    res.json(exams);
+router.get('/exams/list', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute('SELECT * FROM exams ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch exams' });
+    }
 });
 
-router.post('/exams', requireAdmin, (req, res) => {
+router.post('/exams', requireAdmin, async (req, res) => {
     const { name, date } = req.body;
     if (!name) {
         return res.status(400).json({ error: 'Exam name is required' });
     }
     try {
-        const result = examQueries.create.run(name, date || null, 0);
-        res.json({ success: true, id: result.lastInsertRowid });
+        const result = await db.execute({
+            sql: 'INSERT INTO exams (name, date, is_active) VALUES (?, ?, 0)',
+            args: [name, date || null]
+        });
+        res.json({ success: true, id: Number(result.lastInsertRowid) });
     } catch (err) {
         res.status(500).json({ error: 'Failed to create exam' });
     }
 });
 
-router.put('/exams/:id', requireAdmin, (req, res) => {
+router.put('/exams/:id', requireAdmin, async (req, res) => {
     const { name, date, is_active } = req.body;
     const examId = parseInt(req.params.id);
 
     try {
         if (is_active) {
-            // Deactivate all other exams first
-            examQueries.deactivateAll.run();
+            await db.execute('UPDATE exams SET is_active = 0');
         }
-        examQueries.update.run(name, date || null, is_active ? 1 : 0, examId);
+        await db.execute({
+            sql: 'UPDATE exams SET name = ?, date = ?, is_active = ? WHERE id = ?',
+            args: [name, date || null, is_active ? 1 : 0, examId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update exam' });
     }
 });
 
-router.delete('/exams/:id', requireAdmin, (req, res) => {
+router.delete('/exams/:id', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     try {
-        // Delete associated files from filesystem
-        const files = fileQueries.findByExam.all(examId);
-        files.forEach(file => {
-            const filePath = path.join(__dirname, '..', 'uploads', file.filename);
+        // Get files to delete from filesystem
+        const filesResult = await db.execute({
+            sql: 'SELECT filename FROM files WHERE exam_id = ?',
+            args: [examId]
+        });
+
+        filesResult.rows.forEach(file => {
+            const filePath = path.join(uploadsDir, file.filename);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
         });
-        examQueries.delete.run(examId);
+
+        await db.execute({ sql: 'DELETE FROM exams WHERE id = ?', args: [examId] });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete exam' });
@@ -109,14 +148,30 @@ router.get('/credentials', requireAdmin, (req, res) => {
     res.sendFile('admin/credentials.html', { root: './views' });
 });
 
-router.get('/credentials/list/:examId', requireAdmin, (req, res) => {
+router.get('/credentials/list/:examId', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
-    const credentials = credentialQueries.findByExam.all(examId);
-    const counts = credentialQueries.countByExam.get(examId);
-    res.json({ credentials, total: counts.total || 0, used: counts.used || 0 });
+    try {
+        const credsResult = await db.execute({
+            sql: 'SELECT * FROM credentials WHERE exam_id = ? ORDER BY username',
+            args: [examId]
+        });
+
+        const countResult = await db.execute({
+            sql: 'SELECT COUNT(*) as total, SUM(is_used) as used FROM credentials WHERE exam_id = ?',
+            args: [examId]
+        });
+
+        res.json({
+            credentials: credsResult.rows,
+            total: countResult.rows[0].total || 0,
+            used: countResult.rows[0].used || 0
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch credentials' });
+    }
 });
 
-router.post('/credentials/generate', requireAdmin, (req, res) => {
+router.post('/credentials/generate', requireAdmin, async (req, res) => {
     const { examId, count, prefix } = req.body;
 
     if (!examId || !count || count < 1 || count > 100) {
@@ -124,8 +179,11 @@ router.post('/credentials/generate', requireAdmin, (req, res) => {
     }
 
     try {
-        const existing = credentialQueries.findByExam.all(examId);
-        let startIndex = existing.length + 1;
+        const existing = await db.execute({
+            sql: 'SELECT COUNT(*) as count FROM credentials WHERE exam_id = ?',
+            args: [examId]
+        });
+        let startIndex = (existing.rows[0].count || 0) + 1;
         const generated = [];
 
         for (let i = 0; i < count; i++) {
@@ -134,7 +192,10 @@ router.post('/credentials/generate', requireAdmin, (req, res) => {
                 generateUsername(examId, startIndex + i);
             const password = generatePassword();
 
-            credentialQueries.create.run(examId, username, password, null);
+            await db.execute({
+                sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name) VALUES (?, ?, ?, ?)',
+                args: [examId, username, password, null]
+            });
             generated.push({ username, password });
         }
 
@@ -145,7 +206,7 @@ router.post('/credentials/generate', requireAdmin, (req, res) => {
     }
 });
 
-router.post('/credentials', requireAdmin, (req, res) => {
+router.post('/credentials', requireAdmin, async (req, res) => {
     const { examId, username, password, examineeName } = req.body;
 
     if (!examId || !username || !password) {
@@ -153,51 +214,66 @@ router.post('/credentials', requireAdmin, (req, res) => {
     }
 
     try {
-        credentialQueries.create.run(examId, username.toUpperCase(), password, examineeName || null);
+        await db.execute({
+            sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name) VALUES (?, ?, ?, ?)',
+            args: [examId, username.toUpperCase(), password, examineeName || null]
+        });
         res.json({ success: true });
     } catch (err) {
-        if (err.message.includes('UNIQUE')) {
+        if (err.message && err.message.includes('UNIQUE')) {
             return res.status(400).json({ error: 'Username already exists' });
         }
         res.status(500).json({ error: 'Failed to create credential' });
     }
 });
 
-router.post('/credentials/:id/reset', requireAdmin, (req, res) => {
+router.post('/credentials/:id/reset', requireAdmin, async (req, res) => {
     const credId = parseInt(req.params.id);
     try {
-        credentialQueries.reset.run(credId);
+        await db.execute({
+            sql: 'UPDATE credentials SET is_used = 0, used_at = NULL WHERE id = ?',
+            args: [credId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to reset credential' });
     }
 });
 
-router.put('/credentials/:id', requireAdmin, (req, res) => {
+router.put('/credentials/:id', requireAdmin, async (req, res) => {
     const credId = parseInt(req.params.id);
     const { examineeName } = req.body;
     try {
-        credentialQueries.updateName.run(examineeName || null, credId);
+        await db.execute({
+            sql: 'UPDATE credentials SET examinee_name = ? WHERE id = ?',
+            args: [examineeName || null, credId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update credential' });
     }
 });
 
-router.delete('/credentials/:id', requireAdmin, (req, res) => {
+router.delete('/credentials/:id', requireAdmin, async (req, res) => {
     const credId = parseInt(req.params.id);
     try {
-        credentialQueries.delete.run(credId);
+        await db.execute({
+            sql: 'DELETE FROM credentials WHERE id = ?',
+            args: [credId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete credential' });
     }
 });
 
-router.delete('/credentials/exam/:examId', requireAdmin, (req, res) => {
+router.delete('/credentials/exam/:examId', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     try {
-        credentialQueries.deleteByExam.run(examId);
+        await db.execute({
+            sql: 'DELETE FROM credentials WHERE exam_id = ?',
+            args: [examId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete credentials' });
@@ -210,43 +286,49 @@ router.get('/files', requireAdmin, (req, res) => {
     res.sendFile('admin/files.html', { root: './views' });
 });
 
-router.get('/files/list/:examId', requireAdmin, (req, res) => {
+router.get('/files/list/:examId', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
-    const files = fileQueries.findByExam.all(examId);
-    res.json(files);
+    try {
+        const result = await db.execute({
+            sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
+            args: [examId]
+        });
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch files' });
+    }
 });
 
-router.post('/files/upload', requireAdmin, upload.single('file'), (req, res) => {
+router.post('/files/upload', requireAdmin, upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const { examId, displayName } = req.body;
     if (!examId) {
-        // Delete uploaded file if no exam ID
         fs.unlinkSync(req.file.path);
         return res.status(400).json({ error: 'Exam ID is required' });
     }
 
     try {
-        const maxOrder = fileQueries.getMaxSortOrder.get(parseInt(examId));
-        const sortOrder = (maxOrder.max_order || 0) + 1;
+        const maxOrderResult = await db.execute({
+            sql: 'SELECT MAX(sort_order) as max_order FROM files WHERE exam_id = ?',
+            args: [parseInt(examId)]
+        });
+        const sortOrder = (maxOrderResult.rows[0].max_order || 0) + 1;
 
         const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
         const name = displayName || req.file.originalname;
 
-        const result = fileQueries.create.run(
-            parseInt(examId),
-            name,
-            req.file.filename,
-            fileType,
-            sortOrder
-        );
+        const result = await db.execute({
+            sql: 'INSERT INTO files (exam_id, display_name, filename, file_type, sort_order) VALUES (?, ?, ?, ?, ?)',
+            args: [parseInt(examId), name, req.file.filename, fileType, sortOrder]
+        });
 
         res.json({
             success: true,
             file: {
-                id: result.lastInsertRowid,
+                id: Number(result.lastInsertRowid),
                 display_name: name,
                 filename: req.file.filename,
                 file_type: fileType,
@@ -260,28 +342,36 @@ router.post('/files/upload', requireAdmin, upload.single('file'), (req, res) => 
     }
 });
 
-router.put('/files/:id', requireAdmin, (req, res) => {
+router.put('/files/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     const { displayName, sortOrder } = req.body;
 
     try {
-        fileQueries.update.run(displayName, sortOrder, fileId);
+        await db.execute({
+            sql: 'UPDATE files SET display_name = ?, sort_order = ? WHERE id = ?',
+            args: [displayName, sortOrder, fileId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update file' });
     }
 });
 
-router.delete('/files/:id', requireAdmin, (req, res) => {
+router.delete('/files/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     try {
-        const file = fileQueries.findById.get(fileId);
+        const result = await db.execute({
+            sql: 'SELECT filename FROM files WHERE id = ?',
+            args: [fileId]
+        });
+        const file = result.rows[0];
+
         if (file) {
-            const filePath = path.join(__dirname, '..', 'uploads', file.filename);
+            const filePath = path.join(uploadsDir, file.filename);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
-            fileQueries.delete.run(fileId);
+            await db.execute({ sql: 'DELETE FROM files WHERE id = ?', args: [fileId] });
         }
         res.json({ success: true });
     } catch (err) {
@@ -289,9 +379,8 @@ router.delete('/files/:id', requireAdmin, (req, res) => {
     }
 });
 
-// Serve uploaded files for admin preview
 router.get('/files/preview/:filename', requireAdmin, (req, res) => {
-    const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
+    const filePath = path.join(uploadsDir, req.params.filename);
     if (fs.existsSync(filePath)) {
         res.sendFile(filePath);
     } else {
@@ -305,35 +394,50 @@ router.get('/repository', requireAdmin, (req, res) => {
     res.sendFile('admin/repository.html', { root: './views' });
 });
 
-router.get('/repository/list', requireAdmin, (req, res) => {
+router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
-        const files = repositoryQueries.findAll.all();
-        res.json(files);
+        const result = await db.execute(`
+            SELECT r.*,
+                   s.display_name as stem_name
+            FROM repository r
+            LEFT JOIN repository s ON r.related_stem_id = s.id
+            ORDER BY r.created_at DESC
+        `);
+        res.json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch files' });
     }
 });
 
-router.get('/repository/stems', requireAdmin, (req, res) => {
+router.get('/repository/stems', requireAdmin, async (req, res) => {
     try {
-        const stems = repositoryQueries.findStems.all();
-        res.json(stems);
+        const result = await db.execute(`SELECT * FROM repository WHERE category = 'stem' ORDER BY display_name`);
+        res.json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch stems' });
     }
 });
 
-router.get('/repository/:id', requireAdmin, (req, res) => {
+router.get('/repository/:id', requireAdmin, async (req, res) => {
     try {
-        const file = repositoryQueries.findById.get(parseInt(req.params.id));
+        const result = await db.execute({
+            sql: 'SELECT * FROM repository WHERE id = ?',
+            args: [parseInt(req.params.id)]
+        });
+        const file = result.rows[0];
+
         if (!file) {
             return res.status(404).json({ error: 'File not found' });
         }
-        // Get related images if this is a stem
+
         if (file.category === 'stem') {
-            file.relatedImages = repositoryQueries.findByStemId.all(file.id);
+            const imagesResult = await db.execute({
+                sql: 'SELECT * FROM repository WHERE related_stem_id = ?',
+                args: [file.id]
+            });
+            file.relatedImages = imagesResult.rows;
         }
         res.json(file);
     } catch (err) {
@@ -342,68 +446,53 @@ router.get('/repository/:id', requireAdmin, (req, res) => {
     }
 });
 
-// Upload to repository - supports multiple files
 router.post('/repository/upload', requireAdmin, upload.fields([
     { name: 'stemFile', maxCount: 1 },
     { name: 'clinicalImage', maxCount: 1 },
     { name: 'file', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
     try {
         const { category, displayName, relatedStemId } = req.body;
         const results = [];
 
-        // Handle stem + clinical image pair upload
         if (req.files.stemFile) {
             const stemFile = req.files.stemFile[0];
             const stemFileType = stemFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
             const stemName = req.body.stemDisplayName || stemFile.originalname.replace(/\.[^/.]+$/, '');
 
-            const stemResult = repositoryQueries.create.run(
-                stemName,
-                stemFile.filename,
-                stemFileType,
-                'stem',
-                null
-            );
-            const stemId = stemResult.lastInsertRowid;
+            const stemResult = await db.execute({
+                sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
+                args: [stemName, stemFile.filename, stemFileType, 'stem', null]
+            });
+            const stemId = Number(stemResult.lastInsertRowid);
             results.push({ id: stemId, type: 'stem', name: stemName });
 
-            // If clinical image uploaded with stem
             if (req.files.clinicalImage) {
                 const clinicalFile = req.files.clinicalImage[0];
                 const clinicalFileType = clinicalFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
                 const clinicalName = req.body.clinicalDisplayName || clinicalFile.originalname.replace(/\.[^/.]+$/, '');
 
-                const clinicalResult = repositoryQueries.create.run(
-                    clinicalName,
-                    clinicalFile.filename,
-                    clinicalFileType,
-                    'clinical_image',
-                    stemId
-                );
-                results.push({ id: clinicalResult.lastInsertRowid, type: 'clinical_image', name: clinicalName, relatedTo: stemId });
+                const clinicalResult = await db.execute({
+                    sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
+                    args: [clinicalName, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId]
+                });
+                results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId });
             }
-        }
-        // Handle single file upload
-        else if (req.files.file) {
+        } else if (req.files.file) {
             const file = req.files.file[0];
             const fileType = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
             const name = displayName || file.originalname.replace(/\.[^/.]+$/, '');
 
-            const result = repositoryQueries.create.run(
-                name,
-                file.filename,
-                fileType,
-                category || 'stem',
-                category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null
-            );
-            results.push({ id: result.lastInsertRowid, type: category, name: name });
+            const result = await db.execute({
+                sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
+                args: [name, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null]
+            });
+            results.push({ id: Number(result.lastInsertRowid), type: category, name: name });
         }
 
         res.json({ success: true, files: results });
     } catch (err) {
         console.error(err);
-        // Clean up uploaded files on error
         if (req.files) {
             Object.values(req.files).flat().forEach(file => {
                 if (fs.existsSync(file.path)) {
@@ -415,45 +504,58 @@ router.post('/repository/upload', requireAdmin, upload.fields([
     }
 });
 
-router.put('/repository/:id', requireAdmin, (req, res) => {
+router.put('/repository/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     const { displayName } = req.body;
 
     try {
-        repositoryQueries.update.run(displayName, fileId);
+        await db.execute({
+            sql: 'UPDATE repository SET display_name = ? WHERE id = ?',
+            args: [displayName, fileId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update file' });
     }
 });
 
-router.put('/repository/:id/associate', requireAdmin, (req, res) => {
+router.put('/repository/:id/associate', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     const { stemId } = req.body;
 
     try {
-        repositoryQueries.updateRelatedStem.run(stemId ? parseInt(stemId) : null, fileId);
+        await db.execute({
+            sql: 'UPDATE repository SET related_stem_id = ? WHERE id = ?',
+            args: [stemId ? parseInt(stemId) : null, fileId]
+        });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to associate files' });
     }
 });
 
-router.delete('/repository/:id', requireAdmin, (req, res) => {
+router.delete('/repository/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     try {
-        const file = repositoryQueries.findById.get(fileId);
+        const result = await db.execute({
+            sql: 'SELECT * FROM repository WHERE id = ?',
+            args: [fileId]
+        });
+        const file = result.rows[0];
+
         if (file) {
-            // Clear references to this file if it's a stem
             if (file.category === 'stem') {
-                repositoryQueries.clearRelatedStem.run(fileId);
+                await db.execute({
+                    sql: 'UPDATE repository SET related_stem_id = NULL WHERE related_stem_id = ?',
+                    args: [fileId]
+                });
             }
-            // Delete the actual file
-            const filePath = path.join(__dirname, '..', 'uploads', file.filename);
+
+            const filePath = path.join(uploadsDir, file.filename);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
-            repositoryQueries.delete.run(fileId);
+            await db.execute({ sql: 'DELETE FROM repository WHERE id = ?', args: [fileId] });
         }
         res.json({ success: true });
     } catch (err) {
@@ -463,7 +565,7 @@ router.delete('/repository/:id', requireAdmin, (req, res) => {
 });
 
 router.get('/repository/preview/:filename', requireAdmin, (req, res) => {
-    const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
+    const filePath = path.join(uploadsDir, req.params.filename);
     if (fs.existsSync(filePath)) {
         res.sendFile(filePath);
     } else {
@@ -477,7 +579,7 @@ router.get('/settings', requireAdmin, (req, res) => {
     res.sendFile('admin/settings.html', { root: './views' });
 });
 
-router.post('/change-password', requireAdmin, (req, res) => {
+router.post('/change-password', requireAdmin, async (req, res) => {
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -493,14 +595,21 @@ router.post('/change-password', requireAdmin, (req, res) => {
     }
 
     try {
-        const admin = adminQueries.findByUsername.get(req.session.admin.username);
+        const result = await db.execute({
+            sql: 'SELECT * FROM admins WHERE username = ?',
+            args: [req.session.admin.username]
+        });
+        const admin = result.rows[0];
 
         if (!bcrypt.compareSync(currentPassword, admin.password_hash)) {
             return res.status(401).json({ error: 'Current password is incorrect' });
         }
 
         const newHash = bcrypt.hashSync(newPassword, 10);
-        adminQueries.updatePassword.run(newHash, admin.id);
+        await db.execute({
+            sql: 'UPDATE admins SET password_hash = ? WHERE id = ?',
+            args: [newHash, admin.id]
+        });
 
         res.json({ success: true, message: 'Password changed successfully' });
     } catch (err) {

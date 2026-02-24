@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { adminQueries, credentialQueries, examQueries } = require('../database');
+const { db } = require('../database');
 const { rateLimiter, recordLoginAttempt, clearLoginAttempts } = require('../middleware/auth');
 
 // Examinee login page
@@ -13,50 +13,70 @@ router.get('/', (req, res) => {
 });
 
 // Examinee login POST
-router.post('/login', rateLimiter, (req, res) => {
+router.post('/login', rateLimiter, async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const credential = credentialQueries.findByUsername.get(username.toUpperCase());
+    try {
+        const result = await db.execute({
+            sql: `SELECT c.*, e.name as exam_name FROM credentials c
+                  JOIN exams e ON c.exam_id = e.id
+                  WHERE c.username = ?`,
+            args: [username.toUpperCase()]
+        });
 
-    if (!credential) {
-        recordLoginAttempt(req.ip);
-        return res.status(401).json({ error: 'Invalid username or password' });
+        const credential = result.rows[0];
+
+        if (!credential) {
+            recordLoginAttempt(req.ip);
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        if (credential.password !== password) {
+            recordLoginAttempt(req.ip);
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        if (credential.is_used) {
+            return res.status(403).json({ error: 'These credentials have already been used' });
+        }
+
+        // Check if exam is active
+        const examResult = await db.execute({
+            sql: 'SELECT * FROM exams WHERE id = ?',
+            args: [credential.exam_id]
+        });
+        const exam = examResult.rows[0];
+
+        if (!exam || !exam.is_active) {
+            return res.status(403).json({ error: 'This exam is not currently active' });
+        }
+
+        // Mark credential as used
+        await db.execute({
+            sql: 'UPDATE credentials SET is_used = 1, used_at = CURRENT_TIMESTAMP WHERE id = ?',
+            args: [credential.id]
+        });
+
+        // Clear login attempts on success
+        clearLoginAttempts(req.ip);
+
+        // Create session
+        req.session.examinee = {
+            id: credential.id,
+            username: credential.username,
+            examId: credential.exam_id,
+            examName: credential.exam_name
+        };
+
+        res.json({ success: true, redirect: '/exam' });
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'An error occurred' });
     }
-
-    if (credential.password !== password) {
-        recordLoginAttempt(req.ip);
-        return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    if (credential.is_used) {
-        return res.status(403).json({ error: 'These credentials have already been used' });
-    }
-
-    // Check if exam is active
-    const exam = examQueries.findById.get(credential.exam_id);
-    if (!exam || !exam.is_active) {
-        return res.status(403).json({ error: 'This exam is not currently active' });
-    }
-
-    // Mark credential as used
-    credentialQueries.markUsed.run(credential.id);
-
-    // Clear login attempts on success
-    clearLoginAttempts(req.ip);
-
-    // Create session
-    req.session.examinee = {
-        id: credential.id,
-        username: credential.username,
-        examId: credential.exam_id,
-        examName: credential.exam_name
-    };
-
-    res.json({ success: true, redirect: '/exam' });
 });
 
 // Examinee logout
@@ -75,28 +95,38 @@ router.get('/admin/login', (req, res) => {
 });
 
 // Admin login POST
-router.post('/admin/login', rateLimiter, (req, res) => {
+router.post('/admin/login', rateLimiter, async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const admin = adminQueries.findByUsername.get(username);
+    try {
+        const result = await db.execute({
+            sql: 'SELECT * FROM admins WHERE username = ?',
+            args: [username]
+        });
 
-    if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
-        recordLoginAttempt(req.ip);
-        return res.status(401).json({ error: 'Invalid username or password' });
+        const admin = result.rows[0];
+
+        if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
+            recordLoginAttempt(req.ip);
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        clearLoginAttempts(req.ip);
+
+        req.session.admin = {
+            id: admin.id,
+            username: admin.username
+        };
+
+        res.json({ success: true, redirect: '/admin' });
+    } catch (err) {
+        console.error('Admin login error:', err);
+        res.status(500).json({ error: 'An error occurred' });
     }
-
-    clearLoginAttempts(req.ip);
-
-    req.session.admin = {
-        id: admin.id,
-        username: admin.username
-    };
-
-    res.json({ success: true, redirect: '/admin' });
 });
 
 // Admin logout
