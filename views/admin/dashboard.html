@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">Administration Panel</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin" class="active">Dashboard</a>
+        <a href="/admin/exams">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files">Files</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-exams">0</div>
+                <div class="stat-label">Total Exams</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-exam">-</div>
+                <div class="stat-label">Active Exam</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-credentials">0</div>
+                <div class="stat-label">Total Credentials</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="used-credentials">0</div>
+                <div class="stat-label">Credentials Used</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Exam Overview</h2>
+            <table class="table" id="exams-table">
+                <thead>
+                    <tr>
+                        <th>Exam Name</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Credentials</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #888;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Quick Actions</h2>
+            <div class="actions">
+                <a href="/admin/exams" class="btn btn-primary">Create New Exam</a>
+                <a href="/admin/credentials" class="btn btn-success">Generate Credentials</a>
+                <a href="/admin/files" class="btn btn-secondary">Manage Files</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/admin/dashboard-data');
+                const data = await response.json();
+
+                document.getElementById('total-exams').textContent = data.stats.length;
+
+                if (data.activeExam) {
+                    document.getElementById('active-exam').textContent = data.activeExam.name;
+                }
+
+                let totalCreds = 0;
+                let usedCreds = 0;
+                data.stats.forEach(s => {
+                    totalCreds += s.total_credentials || 0;
+                    usedCreds += s.used_credentials || 0;
+                });
+
+                document.getElementById('total-credentials').textContent = totalCreds;
+                document.getElementById('used-credentials').textContent = usedCreds;
+
+                const tbody = document.querySelector('#exams-table tbody');
+
+                if (data.stats.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">No exams created yet. <a href="/admin/exams">Create one</a></td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.stats.map(exam => `
+                    <tr>
+                        <td>${exam.name}</td>
+                        <td>${exam.date || '-'}</td>
+                        <td>
+                            ${data.activeExam && data.activeExam.id === exam.id
+                                ? '<span class="badge badge-success">Active</span>'
+                                : '<span class="badge badge-warning">Inactive</span>'}
+                        </td>
+                        <td>${exam.used_credentials || 0} / ${exam.total_credentials || 0}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>

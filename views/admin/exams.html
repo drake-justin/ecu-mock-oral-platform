@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Exams - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">Exam Management</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/exams" class="active">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files">Files</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2 class="card-title">Create New Exam</h2>
+            <form id="create-exam-form">
+                <div class="form-group">
+                    <label for="exam-name">Exam Name</label>
+                    <input type="text" id="exam-name" class="form-control"
+                           placeholder="e.g., Spring 2026 Mock Oral" required>
+                </div>
+                <div class="form-group">
+                    <label for="exam-date">Exam Date (optional)</label>
+                    <input type="date" id="exam-date" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Exam</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">All Exams</h2>
+            <div id="message" class="alert" style="display: none;"></div>
+            <table class="table" id="exams-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #888;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Exam</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="edit-exam-form">
+                <input type="hidden" id="edit-exam-id">
+                <div class="form-group">
+                    <label for="edit-exam-name">Exam Name</label>
+                    <input type="text" id="edit-exam-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-exam-date">Exam Date</label>
+                    <input type="date" id="edit-exam-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-exam-active">
+                        Set as Active Exam
+                    </label>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                        Only one exam can be active at a time. Examinees can only log in to the active exam.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `alert alert-${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        async function loadExams() {
+            try {
+                const response = await fetch('/admin/exams/list');
+                const exams = await response.json();
+
+                const tbody = document.querySelector('#exams-table tbody');
+
+                if (exams.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">No exams created yet.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = exams.map(exam => `
+                    <tr>
+                        <td>${exam.name}</td>
+                        <td>${exam.date || '-'}</td>
+                        <td>
+                            ${exam.is_active
+                                ? '<span class="badge badge-success">Active</span>'
+                                : '<span class="badge badge-warning">Inactive</span>'}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editExam(${exam.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteExam(${exam.id}, '${exam.name.replace(/'/g, "\\'")}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading exams:', err);
+            }
+        }
+
+        document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('exam-name').value;
+            const date = document.getElementById('exam-date').value;
+
+            try {
+                const response = await fetch('/admin/exams', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, date })
+                });
+
+                if (response.ok) {
+                    showMessage('Exam created successfully!', 'success');
+                    document.getElementById('create-exam-form').reset();
+                    loadExams();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.error || 'Failed to create exam', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        async function editExam(id) {
+            const response = await fetch('/admin/exams/list');
+            const exams = await response.json();
+            const exam = exams.find(e => e.id === id);
+
+            if (exam) {
+                document.getElementById('edit-exam-id').value = exam.id;
+                document.getElementById('edit-exam-name').value = exam.name;
+                document.getElementById('edit-exam-date').value = exam.date || '';
+                document.getElementById('edit-exam-active').checked = exam.is_active;
+                document.getElementById('edit-modal').classList.add('active');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        document.getElementById('edit-exam-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('edit-exam-id').value;
+            const name = document.getElementById('edit-exam-name').value;
+            const date = document.getElementById('edit-exam-date').value;
+            const is_active = document.getElementById('edit-exam-active').checked;
+
+            try {
+                const response = await fetch(`/admin/exams/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, date, is_active })
+                });
+
+                if (response.ok) {
+                    showMessage('Exam updated successfully!', 'success');
+                    closeModal();
+                    loadExams();
+                } else {
+                    const data = await response.json();
+                    showMessage(data.error || 'Failed to update exam', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        async function deleteExam(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"?\n\nThis will also delete all associated credentials and files.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/exams/${id}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    showMessage('Exam deleted successfully!', 'success');
+                    loadExams();
+                } else {
+                    showMessage('Failed to delete exam', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('edit-modal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        loadExams();
+    </script>
+</body>
+</html>

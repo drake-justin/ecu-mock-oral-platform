@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Portal - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <header class="exam-header">
+        <div>
+            <h1 id="exam-name">Loading...</h1>
+            <p class="subtitle">ECU Mock Oral Examination</p>
+        </div>
+        <form action="/logout" method="POST" style="display: inline;">
+            <button type="submit" class="btn btn-secondary">Logout</button>
+        </form>
+    </header>
+
+    <div class="container" style="max-width: 800px;">
+        <div class="card">
+            <div class="alert alert-info">
+                <strong>Instructions:</strong> Click each link only when instructed by the examiner.
+                Each question will open in a new tab.
+            </div>
+
+            <ul class="file-list" id="file-list">
+                <li class="file-item">
+                    <span style="color: #888;">Loading exam materials...</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function loadExamData() {
+            try {
+                const response = await fetch('/exam/data');
+                const data = await response.json();
+
+                document.getElementById('exam-name').textContent = data.examName;
+                document.title = `${data.examName} - ECU Mock Oral`;
+
+                const fileList = document.getElementById('file-list');
+                fileList.innerHTML = '';
+
+                if (data.files.length === 0) {
+                    fileList.innerHTML = '<li class="file-item"><span style="color: #888;">No exam materials available.</span></li>';
+                    return;
+                }
+
+                data.files.forEach((file, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.innerHTML = `
+                        <span class="file-number">${index + 1}</span>
+                        <a href="/exam/file/${file.id}" target="_blank" class="file-link">
+                            ${file.displayName}
+                        </a>
+                        <span class="file-type">${file.fileType}</span>
+                    `;
+                    fileList.appendChild(li);
+                });
+            } catch (err) {
+                console.error('Error loading exam data:', err);
+                document.getElementById('file-list').innerHTML =
+                    '<li class="file-item"><span style="color: #c00;">Error loading exam materials. Please refresh the page.</span></li>';
+            }
+        }
+
+        loadExamData();
+    </script>
+</body>
+</html>

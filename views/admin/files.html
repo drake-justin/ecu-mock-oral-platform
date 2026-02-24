@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Files - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .file-upload-zone {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            background: #f9f9f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-upload-zone:hover, .file-upload-zone.dragover {
+            border-color: #4B2E83;
+            background: #f0ebf5;
+        }
+        .file-upload-zone input {
+            display: none;
+        }
+        .file-row {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .file-row .file-order {
+            width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #4B2E83;
+        }
+        .file-row .file-info {
+            flex: 1;
+            padding: 0 15px;
+        }
+        .file-row .file-name {
+            font-weight: 500;
+        }
+        .file-row .file-meta {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .file-row .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .sort-input {
+            width: 60px;
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">File Management</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/exams">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files" class="active">Files</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2 class="card-title">Select Exam</h2>
+            <div class="form-group">
+                <select id="exam-select" class="form-control">
+                    <option value="">-- Select an exam --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="files-section" style="display: none;">
+            <div class="card">
+                <h2 class="card-title">Upload Files</h2>
+                <p style="margin-bottom: 15px; color: #666;">Upload PDF or image files (JPG, PNG, GIF). Max 50MB per file.</p>
+
+                <div class="file-upload-zone" id="upload-zone">
+                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.gif" multiple>
+                    <p style="margin: 0; color: #666;">
+                        <strong>Click to upload</strong> or drag and drop<br>
+                        <span style="font-size: 0.85rem;">PDF, JPG, PNG, or GIF</span>
+                    </p>
+                </div>
+
+                <div id="upload-progress" style="margin-top: 15px; display: none;">
+                    <div style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div id="progress-bar" style="background: #4B2E83; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <p id="upload-status" style="text-align: center; margin-top: 10px; color: #666;"></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Exam Files</h2>
+                <div id="message" class="alert" style="display: none;"></div>
+                <p style="margin-bottom: 15px; color: #666;">Files are shown to examinees in order. Adjust the order using the number inputs.</p>
+                <div id="files-list">
+                    <p style="color: #888; text-align: center;">No files uploaded yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit File</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="edit-form">
+                <input type="hidden" id="edit-file-id">
+                <div class="form-group">
+                    <label for="edit-display-name">Display Name</label>
+                    <input type="text" id="edit-display-name" class="form-control" required>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                        This is what examinees will see (e.g., "Question 1 - Stem")
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label for="edit-sort-order">Sort Order</label>
+                    <input type="number" id="edit-sort-order" class="form-control" min="1" required>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentExamId = null;
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `alert alert-${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        async function loadExams() {
+            const response = await fetch('/admin/exams/list');
+            const exams = await response.json();
+
+            const select = document.getElementById('exam-select');
+            select.innerHTML = '<option value="">-- Select an exam --</option>';
+
+            exams.forEach(exam => {
+                const option = document.createElement('option');
+                option.value = exam.id;
+                option.textContent = `${exam.name}${exam.is_active ? ' (Active)' : ''}`;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadFiles(examId) {
+            const response = await fetch(`/admin/files/list/${examId}`);
+            const files = await response.json();
+
+            const container = document.getElementById('files-list');
+
+            if (files.length === 0) {
+                container.innerHTML = '<p style="color: #888; text-align: center;">No files uploaded yet.</p>';
+                return;
+            }
+
+            container.innerHTML = files.map((file, index) => `
+                <div class="file-row" data-id="${file.id}">
+                    <div class="file-order">#${index + 1}</div>
+                    <div class="file-info">
+                        <div class="file-name">${file.display_name}</div>
+                        <div class="file-meta">
+                            ${file.file_type.toUpperCase()} &bull; Order: ${file.sort_order}
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="/admin/files/preview/${file.filename}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
+                        <button class="btn btn-sm btn-primary" onclick="editFile(${file.id}, '${file.display_name.replace(/'/g, "\\'")}', ${file.sort_order})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('exam-select').addEventListener('change', (e) => {
+            currentExamId = e.target.value;
+            if (currentExamId) {
+                document.getElementById('files-section').style.display = 'block';
+                loadFiles(currentExamId);
+            } else {
+                document.getElementById('files-section').style.display = 'none';
+            }
+        });
+
+        // File upload handling
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            if (!currentExamId) {
+                showMessage('Please select an exam first', 'error');
+                return;
+            }
+
+            const progress = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('progress-bar');
+            const status = document.getElementById('upload-status');
+
+            progress.style.display = 'block';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                status.textContent = `Uploading ${file.name} (${i + 1}/${files.length})...`;
+                progressBar.style.width = `${((i) / files.length) * 100}%`;
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('examId', currentExamId);
+                formData.append('displayName', file.name.replace(/\.[^/.]+$/, '')); // Remove extension
+
+                try {
+                    const response = await fetch('/admin/files/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const data = await response.json();
+                        showMessage(`Error uploading ${file.name}: ${data.error}`, 'error');
+                    }
+                } catch (err) {
+                    showMessage(`Error uploading ${file.name}`, 'error');
+                }
+
+                progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
+            }
+
+            status.textContent = 'Upload complete!';
+            setTimeout(() => {
+                progress.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 2000);
+
+            loadFiles(currentExamId);
+            fileInput.value = '';
+        }
+
+        function editFile(id, displayName, sortOrder) {
+            document.getElementById('edit-file-id').value = id;
+            document.getElementById('edit-display-name').value = displayName;
+            document.getElementById('edit-sort-order').value = sortOrder;
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('edit-file-id').value;
+            const displayName = document.getElementById('edit-display-name').value;
+            const sortOrder = parseInt(document.getElementById('edit-sort-order').value);
+
+            try {
+                const response = await fetch(`/admin/files/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ displayName, sortOrder })
+                });
+
+                if (response.ok) {
+                    showMessage('File updated!', 'success');
+                    closeModal();
+                    loadFiles(currentExamId);
+                } else {
+                    showMessage('Failed to update file', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        async function deleteFile(id) {
+            if (!confirm('Delete this file?')) return;
+
+            try {
+                const response = await fetch(`/admin/files/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('File deleted!', 'success');
+                    loadFiles(currentExamId);
+                } else {
+                    showMessage('Failed to delete file', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('edit-modal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        loadExams();
+    </script>
+</body>
+</html>
