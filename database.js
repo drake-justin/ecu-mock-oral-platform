@@ -118,6 +118,7 @@ const credentialQueries = {
     create: db.prepare('INSERT INTO credentials (exam_id, username, password, examinee_name) VALUES (?, ?, ?, ?)'),
     markUsed: db.prepare('UPDATE credentials SET is_used = 1, used_at = CURRENT_TIMESTAMP WHERE id = ?'),
     reset: db.prepare('UPDATE credentials SET is_used = 0, used_at = NULL WHERE id = ?'),
+    updateName: db.prepare('UPDATE credentials SET examinee_name = ? WHERE id = ?'),
     delete: db.prepare('DELETE FROM credentials WHERE id = ?'),
     deleteByExam: db.prepare('DELETE FROM credentials WHERE exam_id = ?'),
     countByExam: db.prepare('SELECT COUNT(*) as total, SUM(is_used) as used FROM credentials WHERE exam_id = ?'),

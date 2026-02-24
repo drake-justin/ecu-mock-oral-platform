@@ -173,6 +173,17 @@ router.post('/credentials/:id/reset', requireAdmin, (req, res) => {
     }
 });
 
+router.put('/credentials/:id', requireAdmin, (req, res) => {
+    const credId = parseInt(req.params.id);
+    const { examineeName } = req.body;
+    try {
+        credentialQueries.updateName.run(examineeName || null, credId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update credential' });
+    }
+});
+
 router.delete('/credentials/:id', requireAdmin, (req, res) => {
     const credId = parseInt(req.params.id);
     try {
@@ -180,6 +191,16 @@ router.delete('/credentials/:id', requireAdmin, (req, res) => {
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete credential' });
+    }
+});
+
+router.delete('/credentials/exam/:examId', requireAdmin, (req, res) => {
+    const examId = parseInt(req.params.examId);
+    try {
+        credentialQueries.deleteByExam.run(examId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete credentials' });
     }
 });
 
