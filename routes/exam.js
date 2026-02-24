@@ -24,6 +24,9 @@ router.get('/data', requireExaminee, async (req, res) => {
             args: [examId]
         });
 
+        // Debug: log raw file data to see what's in the database
+        console.log('Files from database:', JSON.stringify(filesResult.rows, null, 2));
+
         res.json({
             examName: exam.name,
             files: filesResult.rows.map(f => ({

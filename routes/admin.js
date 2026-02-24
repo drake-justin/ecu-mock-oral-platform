@@ -260,9 +260,28 @@ router.get('/files/list/:examId', requireAdmin, async (req, res) => {
             sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
             args: [examId]
         });
+        // Debug: log the files data
+        console.log('Files for exam', examId, ':', JSON.stringify(result.rows, null, 2));
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch files' });
+    }
+});
+
+// Debug endpoint to check file data
+router.get('/files/debug/:fileId', requireAdmin, async (req, res) => {
+    const fileId = parseInt(req.params.fileId);
+    try {
+        const result = await db.execute({
+            sql: 'SELECT * FROM files WHERE id = ?',
+            args: [fileId]
+        });
+        res.json({
+            file: result.rows[0],
+            raw: result.rows[0] ? Object.keys(result.rows[0]).map(k => ({ key: k, value: result.rows[0][k], type: typeof result.rows[0][k] })) : []
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch file' });
     }
 });
 
@@ -270,6 +289,9 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    // Debug: log the file object from Cloudinary
+    console.log('Uploaded file object:', JSON.stringify(req.file, null, 2));
 
     const { examId, displayName } = req.body;
     if (!examId) {
@@ -291,9 +313,13 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
         const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'image';
         const name = displayName || req.file.originalname;
 
+        // Get the Cloudinary URL - try different properties
+        const fileUrl = req.file.path || req.file.secure_url || req.file.url;
+        console.log('File URL being saved:', fileUrl);
+
         const result = await db.execute({
             sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            args: [parseInt(examId), name, req.file.originalname, req.file.path, req.file.filename, fileType, sortOrder]
+            args: [parseInt(examId), name, req.file.originalname, fileUrl, req.file.filename, fileType, sortOrder]
         });
 
         res.json({
@@ -301,7 +327,7 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
             file: {
                 id: Number(result.lastInsertRowid),
                 display_name: name,
-                file_url: req.file.path,
+                file_url: fileUrl,
                 file_type: fileType,
                 sort_order: sortOrder
             }
@@ -456,6 +482,8 @@ router.get('/repository/list', requireAdmin, async (req, res) => {
             LEFT JOIN repository s ON r.related_stem_id = s.id
             ORDER BY r.created_at DESC
         `);
+        // Debug: log repository data
+        console.log('Repository files:', JSON.stringify(result.rows.map(r => ({ id: r.id, name: r.display_name, file_url: r.file_url })), null, 2));
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -508,39 +536,51 @@ router.post('/repository/upload', requireAdmin, upload.fields([
         const { category, displayName, relatedStemId, specialty } = req.body;
         const results = [];
 
+        // Helper to get file URL from Cloudinary response
+        const getFileUrl = (file) => file.path || file.secure_url || file.url;
+
+        // Debug: log all uploaded files
+        console.log('Repository upload - files:', JSON.stringify(req.files, null, 2));
+
         if (req.files.stemFile) {
             const stemFile = req.files.stemFile[0];
             const stemFileType = stemFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
             const stemName = req.body.stemDisplayName || stemFile.originalname.replace(/\.[^/.]+$/, '');
+            const stemUrl = getFileUrl(stemFile);
+            console.log('Stem file URL:', stemUrl);
 
             const stemResult = await db.execute({
                 sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [stemName, stemFile.originalname, stemFile.path, stemFile.filename, stemFileType, 'stem', null, specialty || null]
+                args: [stemName, stemFile.originalname, stemUrl, stemFile.filename, stemFileType, 'stem', null, specialty || null]
             });
             const stemId = Number(stemResult.lastInsertRowid);
-            results.push({ id: stemId, type: 'stem', name: stemName });
+            results.push({ id: stemId, type: 'stem', name: stemName, url: stemUrl });
 
             if (req.files.clinicalImage) {
                 const clinicalFile = req.files.clinicalImage[0];
                 const clinicalFileType = clinicalFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
                 const clinicalName = req.body.clinicalDisplayName || clinicalFile.originalname.replace(/\.[^/.]+$/, '');
+                const clinicalUrl = getFileUrl(clinicalFile);
+                console.log('Clinical file URL:', clinicalUrl);
 
                 const clinicalResult = await db.execute({
                     sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    args: [clinicalName, clinicalFile.originalname, clinicalFile.path, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId, specialty || null]
+                    args: [clinicalName, clinicalFile.originalname, clinicalUrl, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId, specialty || null]
                 });
-                results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId });
+                results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId, url: clinicalUrl });
             }
         } else if (req.files.file) {
             const file = req.files.file[0];
             const fileType = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
             const name = displayName || file.originalname.replace(/\.[^/.]+$/, '');
+            const fileUrl = getFileUrl(file);
+            console.log('Single file URL:', fileUrl);
 
             const result = await db.execute({
                 sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                args: [name, file.originalname, file.path, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null, specialty || null]
+                args: [name, file.originalname, fileUrl, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null, specialty || null]
             });
-            results.push({ id: Number(result.lastInsertRowid), type: category, name: name });
+            results.push({ id: Number(result.lastInsertRowid), type: category, name: name, url: fileUrl });
         }
 
         res.json({ success: true, files: results });
