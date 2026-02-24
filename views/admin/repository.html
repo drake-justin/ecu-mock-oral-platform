@@ -150,6 +150,35 @@
                 <button class="tab" data-tab="single">Single File</button>
             </div>
 
+            <!-- Specialty Selector (shared) -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Specialty</label>
+                <select id="upload-specialty" class="form-control" style="max-width: 300px;">
+                    <option value="">-- Select Specialty --</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Dermatology">Dermatology</option>
+                    <option value="Emergency Medicine">Emergency Medicine</option>
+                    <option value="Endocrinology">Endocrinology</option>
+                    <option value="Gastroenterology">Gastroenterology</option>
+                    <option value="General Surgery">General Surgery</option>
+                    <option value="Hematology/Oncology">Hematology/Oncology</option>
+                    <option value="Infectious Disease">Infectious Disease</option>
+                    <option value="Internal Medicine">Internal Medicine</option>
+                    <option value="Nephrology">Nephrology</option>
+                    <option value="Neurology">Neurology</option>
+                    <option value="OB/GYN">OB/GYN</option>
+                    <option value="Ophthalmology">Ophthalmology</option>
+                    <option value="Orthopedics">Orthopedics</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                    <option value="Psychiatry">Psychiatry</option>
+                    <option value="Pulmonology">Pulmonology</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Rheumatology">Rheumatology</option>
+                    <option value="Urology">Urology</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
             <!-- Paired Upload -->
             <div id="paired-upload" class="upload-section">
                 <div>
@@ -226,6 +255,30 @@
                     <option value="stem">Question Stems</option>
                     <option value="clinical_image">Clinical Images</option>
                 </select>
+                <select id="filter-specialty" class="form-control" style="width: auto;">
+                    <option value="">All Specialties</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Dermatology">Dermatology</option>
+                    <option value="Emergency Medicine">Emergency Medicine</option>
+                    <option value="Endocrinology">Endocrinology</option>
+                    <option value="Gastroenterology">Gastroenterology</option>
+                    <option value="General Surgery">General Surgery</option>
+                    <option value="Hematology/Oncology">Hematology/Oncology</option>
+                    <option value="Infectious Disease">Infectious Disease</option>
+                    <option value="Internal Medicine">Internal Medicine</option>
+                    <option value="Nephrology">Nephrology</option>
+                    <option value="Neurology">Neurology</option>
+                    <option value="OB/GYN">OB/GYN</option>
+                    <option value="Ophthalmology">Ophthalmology</option>
+                    <option value="Orthopedics">Orthopedics</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                    <option value="Psychiatry">Psychiatry</option>
+                    <option value="Pulmonology">Pulmonology</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Rheumatology">Rheumatology</option>
+                    <option value="Urology">Urology</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
             <div class="file-grid" id="file-grid">
                 <p style="color: #888;">Loading files...</p>
@@ -245,6 +298,33 @@
                 <div class="form-group">
                     <label for="edit-display-name">Display Name</label>
                     <input type="text" id="edit-display-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-specialty">Specialty</label>
+                    <select id="edit-specialty" class="form-control">
+                        <option value="">-- No Specialty --</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Dermatology">Dermatology</option>
+                        <option value="Emergency Medicine">Emergency Medicine</option>
+                        <option value="Endocrinology">Endocrinology</option>
+                        <option value="Gastroenterology">Gastroenterology</option>
+                        <option value="General Surgery">General Surgery</option>
+                        <option value="Hematology/Oncology">Hematology/Oncology</option>
+                        <option value="Infectious Disease">Infectious Disease</option>
+                        <option value="Internal Medicine">Internal Medicine</option>
+                        <option value="Nephrology">Nephrology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="OB/GYN">OB/GYN</option>
+                        <option value="Ophthalmology">Ophthalmology</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="Psychiatry">Psychiatry</option>
+                        <option value="Pulmonology">Pulmonology</option>
+                        <option value="Radiology">Radiology</option>
+                        <option value="Rheumatology">Rheumatology</option>
+                        <option value="Urology">Urology</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </form>
@@ -351,10 +431,13 @@
             const isPaired = document.querySelector('.tab.active').dataset.tab === 'paired';
             const formData = new FormData();
 
+            const specialty = document.getElementById('upload-specialty').value;
+
             if (isPaired) {
                 if (!stemFile) return showMessage('Please select a question stem file', 'error');
                 formData.append('stemFile', stemFile);
                 formData.append('stemDisplayName', document.getElementById('stem-display-name').value);
+                formData.append('specialty', specialty);
                 if (clinicalFile) {
                     formData.append('clinicalImage', clinicalFile);
                     formData.append('clinicalDisplayName', document.getElementById('clinical-display-name').value);
@@ -364,6 +447,7 @@
                 formData.append('file', singleFile);
                 formData.append('category', document.getElementById('single-category').value);
                 formData.append('displayName', document.getElementById('single-display-name').value);
+                formData.append('specialty', specialty);
                 const stemId = document.getElementById('relate-to-stem').value;
                 if (stemId) formData.append('relatedStemId', stemId);
             }
@@ -400,10 +484,12 @@
         function renderFiles() {
             const search = document.getElementById('search-input').value.toLowerCase();
             const category = document.getElementById('filter-category').value;
+            const specialty = document.getElementById('filter-specialty').value;
 
             let filtered = allFiles.filter(f => {
                 if (search && !f.display_name.toLowerCase().includes(search)) return false;
                 if (category && f.category !== category) return false;
+                if (specialty && f.specialty !== specialty) return false;
                 return true;
             });
 
@@ -423,6 +509,7 @@
                     </div>
                     <div class="file-card-meta">
                         ${file.file_type.toUpperCase()} &bull; ${new Date(file.created_at).toLocaleDateString()}
+                        ${file.specialty ? `&bull; <strong>${file.specialty}</strong>` : ''}
                     </div>
                     ${file.category === 'clinical_image' && file.stem_name ?
                         `<div class="file-card-related">Linked to: <strong>${file.stem_name}</strong></div>` :
@@ -430,7 +517,7 @@
                         `<div class="file-card-related" style="color: #999;">Not linked to any stem</div>` : ''}
                     <div class="file-card-actions">
                         <a href="${file.file_url}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
-                        <button class="btn btn-sm btn-primary" onclick="editFile(${file.id}, '${file.display_name.replace(/'/g, "\\'")}')">Edit</button>
+                        <button class="btn btn-sm btn-primary" onclick='editFile(${JSON.stringify(file)})'>Edit</button>
                         ${file.category === 'clinical_image' ?
                             `<button class="btn btn-sm btn-success" onclick="associateFile(${file.id}, ${file.related_stem_id || 'null'})">Associate</button>` : ''}
                         <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.id})">Delete</button>
@@ -441,11 +528,13 @@
 
         document.getElementById('search-input').addEventListener('input', renderFiles);
         document.getElementById('filter-category').addEventListener('change', renderFiles);
+        document.getElementById('filter-specialty').addEventListener('change', renderFiles);
 
         // Edit file
-        function editFile(id, name) {
-            document.getElementById('edit-file-id').value = id;
-            document.getElementById('edit-display-name').value = name;
+        function editFile(file) {
+            document.getElementById('edit-file-id').value = file.id;
+            document.getElementById('edit-display-name').value = file.display_name;
+            document.getElementById('edit-specialty').value = file.specialty || '';
             document.getElementById('edit-modal').classList.add('active');
         }
 
@@ -453,12 +542,13 @@
             e.preventDefault();
             const id = document.getElementById('edit-file-id').value;
             const displayName = document.getElementById('edit-display-name').value;
+            const specialty = document.getElementById('edit-specialty').value;
 
             try {
                 const response = await fetch(`/admin/repository/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ displayName })
+                    body: JSON.stringify({ displayName, specialty })
                 });
                 if (response.ok) {
                     showMessage('File updated!', 'success');

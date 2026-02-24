@@ -24,10 +24,8 @@
                 Each question will open in a new tab.
             </div>
 
-            <ul class="file-list" id="file-list">
-                <li class="file-item">
-                    <span style="color: #888;">Loading exam materials...</span>
-                </li>
+            <ul class="exam-links" id="file-list">
+                <li><span style="color: #888;">Loading exam materials...</span></li>
             </ul>
         </div>
     </div>
@@ -45,20 +43,26 @@
                 fileList.innerHTML = '';
 
                 if (data.files.length === 0) {
-                    fileList.innerHTML = '<li class="file-item"><span style="color: #888;">No exam materials available.</span></li>';
+                    fileList.innerHTML = '<li><span style="color: #888;">No exam materials available.</span></li>';
                     return;
                 }
 
-                data.files.forEach((file, index) => {
+                data.files.forEach((file) => {
                     const li = document.createElement('li');
-                    li.className = 'file-item';
-                    li.innerHTML = `
-                        <span class="file-number">${index + 1}</span>
-                        <a href="/exam/file/${file.id}" target="_blank" class="file-link">
-                            ${file.displayName}
-                        </a>
-                        <span class="file-type">${file.fileType}</span>
-                    `;
+
+                    // Use fileUrl directly from Cloudinary
+                    const fileLink = file.fileUrl || `/exam/file/${file.id}`;
+
+                    // Build display name: use alias if available, otherwise original name
+                    let displayText;
+                    if (file.roomNumber && file.itemNumber) {
+                        const itemLabel = file.itemType === 'image' ? 'Image' : 'Question';
+                        displayText = `Room ${file.roomNumber} ${itemLabel} ${file.itemNumber}`;
+                    } else {
+                        displayText = file.displayName;
+                    }
+
+                    li.innerHTML = `<a href="${fileLink}" target="_blank">${displayText}</a>`;
                     fileList.appendChild(li);
                 });
             } catch (err) {

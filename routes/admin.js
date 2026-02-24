@@ -314,12 +314,12 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
 
 router.put('/files/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
-    const { displayName, sortOrder } = req.body;
+    const { displayName, sortOrder, roomNumber, itemType, itemNumber } = req.body;
 
     try {
         await db.execute({
-            sql: 'UPDATE files SET display_name = ?, sort_order = ? WHERE id = ?',
-            args: [displayName, sortOrder, fileId]
+            sql: 'UPDATE files SET display_name = ?, sort_order = ?, room_number = ?, item_type = ?, item_number = ? WHERE id = ?',
+            args: [displayName, sortOrder, roomNumber || null, itemType || null, itemNumber || null, fileId]
         });
         res.json({ success: true });
     } catch (err) {
@@ -505,7 +505,7 @@ router.post('/repository/upload', requireAdmin, upload.fields([
     { name: 'file', maxCount: 1 }
 ]), async (req, res) => {
     try {
-        const { category, displayName, relatedStemId } = req.body;
+        const { category, displayName, relatedStemId, specialty } = req.body;
         const results = [];
 
         if (req.files.stemFile) {
@@ -514,8 +514,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             const stemName = req.body.stemDisplayName || stemFile.originalname.replace(/\.[^/.]+$/, '');
 
             const stemResult = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                args: [stemName, stemFile.originalname, stemFile.path, stemFile.filename, stemFileType, 'stem', null]
+                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [stemName, stemFile.originalname, stemFile.path, stemFile.filename, stemFileType, 'stem', null, specialty || null]
             });
             const stemId = Number(stemResult.lastInsertRowid);
             results.push({ id: stemId, type: 'stem', name: stemName });
@@ -526,8 +526,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
                 const clinicalName = req.body.clinicalDisplayName || clinicalFile.originalname.replace(/\.[^/.]+$/, '');
 
                 const clinicalResult = await db.execute({
-                    sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    args: [clinicalName, clinicalFile.originalname, clinicalFile.path, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId]
+                    sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    args: [clinicalName, clinicalFile.originalname, clinicalFile.path, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId, specialty || null]
                 });
                 results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId });
             }
@@ -537,8 +537,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             const name = displayName || file.originalname.replace(/\.[^/.]+$/, '');
 
             const result = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                args: [name, file.originalname, file.path, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null]
+                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                args: [name, file.originalname, file.path, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null, specialty || null]
             });
             results.push({ id: Number(result.lastInsertRowid), type: category, name: name });
         }
@@ -563,12 +563,12 @@ router.post('/repository/upload', requireAdmin, upload.fields([
 
 router.put('/repository/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
-    const { displayName } = req.body;
+    const { displayName, specialty } = req.body;
 
     try {
         await db.execute({
-            sql: 'UPDATE repository SET display_name = ? WHERE id = ?',
-            args: [displayName, fileId]
+            sql: 'UPDATE repository SET display_name = ?, specialty = ? WHERE id = ?',
+            args: [displayName, specialty || null, fileId]
         });
         res.json({ success: true });
     } catch (err) {

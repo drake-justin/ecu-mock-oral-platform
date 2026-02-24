@@ -30,7 +30,10 @@ router.get('/data', requireExaminee, async (req, res) => {
                 id: f.id,
                 displayName: f.display_name,
                 fileType: f.file_type,
-                fileUrl: f.file_url
+                fileUrl: f.file_url,
+                roomNumber: f.room_number,
+                itemNumber: f.item_number,
+                itemType: f.item_type
             }))
         });
     } catch (err) {

@@ -85,10 +85,22 @@ async function initializeDatabase() {
         await db.execute('ALTER TABLE files ADD COLUMN public_id TEXT');
     } catch (e) { /* column may already exist */ }
     try {
+        await db.execute('ALTER TABLE files ADD COLUMN room_number INTEGER');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE files ADD COLUMN item_number INTEGER');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE files ADD COLUMN item_type TEXT');
+    } catch (e) { /* column may already exist */ }
+    try {
         await db.execute('ALTER TABLE repository ADD COLUMN file_url TEXT');
     } catch (e) { /* column may already exist */ }
     try {
         await db.execute('ALTER TABLE repository ADD COLUMN public_id TEXT');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE repository ADD COLUMN specialty TEXT');
     } catch (e) { /* column may already exist */ }
 
     // Create default admin if none exists

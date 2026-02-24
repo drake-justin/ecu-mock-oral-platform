@@ -157,13 +157,37 @@
             <form id="edit-form">
                 <input type="hidden" id="edit-file-id">
                 <div class="form-group">
-                    <label for="edit-display-name">Display Name</label>
+                    <label for="edit-display-name">Display Name (original)</label>
                     <input type="text" id="edit-display-name" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="edit-sort-order">Sort Order</label>
                     <input type="number" id="edit-sort-order" class="form-control" min="1" required>
                 </div>
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+                <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
+                    <strong>Exam Alias:</strong> Set room/item numbers to hide the actual file name from examinees.
+                </p>
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="edit-room-number">Room #</label>
+                        <input type="number" id="edit-room-number" class="form-control" min="1" placeholder="e.g. 1">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="edit-item-type">Item Type</label>
+                        <select id="edit-item-type" class="form-control">
+                            <option value="question">Question (Stem)</option>
+                            <option value="image">Image</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="edit-item-number">Item #</label>
+                        <input type="number" id="edit-item-number" class="form-control" min="1" placeholder="e.g. 1">
+                    </div>
+                </div>
+                <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">
+                    Displays as: <strong id="alias-preview">Room 1 Question 1</strong>
+                </p>
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -297,22 +321,29 @@
                 return;
             }
 
-            container.innerHTML = files.map((file, index) => `
-                <div class="file-row" data-id="${file.id}">
-                    <div class="file-order">#${index + 1}</div>
-                    <div class="file-info">
-                        <div class="file-name">${file.display_name}</div>
-                        <div class="file-meta">
-                            ${file.file_type.toUpperCase()} &bull; Order: ${file.sort_order}
+            container.innerHTML = files.map((file, index) => {
+                let aliasText = '';
+                if (file.room_number && file.item_number) {
+                    const itemLabel = file.item_type === 'image' ? 'Image' : 'Question';
+                    aliasText = `<span class="badge badge-primary" style="margin-left: 10px;">Room ${file.room_number} ${itemLabel} ${file.item_number}</span>`;
+                }
+                return `
+                    <div class="file-row" data-id="${file.id}">
+                        <div class="file-order">#${index + 1}</div>
+                        <div class="file-info">
+                            <div class="file-name">${file.display_name}${aliasText}</div>
+                            <div class="file-meta">
+                                ${file.file_type.toUpperCase()} &bull; Order: ${file.sort_order}
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="${file.file_url || '#'}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
+                            <button class="btn btn-sm btn-primary" onclick='editFile(${JSON.stringify(file)})'>Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.id})">Delete</button>
                         </div>
                     </div>
-                    <div class="file-actions">
-                        <a href="${file.file_url || '#'}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
-                        <button class="btn btn-sm btn-primary" onclick="editFile(${file.id}, '${file.display_name.replace(/'/g, "\\'")}', ${file.sort_order})">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.id})">Delete</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         document.getElementById('exam-select').addEventListener('change', (e) => {
@@ -390,12 +421,37 @@
             }
         });
 
-        function editFile(id, displayName, sortOrder) {
-            document.getElementById('edit-file-id').value = id;
-            document.getElementById('edit-display-name').value = displayName;
-            document.getElementById('edit-sort-order').value = sortOrder;
+        function editFile(file) {
+            document.getElementById('edit-file-id').value = file.id;
+            document.getElementById('edit-display-name').value = file.display_name;
+            document.getElementById('edit-sort-order').value = file.sort_order;
+            document.getElementById('edit-room-number').value = file.room_number || '';
+            document.getElementById('edit-item-type').value = file.item_type || 'question';
+            document.getElementById('edit-item-number').value = file.item_number || '';
+            updateAliasPreview();
             document.getElementById('edit-modal').classList.add('active');
         }
+
+        function updateAliasPreview() {
+            const room = document.getElementById('edit-room-number').value;
+            const itemType = document.getElementById('edit-item-type').value;
+            const itemNum = document.getElementById('edit-item-number').value;
+            const preview = document.getElementById('alias-preview');
+
+            if (room && itemNum) {
+                const label = itemType === 'image' ? 'Image' : 'Question';
+                preview.textContent = `Room ${room} ${label} ${itemNum}`;
+                preview.style.color = '#4B2E83';
+            } else {
+                preview.textContent = '(Set room and item numbers above)';
+                preview.style.color = '#999';
+            }
+        }
+
+        // Add event listeners for alias preview
+        document.getElementById('edit-room-number').addEventListener('input', updateAliasPreview);
+        document.getElementById('edit-item-type').addEventListener('change', updateAliasPreview);
+        document.getElementById('edit-item-number').addEventListener('input', updateAliasPreview);
 
         function closeModal() {
             document.getElementById('edit-modal').classList.remove('active');
@@ -407,12 +463,15 @@
             const id = document.getElementById('edit-file-id').value;
             const displayName = document.getElementById('edit-display-name').value;
             const sortOrder = parseInt(document.getElementById('edit-sort-order').value);
+            const roomNumber = document.getElementById('edit-room-number').value ? parseInt(document.getElementById('edit-room-number').value) : null;
+            const itemType = document.getElementById('edit-item-type').value;
+            const itemNumber = document.getElementById('edit-item-number').value ? parseInt(document.getElementById('edit-item-number').value) : null;
 
             try {
                 const response = await fetch(`/admin/files/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ displayName, sortOrder })
+                    body: JSON.stringify({ displayName, sortOrder, roomNumber, itemType, itemNumber })
                 });
 
                 if (response.ok) {

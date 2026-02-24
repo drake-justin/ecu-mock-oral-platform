@@ -3,5 +3,10 @@ data/*.sqlite
 uploads/*
 !uploads/.gitkeep
 .env
+.env.*
+.env.local
+.env.production
+*.local.db
+local.db
 .DS_Store
 *.log
