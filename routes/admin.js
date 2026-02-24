@@ -349,6 +349,98 @@ router.delete('/files/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// Add files from repository to exam
+router.post('/files/from-repository', requireAdmin, async (req, res) => {
+    const { examId, repositoryIds } = req.body;
+
+    if (!examId || !repositoryIds || !Array.isArray(repositoryIds) || repositoryIds.length === 0) {
+        return res.status(400).json({ error: 'Exam ID and repository file IDs are required' });
+    }
+
+    try {
+        const maxOrderResult = await db.execute({
+            sql: 'SELECT MAX(sort_order) as max_order FROM files WHERE exam_id = ?',
+            args: [parseInt(examId)]
+        });
+        let sortOrder = (maxOrderResult.rows[0].max_order || 0) + 1;
+
+        const added = [];
+
+        for (const repoId of repositoryIds) {
+            // Get the repository file
+            const repoResult = await db.execute({
+                sql: 'SELECT * FROM repository WHERE id = ?',
+                args: [parseInt(repoId)]
+            });
+            const repoFile = repoResult.rows[0];
+
+            if (repoFile) {
+                // Add to exam files (reference the same Cloudinary file)
+                const result = await db.execute({
+                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder]
+                });
+
+                added.push({
+                    id: Number(result.lastInsertRowid),
+                    display_name: repoFile.display_name,
+                    file_type: repoFile.file_type
+                });
+
+                sortOrder++;
+
+                // If this is a stem, also add its linked clinical images
+                if (repoFile.category === 'stem') {
+                    const linkedImages = await db.execute({
+                        sql: 'SELECT * FROM repository WHERE related_stem_id = ?',
+                        args: [parseInt(repoId)]
+                    });
+
+                    for (const img of linkedImages.rows) {
+                        const imgResult = await db.execute({
+                            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            args: [parseInt(examId), img.display_name, img.filename, img.file_url, img.public_id, img.file_type, sortOrder]
+                        });
+
+                        added.push({
+                            id: Number(imgResult.lastInsertRowid),
+                            display_name: img.display_name,
+                            file_type: img.file_type
+                        });
+
+                        sortOrder++;
+                    }
+                }
+            }
+        }
+
+        res.json({ success: true, added });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to add files to exam' });
+    }
+});
+
+// Get repository stems with their linked images for selection
+router.get('/files/repository-stems', requireAdmin, async (req, res) => {
+    try {
+        const stems = await db.execute(`
+            SELECT r.*,
+                   GROUP_CONCAT(ci.id) as linked_image_ids,
+                   GROUP_CONCAT(ci.display_name) as linked_image_names
+            FROM repository r
+            LEFT JOIN repository ci ON ci.related_stem_id = r.id
+            WHERE r.category = 'stem'
+            GROUP BY r.id
+            ORDER BY r.display_name
+        `);
+        res.json(stems.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch repository stems' });
+    }
+});
+
 // === REPOSITORY (Standalone File Management) ===
 
 router.get('/repository', requireAdmin, (req, res) => {

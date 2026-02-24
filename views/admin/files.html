@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Files - ECU Mock Oral</title>
+    <title>Exam Files - ECU Mock Oral</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
         .file-upload-zone {
@@ -19,9 +19,7 @@
             border-color: #4B2E83;
             background: #f0ebf5;
         }
-        .file-upload-zone input {
-            display: none;
-        }
+        .file-upload-zone input { display: none; }
         .file-row {
             display: flex;
             align-items: center;
@@ -36,32 +34,44 @@
             font-weight: bold;
             color: #4B2E83;
         }
-        .file-row .file-info {
-            flex: 1;
-            padding: 0 15px;
+        .file-row .file-info { flex: 1; padding: 0 15px; }
+        .file-row .file-name { font-weight: 500; }
+        .file-row .file-meta { font-size: 0.85rem; color: #666; }
+        .file-row .file-actions { display: flex; gap: 8px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1rem;
         }
-        .file-row .file-name {
-            font-weight: 500;
-        }
-        .file-row .file-meta {
-            font-size: 0.85rem;
-            color: #666;
-        }
-        .file-row .file-actions {
+        .tab.active { background: #4B2E83; color: white; }
+        .tab:hover:not(.active) { background: #e0e0e0; }
+        .repo-item {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .sort-input {
-            width: 60px;
-            padding: 5px;
-            text-align: center;
-        }
+        .repo-item:hover { border-color: #4B2E83; background: #f9f6fc; }
+        .repo-item.selected { border-color: #4B2E83; background: #e8e0f3; }
+        .repo-item input { margin-right: 12px; }
+        .repo-item-info { flex: 1; }
+        .repo-item-name { font-weight: 500; }
+        .repo-item-meta { font-size: 0.85rem; color: #666; }
+        .repo-item-linked { font-size: 0.8rem; color: #28a745; margin-top: 4px; }
     </style>
 </head>
 <body>
     <header class="header">
         <h1>ECU Mock Oral Platform</h1>
-        <p class="subtitle">File Management</p>
+        <p class="subtitle">Exam Files</p>
     </header>
 
     <nav class="admin-nav">
@@ -88,31 +98,50 @@
 
         <div id="files-section" style="display: none;">
             <div class="card">
-                <h2 class="card-title">Upload Files</h2>
-                <p style="margin-bottom: 15px; color: #666;">Upload PDF or image files (JPG, PNG, GIF). Max 50MB per file.</p>
+                <h2 class="card-title">Add Files to Exam</h2>
 
-                <div class="file-upload-zone" id="upload-zone">
-                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.gif" multiple>
-                    <p style="margin: 0; color: #666;">
-                        <strong>Click to upload</strong> or drag and drop<br>
-                        <span style="font-size: 0.85rem;">PDF, JPG, PNG, or GIF</span>
-                    </p>
+                <div class="tabs">
+                    <button class="tab active" data-tab="repository">From Repository</button>
+                    <button class="tab" data-tab="upload">Upload New</button>
                 </div>
 
-                <div id="upload-progress" style="margin-top: 15px; display: none;">
-                    <div style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
-                        <div id="progress-bar" style="background: #4B2E83; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                <!-- Select from Repository -->
+                <div id="repository-tab">
+                    <p style="color: #666; margin-bottom: 15px;">Select question stems to add. Linked clinical images will be added automatically.</p>
+                    <div id="repo-list" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color: #888;">Loading repository...</p>
                     </div>
-                    <p id="upload-status" style="text-align: center; margin-top: 10px; color: #666;"></p>
+                    <button class="btn btn-primary" id="add-from-repo-btn" style="margin-top: 15px;" disabled>Add Selected to Exam</button>
+                </div>
+
+                <!-- Upload New -->
+                <div id="upload-tab" style="display: none;">
+                    <p style="margin-bottom: 15px; color: #666;">Upload a new file directly to this exam.</p>
+                    <div class="file-upload-zone" id="upload-zone">
+                        <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                        <p style="margin: 0; color: #666;">
+                            <strong>Click to upload</strong> or drag and drop<br>
+                            <span style="font-size: 0.85rem;">PDF, JPG, PNG, or GIF</span>
+                        </p>
+                    </div>
+                    <div id="upload-preview" style="margin-top: 15px; display: none;">
+                        <p><strong>Selected:</strong> <span id="upload-filename"></span></p>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label>Display Name (optional)</label>
+                            <input type="text" id="upload-display-name" class="form-control" placeholder="Leave blank to use filename">
+                        </div>
+                        <button class="btn btn-primary" id="upload-btn">Upload File</button>
+                        <button class="btn btn-secondary" id="clear-upload-btn" style="margin-left: 10px;">Clear</button>
+                    </div>
                 </div>
             </div>
 
             <div class="card">
-                <h2 class="card-title">Exam Files</h2>
+                <h2 class="card-title">Current Exam Files</h2>
                 <div id="message" class="alert" style="display: none;"></div>
-                <p style="margin-bottom: 15px; color: #666;">Files are shown to examinees in order. Adjust the order using the number inputs.</p>
+                <p style="margin-bottom: 15px; color: #666;">These files will be shown to examinees in order.</p>
                 <div id="files-list">
-                    <p style="color: #888; text-align: center;">No files uploaded yet.</p>
+                    <p style="color: #888; text-align: center;">No files added yet.</p>
                 </div>
             </div>
         </div>
@@ -130,9 +159,6 @@
                 <div class="form-group">
                     <label for="edit-display-name">Display Name</label>
                     <input type="text" id="edit-display-name" class="form-control" required>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
-                        This is what examinees will see (e.g., "Question 1 - Stem")
-                    </p>
                 </div>
                 <div class="form-group">
                     <label for="edit-sort-order">Sort Order</label>
@@ -148,6 +174,8 @@
 
     <script>
         let currentExamId = null;
+        let selectedRepoItems = new Set();
+        let uploadFile = null;
 
         function showMessage(text, type) {
             const msg = document.getElementById('message');
@@ -156,6 +184,17 @@
             msg.style.display = 'block';
             setTimeout(() => msg.style.display = 'none', 3000);
         }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const tabName = tab.dataset.tab;
+                document.getElementById('repository-tab').style.display = tabName === 'repository' ? 'block' : 'none';
+                document.getElementById('upload-tab').style.display = tabName === 'upload' ? 'block' : 'none';
+            });
+        });
 
         async function loadExams() {
             const response = await fetch('/admin/exams/list');
@@ -172,6 +211,81 @@
             });
         }
 
+        async function loadRepositoryStems() {
+            try {
+                const response = await fetch('/admin/files/repository-stems');
+                const stems = await response.json();
+
+                const container = document.getElementById('repo-list');
+
+                if (stems.length === 0) {
+                    container.innerHTML = '<p style="color: #888;">No files in repository. <a href="/admin/repository">Upload some first</a>.</p>';
+                    return;
+                }
+
+                container.innerHTML = stems.map(stem => {
+                    const linkedImages = stem.linked_image_names ? stem.linked_image_names.split(',') : [];
+                    return `
+                        <div class="repo-item" data-id="${stem.id}" onclick="toggleRepoItem(${stem.id})">
+                            <input type="checkbox" id="repo-${stem.id}" ${selectedRepoItems.has(stem.id) ? 'checked' : ''}>
+                            <div class="repo-item-info">
+                                <div class="repo-item-name">${stem.display_name}</div>
+                                <div class="repo-item-meta">${stem.file_type.toUpperCase()} - Question Stem</div>
+                                ${linkedImages.length > 0 ?
+                                    `<div class="repo-item-linked">+ ${linkedImages.length} linked image(s): ${linkedImages.join(', ')}</div>` :
+                                    '<div class="repo-item-meta" style="color: #999;">No linked images</div>'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function toggleRepoItem(id) {
+            if (selectedRepoItems.has(id)) {
+                selectedRepoItems.delete(id);
+            } else {
+                selectedRepoItems.add(id);
+            }
+
+            const item = document.querySelector(`.repo-item[data-id="${id}"]`);
+            const checkbox = document.getElementById(`repo-${id}`);
+            if (item) item.classList.toggle('selected', selectedRepoItems.has(id));
+            if (checkbox) checkbox.checked = selectedRepoItems.has(id);
+
+            document.getElementById('add-from-repo-btn').disabled = selectedRepoItems.size === 0;
+        }
+
+        document.getElementById('add-from-repo-btn').addEventListener('click', async () => {
+            if (selectedRepoItems.size === 0) return;
+
+            try {
+                const response = await fetch('/admin/files/from-repository', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        examId: parseInt(currentExamId),
+                        repositoryIds: Array.from(selectedRepoItems)
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage(`Added ${data.added.length} file(s) to exam!`, 'success');
+                    selectedRepoItems.clear();
+                    loadRepositoryStems();
+                    loadFiles(currentExamId);
+                } else {
+                    showMessage(data.error || 'Failed to add files', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
         async function loadFiles(examId) {
             const response = await fetch(`/admin/files/list/${examId}`);
             const files = await response.json();
@@ -179,7 +293,7 @@
             const container = document.getElementById('files-list');
 
             if (files.length === 0) {
-                container.innerHTML = '<p style="color: #888; text-align: center;">No files uploaded yet.</p>';
+                container.innerHTML = '<p style="color: #888; text-align: center;">No files added yet. Select from repository or upload new files above.</p>';
                 return;
             }
 
@@ -205,6 +319,8 @@
             currentExamId = e.target.value;
             if (currentExamId) {
                 document.getElementById('files-section').style.display = 'block';
+                selectedRepoItems.clear();
+                loadRepositoryStems();
                 loadFiles(currentExamId);
             } else {
                 document.getElementById('files-section').style.display = 'none';
@@ -216,74 +332,63 @@
         const fileInput = document.getElementById('file-input');
 
         uploadZone.addEventListener('click', () => fileInput.click());
-
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
+            if (e.dataTransfer.files.length) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
         });
-
         fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
+            if (e.target.files.length) {
+                handleFileSelect(e.target.files[0]);
+            }
         });
 
-        async function handleFiles(files) {
-            if (!currentExamId) {
-                showMessage('Please select an exam first', 'error');
-                return;
-            }
-
-            const progress = document.getElementById('upload-progress');
-            const progressBar = document.getElementById('progress-bar');
-            const status = document.getElementById('upload-status');
-
-            progress.style.display = 'block';
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                status.textContent = `Uploading ${file.name} (${i + 1}/${files.length})...`;
-                progressBar.style.width = `${((i) / files.length) * 100}%`;
-
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('examId', currentExamId);
-                formData.append('displayName', file.name.replace(/\.[^/.]+$/, '')); // Remove extension
-
-                try {
-                    const response = await fetch('/admin/files/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) {
-                        const data = await response.json();
-                        showMessage(`Error uploading ${file.name}: ${data.error}`, 'error');
-                    }
-                } catch (err) {
-                    showMessage(`Error uploading ${file.name}`, 'error');
-                }
-
-                progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
-            }
-
-            status.textContent = 'Upload complete!';
-            setTimeout(() => {
-                progress.style.display = 'none';
-                progressBar.style.width = '0%';
-            }, 2000);
-
-            loadFiles(currentExamId);
-            fileInput.value = '';
+        function handleFileSelect(file) {
+            uploadFile = file;
+            document.getElementById('upload-filename').textContent = file.name;
+            document.getElementById('upload-preview').style.display = 'block';
         }
+
+        document.getElementById('clear-upload-btn').addEventListener('click', () => {
+            uploadFile = null;
+            fileInput.value = '';
+            document.getElementById('upload-preview').style.display = 'none';
+            document.getElementById('upload-display-name').value = '';
+        });
+
+        document.getElementById('upload-btn').addEventListener('click', async () => {
+            if (!uploadFile) return;
+
+            const formData = new FormData();
+            formData.append('file', uploadFile);
+            formData.append('examId', currentExamId);
+            formData.append('displayName', document.getElementById('upload-display-name').value);
+
+            try {
+                const response = await fetch('/admin/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage('File uploaded!', 'success');
+                    uploadFile = null;
+                    fileInput.value = '';
+                    document.getElementById('upload-preview').style.display = 'none';
+                    document.getElementById('upload-display-name').value = '';
+                    loadFiles(currentExamId);
+                } else {
+                    showMessage(data.error || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
 
         function editFile(id, displayName, sortOrder) {
             document.getElementById('edit-file-id').value = id;
@@ -323,15 +428,15 @@
         });
 
         async function deleteFile(id) {
-            if (!confirm('Delete this file?')) return;
+            if (!confirm('Remove this file from the exam?')) return;
 
             try {
                 const response = await fetch(`/admin/files/${id}`, { method: 'DELETE' });
                 if (response.ok) {
-                    showMessage('File deleted!', 'success');
+                    showMessage('File removed!', 'success');
                     loadFiles(currentExamId);
                 } else {
-                    showMessage('Failed to delete file', 'error');
+                    showMessage('Failed to remove file', 'error');
                 }
             } catch (err) {
                 showMessage('An error occurred', 'error');

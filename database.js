@@ -101,6 +101,17 @@ async function initializeDatabase() {
         });
         console.log('Default admin created - Username: admin, Password: admin123');
     }
+
+    // Check for password reset via environment variable
+    if (process.env.ADMIN_RESET_PASSWORD) {
+        const newHash = bcrypt.hashSync(process.env.ADMIN_RESET_PASSWORD, 10);
+        await db.execute({
+            sql: 'UPDATE admins SET password_hash = ? WHERE username = ?',
+            args: [newHash, 'admin']
+        });
+        console.log('Admin password has been reset via ADMIN_RESET_PASSWORD environment variable');
+        console.log('IMPORTANT: Remove the ADMIN_RESET_PASSWORD variable from your environment after logging in!');
+    }
 }
 
 // Helper function to generate random password
