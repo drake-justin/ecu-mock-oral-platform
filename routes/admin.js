@@ -1,43 +1,9 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { db, generatePassword, generateUsername } = require('../database');
+const { upload, deleteFile } = require('../cloudinary');
 const { requireAdmin } = require('../middleware/auth');
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif'];
-    if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Invalid file type. Only PDF, JPG, PNG, and GIF are allowed.'), false);
-    }
-};
-
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
-});
 
 // Admin dashboard
 router.get('/', requireAdmin, (req, res) => {
@@ -122,22 +88,23 @@ router.put('/exams/:id', requireAdmin, async (req, res) => {
 router.delete('/exams/:id', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     try {
-        // Get files to delete from filesystem
+        // Get files to delete from Cloudinary
         const filesResult = await db.execute({
-            sql: 'SELECT filename FROM files WHERE exam_id = ?',
+            sql: 'SELECT public_id, file_type FROM files WHERE exam_id = ?',
             args: [examId]
         });
 
-        filesResult.rows.forEach(file => {
-            const filePath = path.join(uploadsDir, file.filename);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+        for (const file of filesResult.rows) {
+            if (file.public_id) {
+                const resourceType = file.file_type === 'pdf' ? 'raw' : 'image';
+                await deleteFile(file.public_id, resourceType);
             }
-        });
+        }
 
         await db.execute({ sql: 'DELETE FROM exams WHERE id = ?', args: [examId] });
         res.json({ success: true });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Failed to delete exam' });
     }
 });
@@ -280,7 +247,7 @@ router.delete('/credentials/exam/:examId', requireAdmin, async (req, res) => {
     }
 });
 
-// === FILE MANAGEMENT ===
+// === FILE MANAGEMENT (Exam Files) ===
 
 router.get('/files', requireAdmin, (req, res) => {
     res.sendFile('admin/files.html', { root: './views' });
@@ -306,7 +273,11 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
 
     const { examId, displayName } = req.body;
     if (!examId) {
-        fs.unlinkSync(req.file.path);
+        // Delete from Cloudinary if no exam ID
+        if (req.file.filename) {
+            const resourceType = req.file.mimetype === 'application/pdf' ? 'raw' : 'image';
+            await deleteFile(req.file.filename, resourceType);
+        }
         return res.status(400).json({ error: 'Exam ID is required' });
     }
 
@@ -321,8 +292,8 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
         const name = displayName || req.file.originalname;
 
         const result = await db.execute({
-            sql: 'INSERT INTO files (exam_id, display_name, filename, file_type, sort_order) VALUES (?, ?, ?, ?, ?)',
-            args: [parseInt(examId), name, req.file.filename, fileType, sortOrder]
+            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            args: [parseInt(examId), name, req.file.originalname, req.file.path, req.file.filename, fileType, sortOrder]
         });
 
         res.json({
@@ -330,14 +301,13 @@ router.post('/files/upload', requireAdmin, upload.single('file'), async (req, re
             file: {
                 id: Number(result.lastInsertRowid),
                 display_name: name,
-                filename: req.file.filename,
+                file_url: req.file.path,
                 file_type: fileType,
                 sort_order: sortOrder
             }
         });
     } catch (err) {
         console.error(err);
-        fs.unlinkSync(req.file.path);
         res.status(500).json({ error: 'Failed to save file' });
     }
 });
@@ -361,30 +331,21 @@ router.delete('/files/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     try {
         const result = await db.execute({
-            sql: 'SELECT filename FROM files WHERE id = ?',
+            sql: 'SELECT public_id, file_type FROM files WHERE id = ?',
             args: [fileId]
         });
         const file = result.rows[0];
 
-        if (file) {
-            const filePath = path.join(uploadsDir, file.filename);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
-            await db.execute({ sql: 'DELETE FROM files WHERE id = ?', args: [fileId] });
+        if (file && file.public_id) {
+            const resourceType = file.file_type === 'pdf' ? 'raw' : 'image';
+            await deleteFile(file.public_id, resourceType);
         }
+
+        await db.execute({ sql: 'DELETE FROM files WHERE id = ?', args: [fileId] });
         res.json({ success: true });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Failed to delete file' });
-    }
-});
-
-router.get('/files/preview/:filename', requireAdmin, (req, res) => {
-    const filePath = path.join(uploadsDir, req.params.filename);
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('File not found');
     }
 });
 
@@ -461,8 +422,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             const stemName = req.body.stemDisplayName || stemFile.originalname.replace(/\.[^/.]+$/, '');
 
             const stemResult = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
-                args: [stemName, stemFile.filename, stemFileType, 'stem', null]
+                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                args: [stemName, stemFile.originalname, stemFile.path, stemFile.filename, stemFileType, 'stem', null]
             });
             const stemId = Number(stemResult.lastInsertRowid);
             results.push({ id: stemId, type: 'stem', name: stemName });
@@ -473,8 +434,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
                 const clinicalName = req.body.clinicalDisplayName || clinicalFile.originalname.replace(/\.[^/.]+$/, '');
 
                 const clinicalResult = await db.execute({
-                    sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
-                    args: [clinicalName, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId]
+                    sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    args: [clinicalName, clinicalFile.originalname, clinicalFile.path, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId]
                 });
                 results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId });
             }
@@ -484,8 +445,8 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             const name = displayName || file.originalname.replace(/\.[^/.]+$/, '');
 
             const result = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)',
-                args: [name, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null]
+                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                args: [name, file.originalname, file.path, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null]
             });
             results.push({ id: Number(result.lastInsertRowid), type: category, name: name });
         }
@@ -493,12 +454,16 @@ router.post('/repository/upload', requireAdmin, upload.fields([
         res.json({ success: true, files: results });
     } catch (err) {
         console.error(err);
+        // Clean up uploaded files on error
         if (req.files) {
-            Object.values(req.files).flat().forEach(file => {
-                if (fs.existsSync(file.path)) {
-                    fs.unlinkSync(file.path);
+            for (const fileArray of Object.values(req.files)) {
+                for (const file of fileArray) {
+                    if (file.filename) {
+                        const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'image';
+                        await deleteFile(file.filename, resourceType);
+                    }
                 }
-            });
+            }
         }
         res.status(500).json({ error: 'Failed to upload files' });
     }
@@ -551,25 +516,18 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
                 });
             }
 
-            const filePath = path.join(uploadsDir, file.filename);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+            // Delete from Cloudinary
+            if (file.public_id) {
+                const resourceType = file.file_type === 'pdf' ? 'raw' : 'image';
+                await deleteFile(file.public_id, resourceType);
             }
+
             await db.execute({ sql: 'DELETE FROM repository WHERE id = ?', args: [fileId] });
         }
         res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to delete file' });
-    }
-});
-
-router.get('/repository/preview/:filename', requireAdmin, (req, res) => {
-    const filePath = path.join(uploadsDir, req.params.filename);
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('File not found');
     }
 });
 

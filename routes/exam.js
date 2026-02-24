@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const router = express.Router();
 const { db } = require('../database');
 const { requireExaminee } = require('../middleware/auth');
@@ -30,7 +29,8 @@ router.get('/data', requireExaminee, async (req, res) => {
             files: filesResult.rows.map(f => ({
                 id: f.id,
                 displayName: f.display_name,
-                fileType: f.file_type
+                fileType: f.file_type,
+                fileUrl: f.file_url
             }))
         });
     } catch (err) {
@@ -39,7 +39,7 @@ router.get('/data', requireExaminee, async (req, res) => {
     }
 });
 
-// View a specific file
+// Redirect to file URL (Cloudinary)
 router.get('/file/:id', requireExaminee, async (req, res) => {
     try {
         const fileId = parseInt(req.params.id);
@@ -59,8 +59,12 @@ router.get('/file/:id', requireExaminee, async (req, res) => {
             return res.status(403).send('Access denied');
         }
 
-        const filePath = path.join(__dirname, '..', 'uploads', file.filename);
-        res.sendFile(filePath);
+        // Redirect to Cloudinary URL
+        if (file.file_url) {
+            res.redirect(file.file_url);
+        } else {
+            res.status(404).send('File URL not found');
+        }
     } catch (err) {
         console.error('Error serving file:', err);
         res.status(500).send('Error loading file');

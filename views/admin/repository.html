@@ -429,7 +429,7 @@
                         file.category === 'clinical_image' ?
                         `<div class="file-card-related" style="color: #999;">Not linked to any stem</div>` : ''}
                     <div class="file-card-actions">
-                        <a href="/admin/repository/preview/${file.filename}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
+                        <a href="${file.file_url}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
                         <button class="btn btn-sm btn-primary" onclick="editFile(${file.id}, '${file.display_name.replace(/'/g, "\\'")}')">Edit</button>
                         ${file.category === 'clinical_image' ?
                             `<button class="btn btn-sm btn-success" onclick="associateFile(${file.id}, ${file.related_stem_id || 'null'})">Associate</button>` : ''}
