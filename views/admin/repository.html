@@ -508,7 +508,7 @@
                         </span>
                     </div>
                     <div class="file-card-meta">
-                        ${file.file_type.toUpperCase()} &bull; ${new Date(file.created_at).toLocaleDateString()}
+                        ${file.file_type.toUpperCase()} &bull; ${new Date(file.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}
                         ${file.specialty ? `&bull; <strong>${file.specialty}</strong>` : ''}
                     </div>
                     ${file.category === 'clinical_image' && file.stem_name ?
