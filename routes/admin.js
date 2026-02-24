@@ -2,8 +2,9 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { examQueries, credentialQueries, fileQueries, generatePassword, generateUsername } = require('../database');
+const { examQueries, credentialQueries, fileQueries, adminQueries, generatePassword, generateUsername } = require('../database');
 const { requireAdmin } = require('../middleware/auth');
 
 // Configure multer for file uploads
@@ -274,6 +275,44 @@ router.get('/files/preview/:filename', requireAdmin, (req, res) => {
         res.sendFile(filePath);
     } else {
         res.status(404).send('File not found');
+    }
+});
+
+// === SETTINGS / PASSWORD CHANGE ===
+
+router.get('/settings', requireAdmin, (req, res) => {
+    res.sendFile('admin/settings.html', { root: './views' });
+});
+
+router.post('/change-password', requireAdmin, (req, res) => {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({ error: 'New passwords do not match' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    try {
+        const admin = adminQueries.findByUsername.get(req.session.admin.username);
+
+        if (!bcrypt.compareSync(currentPassword, admin.password_hash)) {
+            return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+
+        const newHash = bcrypt.hashSync(newPassword, 10);
+        adminQueries.updatePassword.run(newHash, admin.id);
+
+        res.json({ success: true, message: 'Password changed successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to change password' });
     }
 });
 

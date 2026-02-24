@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">Admin Settings</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/exams">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files">Files</a>
+        <a href="/admin/settings" class="active">Settings</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container container-narrow">
+        <div class="card">
+            <h2 class="card-title">Change Password</h2>
+            <div id="message" class="alert" style="display: none;"></div>
+
+            <form id="password-form">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" class="form-control" required minlength="6">
+                    <small style="color: #666;">Minimum 6 characters</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input type="password" id="confirm-password" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Change Password</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `alert alert-${type}`;
+            msg.style.display = 'block';
+        }
+
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (newPassword !== confirmPassword) {
+                showMessage('New passwords do not match', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Password changed successfully!', 'success');
+                    document.getElementById('password-form').reset();
+                } else {
+                    showMessage(data.error || 'Failed to change password', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
