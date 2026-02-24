@@ -150,32 +150,58 @@
                 <button class="tab" data-tab="single">Single File</button>
             </div>
 
-            <!-- Specialty Selector (shared) -->
+            <!-- Core Topic Selector (shared) -->
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Specialty</label>
-                <select id="upload-specialty" class="form-control" style="max-width: 300px;">
-                    <option value="">-- Select Specialty --</option>
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Dermatology">Dermatology</option>
-                    <option value="Emergency Medicine">Emergency Medicine</option>
-                    <option value="Endocrinology">Endocrinology</option>
-                    <option value="Gastroenterology">Gastroenterology</option>
-                    <option value="General Surgery">General Surgery</option>
-                    <option value="Hematology/Oncology">Hematology/Oncology</option>
-                    <option value="Infectious Disease">Infectious Disease</option>
-                    <option value="Internal Medicine">Internal Medicine</option>
-                    <option value="Nephrology">Nephrology</option>
-                    <option value="Neurology">Neurology</option>
-                    <option value="OB/GYN">OB/GYN</option>
-                    <option value="Ophthalmology">Ophthalmology</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Psychiatry">Psychiatry</option>
-                    <option value="Pulmonology">Pulmonology</option>
-                    <option value="Radiology">Radiology</option>
-                    <option value="Rheumatology">Rheumatology</option>
-                    <option value="Urology">Urology</option>
-                    <option value="Other">Other</option>
+                <label>Core Topic</label>
+                <select id="upload-specialty" class="form-control" style="max-width: 400px;">
+                    <option value="">-- Select Core Topic --</option>
+                    <option value="General Abdomen">General Abdomen</option>
+                    <option value="Hernia">Hernia</option>
+                    <option value="Biliary">Biliary</option>
+                    <option value="Liver">Liver</option>
+                    <option value="Pancreas">Pancreas</option>
+                    <option value="Spleen">Spleen</option>
+                    <option value="Esophagus">Esophagus</option>
+                    <option value="Stomach">Stomach</option>
+                    <option value="Small Intestine">Small Intestine</option>
+                    <option value="Large Intestine">Large Intestine</option>
+                    <option value="Anorectal">Anorectal</option>
+                    <option value="Endoscopy">Endoscopy</option>
+                    <option value="Breast">Breast</option>
+                    <option value="Endocrine">Endocrine</option>
+                    <option value="Skin and Soft Tissue">Skin and Soft Tissue</option>
+                    <option value="Surgical Critical Care">Surgical Critical Care</option>
+                    <option value="Trauma">Trauma</option>
+                    <option value="Arterial Disease">Arterial Disease</option>
+                    <option value="Vascular Venous">Vascular Venous</option>
+                    <option value="Vascular Access">Vascular Access</option>
+                    <option value="Transplantation">Transplantation</option>
+                    <option value="Thoracic Surgery">Thoracic Surgery</option>
+                    <option value="Pediatric Surgery">Pediatric Surgery</option>
+                    <option value="Genitourinary">Genitourinary</option>
+                    <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                    <option value="Head and Neck">Head and Neck</option>
+                    <option value="Anesthesia">Anesthesia</option>
+                    <option value="Biostatistics and Evaluation of Evidence">Biostatistics and Evaluation of Evidence</option>
+                    <option value="Fluids, Electrolytes, and Acid-Base Balance">Fluids, Electrolytes, and Acid-Base Balance</option>
+                    <option value="Geriatric Surgery">Geriatric Surgery</option>
+                    <option value="Immunology">Immunology</option>
+                    <option value="Infection and Antimicrobial Therapy">Infection and Antimicrobial Therapy</option>
+                    <option value="Minimally Invasive Surgery Principles">Minimally Invasive Surgery Principles</option>
+                    <option value="Nutrition and Metabolism">Nutrition and Metabolism</option>
+                    <option value="Oncology and Tumor Biology">Oncology and Tumor Biology</option>
+                    <option value="Preoperative Evaluation and Perioperative Care">Preoperative Evaluation and Perioperative Care</option>
+                    <option value="Transfusion and Disorders of Coagulation">Transfusion and Disorders of Coagulation</option>
+                    <option value="Wound Management">Wound Management</option>
+                    <option value="Interpersonal and Communication Skills">Interpersonal and Communication Skills</option>
+                    <option value="Advanced Empathic Patient/Family Communication">Advanced Empathic Patient/Family Communication</option>
+                    <option value="End of Life Care">End of Life Care</option>
+                    <option value="Ethics and Practice of Shared Decision-Making">Ethics and Practice of Shared Decision-Making</option>
+                    <option value="Prognostication and Surgical Planning">Prognostication and Surgical Planning</option>
+                    <option value="Ethical Issues in Clinical Surgery">Ethical Issues in Clinical Surgery</option>
+                    <option value="Inclusive Excellence">Inclusive Excellence</option>
+                    <option value="Systems-based Practice">Systems-based Practice</option>
+                    <option value="Quality Improvement">Quality Improvement</option>
                 </select>
             </div>
 
@@ -256,28 +282,54 @@
                     <option value="clinical_image">Clinical Images</option>
                 </select>
                 <select id="filter-specialty" class="form-control" style="width: auto;">
-                    <option value="">All Specialties</option>
-                    <option value="Cardiology">Cardiology</option>
-                    <option value="Dermatology">Dermatology</option>
-                    <option value="Emergency Medicine">Emergency Medicine</option>
-                    <option value="Endocrinology">Endocrinology</option>
-                    <option value="Gastroenterology">Gastroenterology</option>
-                    <option value="General Surgery">General Surgery</option>
-                    <option value="Hematology/Oncology">Hematology/Oncology</option>
-                    <option value="Infectious Disease">Infectious Disease</option>
-                    <option value="Internal Medicine">Internal Medicine</option>
-                    <option value="Nephrology">Nephrology</option>
-                    <option value="Neurology">Neurology</option>
-                    <option value="OB/GYN">OB/GYN</option>
-                    <option value="Ophthalmology">Ophthalmology</option>
-                    <option value="Orthopedics">Orthopedics</option>
-                    <option value="Pediatrics">Pediatrics</option>
-                    <option value="Psychiatry">Psychiatry</option>
-                    <option value="Pulmonology">Pulmonology</option>
-                    <option value="Radiology">Radiology</option>
-                    <option value="Rheumatology">Rheumatology</option>
-                    <option value="Urology">Urology</option>
-                    <option value="Other">Other</option>
+                    <option value="">All Core Topics</option>
+                    <option value="General Abdomen">General Abdomen</option>
+                    <option value="Hernia">Hernia</option>
+                    <option value="Biliary">Biliary</option>
+                    <option value="Liver">Liver</option>
+                    <option value="Pancreas">Pancreas</option>
+                    <option value="Spleen">Spleen</option>
+                    <option value="Esophagus">Esophagus</option>
+                    <option value="Stomach">Stomach</option>
+                    <option value="Small Intestine">Small Intestine</option>
+                    <option value="Large Intestine">Large Intestine</option>
+                    <option value="Anorectal">Anorectal</option>
+                    <option value="Endoscopy">Endoscopy</option>
+                    <option value="Breast">Breast</option>
+                    <option value="Endocrine">Endocrine</option>
+                    <option value="Skin and Soft Tissue">Skin and Soft Tissue</option>
+                    <option value="Surgical Critical Care">Surgical Critical Care</option>
+                    <option value="Trauma">Trauma</option>
+                    <option value="Arterial Disease">Arterial Disease</option>
+                    <option value="Vascular Venous">Vascular Venous</option>
+                    <option value="Vascular Access">Vascular Access</option>
+                    <option value="Transplantation">Transplantation</option>
+                    <option value="Thoracic Surgery">Thoracic Surgery</option>
+                    <option value="Pediatric Surgery">Pediatric Surgery</option>
+                    <option value="Genitourinary">Genitourinary</option>
+                    <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                    <option value="Head and Neck">Head and Neck</option>
+                    <option value="Anesthesia">Anesthesia</option>
+                    <option value="Biostatistics and Evaluation of Evidence">Biostatistics and Evaluation of Evidence</option>
+                    <option value="Fluids, Electrolytes, and Acid-Base Balance">Fluids, Electrolytes, and Acid-Base Balance</option>
+                    <option value="Geriatric Surgery">Geriatric Surgery</option>
+                    <option value="Immunology">Immunology</option>
+                    <option value="Infection and Antimicrobial Therapy">Infection and Antimicrobial Therapy</option>
+                    <option value="Minimally Invasive Surgery Principles">Minimally Invasive Surgery Principles</option>
+                    <option value="Nutrition and Metabolism">Nutrition and Metabolism</option>
+                    <option value="Oncology and Tumor Biology">Oncology and Tumor Biology</option>
+                    <option value="Preoperative Evaluation and Perioperative Care">Preoperative Evaluation and Perioperative Care</option>
+                    <option value="Transfusion and Disorders of Coagulation">Transfusion and Disorders of Coagulation</option>
+                    <option value="Wound Management">Wound Management</option>
+                    <option value="Interpersonal and Communication Skills">Interpersonal and Communication Skills</option>
+                    <option value="Advanced Empathic Patient/Family Communication">Advanced Empathic Patient/Family Communication</option>
+                    <option value="End of Life Care">End of Life Care</option>
+                    <option value="Ethics and Practice of Shared Decision-Making">Ethics and Practice of Shared Decision-Making</option>
+                    <option value="Prognostication and Surgical Planning">Prognostication and Surgical Planning</option>
+                    <option value="Ethical Issues in Clinical Surgery">Ethical Issues in Clinical Surgery</option>
+                    <option value="Inclusive Excellence">Inclusive Excellence</option>
+                    <option value="Systems-based Practice">Systems-based Practice</option>
+                    <option value="Quality Improvement">Quality Improvement</option>
                 </select>
             </div>
             <div class="file-grid" id="file-grid">
@@ -300,30 +352,56 @@
                     <input type="text" id="edit-display-name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-specialty">Specialty</label>
+                    <label for="edit-specialty">Core Topic</label>
                     <select id="edit-specialty" class="form-control">
-                        <option value="">-- No Specialty --</option>
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="Dermatology">Dermatology</option>
-                        <option value="Emergency Medicine">Emergency Medicine</option>
-                        <option value="Endocrinology">Endocrinology</option>
-                        <option value="Gastroenterology">Gastroenterology</option>
-                        <option value="General Surgery">General Surgery</option>
-                        <option value="Hematology/Oncology">Hematology/Oncology</option>
-                        <option value="Infectious Disease">Infectious Disease</option>
-                        <option value="Internal Medicine">Internal Medicine</option>
-                        <option value="Nephrology">Nephrology</option>
-                        <option value="Neurology">Neurology</option>
-                        <option value="OB/GYN">OB/GYN</option>
-                        <option value="Ophthalmology">Ophthalmology</option>
-                        <option value="Orthopedics">Orthopedics</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="Psychiatry">Psychiatry</option>
-                        <option value="Pulmonology">Pulmonology</option>
-                        <option value="Radiology">Radiology</option>
-                        <option value="Rheumatology">Rheumatology</option>
-                        <option value="Urology">Urology</option>
-                        <option value="Other">Other</option>
+                        <option value="">-- No Core Topic --</option>
+                        <option value="General Abdomen">General Abdomen</option>
+                        <option value="Hernia">Hernia</option>
+                        <option value="Biliary">Biliary</option>
+                        <option value="Liver">Liver</option>
+                        <option value="Pancreas">Pancreas</option>
+                        <option value="Spleen">Spleen</option>
+                        <option value="Esophagus">Esophagus</option>
+                        <option value="Stomach">Stomach</option>
+                        <option value="Small Intestine">Small Intestine</option>
+                        <option value="Large Intestine">Large Intestine</option>
+                        <option value="Anorectal">Anorectal</option>
+                        <option value="Endoscopy">Endoscopy</option>
+                        <option value="Breast">Breast</option>
+                        <option value="Endocrine">Endocrine</option>
+                        <option value="Skin and Soft Tissue">Skin and Soft Tissue</option>
+                        <option value="Surgical Critical Care">Surgical Critical Care</option>
+                        <option value="Trauma">Trauma</option>
+                        <option value="Arterial Disease">Arterial Disease</option>
+                        <option value="Vascular Venous">Vascular Venous</option>
+                        <option value="Vascular Access">Vascular Access</option>
+                        <option value="Transplantation">Transplantation</option>
+                        <option value="Thoracic Surgery">Thoracic Surgery</option>
+                        <option value="Pediatric Surgery">Pediatric Surgery</option>
+                        <option value="Genitourinary">Genitourinary</option>
+                        <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                        <option value="Head and Neck">Head and Neck</option>
+                        <option value="Anesthesia">Anesthesia</option>
+                        <option value="Biostatistics and Evaluation of Evidence">Biostatistics and Evaluation of Evidence</option>
+                        <option value="Fluids, Electrolytes, and Acid-Base Balance">Fluids, Electrolytes, and Acid-Base Balance</option>
+                        <option value="Geriatric Surgery">Geriatric Surgery</option>
+                        <option value="Immunology">Immunology</option>
+                        <option value="Infection and Antimicrobial Therapy">Infection and Antimicrobial Therapy</option>
+                        <option value="Minimally Invasive Surgery Principles">Minimally Invasive Surgery Principles</option>
+                        <option value="Nutrition and Metabolism">Nutrition and Metabolism</option>
+                        <option value="Oncology and Tumor Biology">Oncology and Tumor Biology</option>
+                        <option value="Preoperative Evaluation and Perioperative Care">Preoperative Evaluation and Perioperative Care</option>
+                        <option value="Transfusion and Disorders of Coagulation">Transfusion and Disorders of Coagulation</option>
+                        <option value="Wound Management">Wound Management</option>
+                        <option value="Interpersonal and Communication Skills">Interpersonal and Communication Skills</option>
+                        <option value="Advanced Empathic Patient/Family Communication">Advanced Empathic Patient/Family Communication</option>
+                        <option value="End of Life Care">End of Life Care</option>
+                        <option value="Ethics and Practice of Shared Decision-Making">Ethics and Practice of Shared Decision-Making</option>
+                        <option value="Prognostication and Surgical Planning">Prognostication and Surgical Planning</option>
+                        <option value="Ethical Issues in Clinical Surgery">Ethical Issues in Clinical Surgery</option>
+                        <option value="Inclusive Excellence">Inclusive Excellence</option>
+                        <option value="Systems-based Practice">Systems-based Practice</option>
+                        <option value="Quality Improvement">Quality Improvement</option>
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
