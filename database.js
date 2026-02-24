@@ -67,6 +67,20 @@ db.exec(`
     )
 `);
 
+// Repository table for standalone file management
+db.exec(`
+    CREATE TABLE IF NOT EXISTS repository (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        display_name TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        category TEXT NOT NULL CHECK(category IN ('stem', 'clinical_image')),
+        related_stem_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (related_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+    )
+`);
+
 // Create default admin if none exists
 function initializeDatabase() {
     const adminCount = db.prepare('SELECT COUNT(*) as count FROM admins').get();
@@ -118,7 +132,7 @@ const credentialQueries = {
     `)
 };
 
-// File queries
+// File queries (exam-linked files)
 const fileQueries = {
     findByExam: db.prepare('SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id'),
     findById: db.prepare('SELECT * FROM files WHERE id = ?'),
@@ -127,6 +141,35 @@ const fileQueries = {
     delete: db.prepare('DELETE FROM files WHERE id = ?'),
     deleteByExam: db.prepare('DELETE FROM files WHERE exam_id = ?'),
     getMaxSortOrder: db.prepare('SELECT MAX(sort_order) as max_order FROM files WHERE exam_id = ?')
+};
+
+// Repository queries (standalone file management)
+const repositoryQueries = {
+    findAll: db.prepare(`
+        SELECT r.*,
+               s.display_name as stem_name
+        FROM repository r
+        LEFT JOIN repository s ON r.related_stem_id = s.id
+        ORDER BY r.created_at DESC
+    `),
+    findStems: db.prepare(`SELECT * FROM repository WHERE category = 'stem' ORDER BY display_name`),
+    findById: db.prepare('SELECT * FROM repository WHERE id = ?'),
+    findByStemId: db.prepare(`SELECT * FROM repository WHERE related_stem_id = ?`),
+    create: db.prepare('INSERT INTO repository (display_name, filename, file_type, category, related_stem_id) VALUES (?, ?, ?, ?, ?)'),
+    update: db.prepare('UPDATE repository SET display_name = ? WHERE id = ?'),
+    updateRelatedStem: db.prepare('UPDATE repository SET related_stem_id = ? WHERE id = ?'),
+    delete: db.prepare('DELETE FROM repository WHERE id = ?'),
+    clearRelatedStem: db.prepare('UPDATE repository SET related_stem_id = NULL WHERE related_stem_id = ?'),
+    getWithRelatedImages: db.prepare(`
+        SELECT r.*,
+               GROUP_CONCAT(ci.id) as image_ids,
+               GROUP_CONCAT(ci.display_name) as image_names
+        FROM repository r
+        LEFT JOIN repository ci ON ci.related_stem_id = r.id
+        WHERE r.category = 'stem'
+        GROUP BY r.id
+        ORDER BY r.display_name
+    `)
 };
 
 // Helper function to generate random password
@@ -155,6 +198,7 @@ module.exports = {
     examQueries,
     credentialQueries,
     fileQueries,
+    repositoryQueries,
     generatePassword,
     generateUsername
 };

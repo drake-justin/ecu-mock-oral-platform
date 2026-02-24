@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { examQueries, credentialQueries, fileQueries, adminQueries, generatePassword, generateUsername } = require('../database');
+const { examQueries, credentialQueries, fileQueries, repositoryQueries, adminQueries, generatePassword, generateUsername } = require('../database');
 const { requireAdmin } = require('../middleware/auth');
 
 // Configure multer for file uploads
@@ -270,6 +270,178 @@ router.delete('/files/:id', requireAdmin, (req, res) => {
 
 // Serve uploaded files for admin preview
 router.get('/files/preview/:filename', requireAdmin, (req, res) => {
+    const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('File not found');
+    }
+});
+
+// === REPOSITORY (Standalone File Management) ===
+
+router.get('/repository', requireAdmin, (req, res) => {
+    res.sendFile('admin/repository.html', { root: './views' });
+});
+
+router.get('/repository/list', requireAdmin, (req, res) => {
+    try {
+        const files = repositoryQueries.findAll.all();
+        res.json(files);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch files' });
+    }
+});
+
+router.get('/repository/stems', requireAdmin, (req, res) => {
+    try {
+        const stems = repositoryQueries.findStems.all();
+        res.json(stems);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch stems' });
+    }
+});
+
+router.get('/repository/:id', requireAdmin, (req, res) => {
+    try {
+        const file = repositoryQueries.findById.get(parseInt(req.params.id));
+        if (!file) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        // Get related images if this is a stem
+        if (file.category === 'stem') {
+            file.relatedImages = repositoryQueries.findByStemId.all(file.id);
+        }
+        res.json(file);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch file' });
+    }
+});
+
+// Upload to repository - supports multiple files
+router.post('/repository/upload', requireAdmin, upload.fields([
+    { name: 'stemFile', maxCount: 1 },
+    { name: 'clinicalImage', maxCount: 1 },
+    { name: 'file', maxCount: 1 }
+]), (req, res) => {
+    try {
+        const { category, displayName, relatedStemId } = req.body;
+        const results = [];
+
+        // Handle stem + clinical image pair upload
+        if (req.files.stemFile) {
+            const stemFile = req.files.stemFile[0];
+            const stemFileType = stemFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
+            const stemName = req.body.stemDisplayName || stemFile.originalname.replace(/\.[^/.]+$/, '');
+
+            const stemResult = repositoryQueries.create.run(
+                stemName,
+                stemFile.filename,
+                stemFileType,
+                'stem',
+                null
+            );
+            const stemId = stemResult.lastInsertRowid;
+            results.push({ id: stemId, type: 'stem', name: stemName });
+
+            // If clinical image uploaded with stem
+            if (req.files.clinicalImage) {
+                const clinicalFile = req.files.clinicalImage[0];
+                const clinicalFileType = clinicalFile.mimetype === 'application/pdf' ? 'pdf' : 'image';
+                const clinicalName = req.body.clinicalDisplayName || clinicalFile.originalname.replace(/\.[^/.]+$/, '');
+
+                const clinicalResult = repositoryQueries.create.run(
+                    clinicalName,
+                    clinicalFile.filename,
+                    clinicalFileType,
+                    'clinical_image',
+                    stemId
+                );
+                results.push({ id: clinicalResult.lastInsertRowid, type: 'clinical_image', name: clinicalName, relatedTo: stemId });
+            }
+        }
+        // Handle single file upload
+        else if (req.files.file) {
+            const file = req.files.file[0];
+            const fileType = file.mimetype === 'application/pdf' ? 'pdf' : 'image';
+            const name = displayName || file.originalname.replace(/\.[^/.]+$/, '');
+
+            const result = repositoryQueries.create.run(
+                name,
+                file.filename,
+                fileType,
+                category || 'stem',
+                category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null
+            );
+            results.push({ id: result.lastInsertRowid, type: category, name: name });
+        }
+
+        res.json({ success: true, files: results });
+    } catch (err) {
+        console.error(err);
+        // Clean up uploaded files on error
+        if (req.files) {
+            Object.values(req.files).flat().forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
+        }
+        res.status(500).json({ error: 'Failed to upload files' });
+    }
+});
+
+router.put('/repository/:id', requireAdmin, (req, res) => {
+    const fileId = parseInt(req.params.id);
+    const { displayName } = req.body;
+
+    try {
+        repositoryQueries.update.run(displayName, fileId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update file' });
+    }
+});
+
+router.put('/repository/:id/associate', requireAdmin, (req, res) => {
+    const fileId = parseInt(req.params.id);
+    const { stemId } = req.body;
+
+    try {
+        repositoryQueries.updateRelatedStem.run(stemId ? parseInt(stemId) : null, fileId);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to associate files' });
+    }
+});
+
+router.delete('/repository/:id', requireAdmin, (req, res) => {
+    const fileId = parseInt(req.params.id);
+    try {
+        const file = repositoryQueries.findById.get(fileId);
+        if (file) {
+            // Clear references to this file if it's a stem
+            if (file.category === 'stem') {
+                repositoryQueries.clearRelatedStem.run(fileId);
+            }
+            // Delete the actual file
+            const filePath = path.join(__dirname, '..', 'uploads', file.filename);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+            repositoryQueries.delete.run(fileId);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete file' });
+    }
+});
+
+router.get('/repository/preview/:filename', requireAdmin, (req, res) => {
     const filePath = path.join(__dirname, '..', 'uploads', req.params.filename);
     if (fs.existsSync(filePath)) {
         res.sendFile(filePath);

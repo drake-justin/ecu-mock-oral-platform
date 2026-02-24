@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Repository - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .upload-section { grid-template-columns: 1fr; }
+        }
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            background: #f9f9f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-box:hover, .upload-box.dragover {
+            border-color: #4B2E83;
+            background: #f0ebf5;
+        }
+        .upload-box input { display: none; }
+        .upload-box h3 { margin-bottom: 10px; color: #4B2E83; }
+        .upload-box p { color: #666; font-size: 0.9rem; margin: 0; }
+        .file-preview {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8e0f3;
+            border-radius: 6px;
+            display: none;
+        }
+        .file-preview.active { display: block; }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .file-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+        .file-card.stem { border-left: 4px solid #4B2E83; }
+        .file-card.clinical_image { border-left: 4px solid #28a745; }
+        .file-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .file-card-title {
+            font-weight: 600;
+            word-break: break-word;
+        }
+        .file-card-category {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+        .file-card-category.stem { background: #e8e0f3; color: #4B2E83; }
+        .file-card-category.clinical_image { background: #d4edda; color: #155724; }
+        .file-card-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .file-card-related {
+            font-size: 0.85rem;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .file-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-radius: 6px 6px 0 0;
+        }
+        .tab.active {
+            background: #4B2E83;
+            color: white;
+        }
+        .tab:hover:not(.active) { background: #f0f0f0; }
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">File Repository</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/repository" class="active">Repository</a>
+        <a href="/admin/exams">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files">Exam Files</a>
+        <a href="/admin/settings">Settings</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container">
+        <div id="message" class="alert" style="display: none;"></div>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <h2 class="card-title">Upload Files</h2>
+            <div class="tabs">
+                <button class="tab active" data-tab="paired">Question Stem + Clinical Image</button>
+                <button class="tab" data-tab="single">Single File</button>
+            </div>
+
+            <!-- Paired Upload -->
+            <div id="paired-upload" class="upload-section">
+                <div>
+                    <div class="upload-box" id="stem-upload-box">
+                        <input type="file" id="stem-file-input" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                        <h3>Question Stem</h3>
+                        <p>Drag & drop or click to upload</p>
+                        <p style="font-size: 0.8rem; color: #999; margin-top: 5px;">PDF, JPG, PNG, or GIF</p>
+                    </div>
+                    <div class="file-preview" id="stem-preview">
+                        <strong>Selected:</strong> <span id="stem-filename"></span>
+                        <div class="form-group" style="margin-top: 10px; margin-bottom: 0;">
+                            <input type="text" id="stem-display-name" class="form-control" placeholder="Display name (optional)">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="upload-box" id="clinical-upload-box">
+                        <input type="file" id="clinical-file-input" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                        <h3>Clinical Image (Optional)</h3>
+                        <p>Drag & drop or click to upload</p>
+                        <p style="font-size: 0.8rem; color: #999; margin-top: 5px;">Will be linked to the question stem</p>
+                    </div>
+                    <div class="file-preview" id="clinical-preview">
+                        <strong>Selected:</strong> <span id="clinical-filename"></span>
+                        <div class="form-group" style="margin-top: 10px; margin-bottom: 0;">
+                            <input type="text" id="clinical-display-name" class="form-control" placeholder="Display name (optional)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Upload -->
+            <div id="single-upload" style="display: none;">
+                <div class="form-group">
+                    <label>File Category</label>
+                    <select id="single-category" class="form-control" style="max-width: 300px;">
+                        <option value="stem">Question Stem</option>
+                        <option value="clinical_image">Clinical Image</option>
+                    </select>
+                </div>
+                <div class="form-group" id="relate-to-stem-group" style="display: none;">
+                    <label>Related Question Stem (Optional)</label>
+                    <select id="relate-to-stem" class="form-control" style="max-width: 400px;">
+                        <option value="">-- None --</option>
+                    </select>
+                </div>
+                <div class="upload-box" id="single-upload-box" style="max-width: 400px;">
+                    <input type="file" id="single-file-input" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                    <h3>Upload File</h3>
+                    <p>Drag & drop or click to upload</p>
+                </div>
+                <div class="file-preview" id="single-preview">
+                    <strong>Selected:</strong> <span id="single-filename"></span>
+                    <div class="form-group" style="margin-top: 10px; margin-bottom: 0;">
+                        <input type="text" id="single-display-name" class="form-control" placeholder="Display name (optional)">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" id="upload-btn" disabled>Upload Files</button>
+                <button class="btn btn-secondary" id="clear-btn" style="margin-left: 10px;">Clear</button>
+            </div>
+        </div>
+
+        <!-- File List -->
+        <div class="card">
+            <h2 class="card-title">All Files</h2>
+            <div class="filter-bar">
+                <input type="text" id="search-input" class="form-control search-input" placeholder="Search files...">
+                <select id="filter-category" class="form-control" style="width: auto;">
+                    <option value="">All Categories</option>
+                    <option value="stem">Question Stems</option>
+                    <option value="clinical_image">Clinical Images</option>
+                </select>
+            </div>
+            <div class="file-grid" id="file-grid">
+                <p style="color: #888;">Loading files...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit File</h3>
+                <button class="modal-close" onclick="closeModal('edit-modal')">&times;</button>
+            </div>
+            <form id="edit-form">
+                <input type="hidden" id="edit-file-id">
+                <div class="form-group">
+                    <label for="edit-display-name">Display Name</label>
+                    <input type="text" id="edit-display-name" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Associate Modal -->
+    <div class="modal" id="associate-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Associate Clinical Image</h3>
+                <button class="modal-close" onclick="closeModal('associate-modal')">&times;</button>
+            </div>
+            <form id="associate-form">
+                <input type="hidden" id="associate-file-id">
+                <div class="form-group">
+                    <label>Link to Question Stem</label>
+                    <select id="associate-stem-select" class="form-control">
+                        <option value="">-- No Association --</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Association</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let stemFile = null;
+        let clinicalFile = null;
+        let singleFile = null;
+        let allFiles = [];
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const tabName = tab.dataset.tab;
+                document.getElementById('paired-upload').style.display = tabName === 'paired' ? 'grid' : 'none';
+                document.getElementById('single-upload').style.display = tabName === 'single' ? 'block' : 'none';
+                clearAll();
+            });
+        });
+
+        // Single category change
+        document.getElementById('single-category').addEventListener('change', (e) => {
+            const isClinical = e.target.value === 'clinical_image';
+            document.getElementById('relate-to-stem-group').style.display = isClinical ? 'block' : 'none';
+            if (isClinical) loadStemsForSelect('relate-to-stem');
+        });
+
+        // Upload box handlers
+        function setupUploadBox(boxId, inputId, previewId, filenameId, setFile) {
+            const box = document.getElementById(boxId);
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            const filename = document.getElementById(filenameId);
+
+            box.addEventListener('click', () => input.click());
+            box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('dragover'); });
+            box.addEventListener('dragleave', () => box.classList.remove('dragover'));
+            box.addEventListener('drop', (e) => {
+                e.preventDefault();
+                box.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    setFile(e.dataTransfer.files[0]);
+                    filename.textContent = e.dataTransfer.files[0].name;
+                    preview.classList.add('active');
+                    updateUploadBtn();
+                }
+            });
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    setFile(e.target.files[0]);
+                    filename.textContent = e.target.files[0].name;
+                    preview.classList.add('active');
+                    updateUploadBtn();
+                }
+            });
+        }
+
+        setupUploadBox('stem-upload-box', 'stem-file-input', 'stem-preview', 'stem-filename', f => stemFile = f);
+        setupUploadBox('clinical-upload-box', 'clinical-file-input', 'clinical-preview', 'clinical-filename', f => clinicalFile = f);
+        setupUploadBox('single-upload-box', 'single-file-input', 'single-preview', 'single-filename', f => singleFile = f);
+
+        function updateUploadBtn() {
+            const isPaired = document.querySelector('.tab.active').dataset.tab === 'paired';
+            const hasFile = isPaired ? !!stemFile : !!singleFile;
+            document.getElementById('upload-btn').disabled = !hasFile;
+        }
+
+        function clearAll() {
+            stemFile = clinicalFile = singleFile = null;
+            document.querySelectorAll('.file-preview').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('input[type="file"]').forEach(i => i.value = '');
+            document.querySelectorAll('#stem-display-name, #clinical-display-name, #single-display-name').forEach(i => i.value = '');
+            updateUploadBtn();
+        }
+
+        document.getElementById('clear-btn').addEventListener('click', clearAll);
+
+        // Upload handler
+        document.getElementById('upload-btn').addEventListener('click', async () => {
+            const isPaired = document.querySelector('.tab.active').dataset.tab === 'paired';
+            const formData = new FormData();
+
+            if (isPaired) {
+                if (!stemFile) return showMessage('Please select a question stem file', 'error');
+                formData.append('stemFile', stemFile);
+                formData.append('stemDisplayName', document.getElementById('stem-display-name').value);
+                if (clinicalFile) {
+                    formData.append('clinicalImage', clinicalFile);
+                    formData.append('clinicalDisplayName', document.getElementById('clinical-display-name').value);
+                }
+            } else {
+                if (!singleFile) return showMessage('Please select a file', 'error');
+                formData.append('file', singleFile);
+                formData.append('category', document.getElementById('single-category').value);
+                formData.append('displayName', document.getElementById('single-display-name').value);
+                const stemId = document.getElementById('relate-to-stem').value;
+                if (stemId) formData.append('relatedStemId', stemId);
+            }
+
+            try {
+                const response = await fetch('/admin/repository/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage('Files uploaded successfully!', 'success');
+                    clearAll();
+                    loadFiles();
+                } else {
+                    showMessage(data.error || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        // Load and display files
+        async function loadFiles() {
+            try {
+                const response = await fetch('/admin/repository/list');
+                allFiles = await response.json();
+                renderFiles();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderFiles() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const category = document.getElementById('filter-category').value;
+
+            let filtered = allFiles.filter(f => {
+                if (search && !f.display_name.toLowerCase().includes(search)) return false;
+                if (category && f.category !== category) return false;
+                return true;
+            });
+
+            const grid = document.getElementById('file-grid');
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p style="color: #888;">No files found.</p>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(file => `
+                <div class="file-card ${file.category}">
+                    <div class="file-card-header">
+                        <span class="file-card-title">${file.display_name}</span>
+                        <span class="file-card-category ${file.category}">
+                            ${file.category === 'stem' ? 'Question Stem' : 'Clinical Image'}
+                        </span>
+                    </div>
+                    <div class="file-card-meta">
+                        ${file.file_type.toUpperCase()} &bull; ${new Date(file.created_at).toLocaleDateString()}
+                    </div>
+                    ${file.category === 'clinical_image' && file.stem_name ?
+                        `<div class="file-card-related">Linked to: <strong>${file.stem_name}</strong></div>` :
+                        file.category === 'clinical_image' ?
+                        `<div class="file-card-related" style="color: #999;">Not linked to any stem</div>` : ''}
+                    <div class="file-card-actions">
+                        <a href="/admin/repository/preview/${file.filename}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
+                        <button class="btn btn-sm btn-primary" onclick="editFile(${file.id}, '${file.display_name.replace(/'/g, "\\'")}')">Edit</button>
+                        ${file.category === 'clinical_image' ?
+                            `<button class="btn btn-sm btn-success" onclick="associateFile(${file.id}, ${file.related_stem_id || 'null'})">Associate</button>` : ''}
+                        <button class="btn btn-sm btn-danger" onclick="deleteFile(${file.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('search-input').addEventListener('input', renderFiles);
+        document.getElementById('filter-category').addEventListener('change', renderFiles);
+
+        // Edit file
+        function editFile(id, name) {
+            document.getElementById('edit-file-id').value = id;
+            document.getElementById('edit-display-name').value = name;
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-file-id').value;
+            const displayName = document.getElementById('edit-display-name').value;
+
+            try {
+                const response = await fetch(`/admin/repository/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ displayName })
+                });
+                if (response.ok) {
+                    showMessage('File updated!', 'success');
+                    closeModal('edit-modal');
+                    loadFiles();
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        // Associate clinical image with stem
+        async function associateFile(id, currentStemId) {
+            await loadStemsForSelect('associate-stem-select');
+            document.getElementById('associate-file-id').value = id;
+            document.getElementById('associate-stem-select').value = currentStemId || '';
+            document.getElementById('associate-modal').classList.add('active');
+        }
+
+        document.getElementById('associate-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('associate-file-id').value;
+            const stemId = document.getElementById('associate-stem-select').value;
+
+            try {
+                const response = await fetch(`/admin/repository/${id}/associate`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stemId: stemId || null })
+                });
+                if (response.ok) {
+                    showMessage('Association updated!', 'success');
+                    closeModal('associate-modal');
+                    loadFiles();
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        });
+
+        // Delete file
+        async function deleteFile(id) {
+            if (!confirm('Delete this file? This cannot be undone.')) return;
+            try {
+                const response = await fetch(`/admin/repository/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('File deleted!', 'success');
+                    loadFiles();
+                }
+            } catch (err) {
+                showMessage('An error occurred', 'error');
+            }
+        }
+
+        // Load stems for select dropdown
+        async function loadStemsForSelect(selectId) {
+            try {
+                const response = await fetch('/admin/repository/stems');
+                const stems = await response.json();
+                const select = document.getElementById(selectId);
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">-- None --</option>' +
+                    stems.map(s => `<option value="${s.id}">${s.display_name}</option>`).join('');
+                select.value = currentVal;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `alert alert-${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        loadFiles();
+    </script>
+</body>
+</html>
