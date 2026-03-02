@@ -200,6 +200,7 @@
         let currentExamId = null;
         let selectedRepoItems = new Set();
         let uploadFile = null;
+        let currentFiles = []; // Store current files for association checking
 
         function showMessage(text, type) {
             const msg = document.getElementById('message');
@@ -313,6 +314,7 @@
         async function loadFiles(examId) {
             const response = await fetch(`/admin/files/list/${examId}`);
             const files = await response.json();
+            currentFiles = files; // Store for association checking
 
             const container = document.getElementById('files-list');
 
@@ -487,16 +489,46 @@
         });
 
         async function deleteFile(id) {
-            if (!confirm('Remove this file from the exam?')) return;
+            // Find the file and check for associated files (same room number)
+            const file = currentFiles.find(f => f.id === id);
+            let filesToDelete = [id];
+            let associatedFiles = [];
+
+            if (file && file.room_number) {
+                // Find other files with the same room number
+                associatedFiles = currentFiles.filter(f =>
+                    f.id !== id && f.room_number === file.room_number
+                );
+            }
+
+            if (associatedFiles.length > 0) {
+                const associatedNames = associatedFiles.map(f => f.display_name).join(', ');
+                const choice = confirm(
+                    `This file is associated with: ${associatedNames}\n\n` +
+                    `Click OK to delete ALL associated files (${associatedFiles.length + 1} total)\n` +
+                    `Click Cancel to delete only this file`
+                );
+
+                if (choice) {
+                    // Delete all associated files
+                    filesToDelete = [id, ...associatedFiles.map(f => f.id)];
+                }
+            } else {
+                if (!confirm('Remove this file from the exam?')) return;
+            }
 
             try {
-                const response = await fetch(`/admin/files/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    showMessage('File removed!', 'success');
-                    loadFiles(currentExamId);
-                } else {
-                    showMessage('Failed to remove file', 'error');
+                // Delete all selected files
+                for (const fileId of filesToDelete) {
+                    const response = await fetch(`/admin/files/${fileId}`, { method: 'DELETE' });
+                    if (!response.ok) {
+                        showMessage('Failed to remove some files', 'error');
+                        loadFiles(currentExamId);
+                        return;
+                    }
                 }
+                showMessage(`${filesToDelete.length} file(s) removed!`, 'success');
+                loadFiles(currentExamId);
             } catch (err) {
                 showMessage('An error occurred', 'error');
             }
