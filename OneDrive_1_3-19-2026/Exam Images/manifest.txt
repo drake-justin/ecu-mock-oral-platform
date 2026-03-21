@@ -1,0 +1,263 @@
+ECU Mock Oral Exam - Stem & Clinical Image Manifest
+============================================================
+
+Case: Abdominal Compartment Syndrome and Management of the Open Abdomen
+  Stem:   stems/Abdominal Compartment Syndrome and Management of the Open Abdomen.jpg
+  Image:  clinical-images/Abdominal Compartment Syndrome and Management of the Open Abdomen.jpg
+
+Case: Abdominal Pain After Colonoscopy
+  Stem:   stems/Abdominal Pain After Colonoscopy.jpg
+  Image:  clinical-images/Abdominal Pain After Colonoscopy.jpg
+
+Case: Abdominal Wall Reconstruction
+  Stem:   stems/Abdominal Wall Reconstruction.jpg
+  Images: (none)
+
+Case: Advanced Breast Cancer
+  Stem:   stems/Advanced Breast Cancer.jpg
+  Image:  clinical-images/Advanced Breast Cancer.jpg
+
+Case: Airway Emergency
+  Stem:   stems/Airway Emergency.jpg
+  Images: (none)
+
+Case: Anal Cancer
+  Stem:   stems/Anal Cancer.jpg
+  Images: (none)
+
+Case: Anal Fissure
+  Stem:   stems/Anal Fissure.jpg
+  Images: (none)
+
+Case: Appendiceal Carcinoid
+  Stem:   stems/Appendiceal Carcinoid.jpg
+  Images: (none)
+
+Case: Arterial Insufficiency
+  Stem:   stems/Arterial Insufficiency.jpg
+  Images: (none)
+
+Case: Arteriovenous Fistula with Outflow Stenosis
+  Stem:   stems/Arteriovenous Fistula with Outflow Stenosis.jpg
+  Image:  clinical-images/Arteriovenous Fistula with Outflow Stenosis_1.jpg
+  Image:  clinical-images/Arteriovenous Fistula with Outflow Stenosis_2.jpg
+  Image:  clinical-images/Arteriovenous Fistula with Outflow Stenosis_3.jpg
+
+Case: Boerhaave Esophagus - Esophageal Spontaneous Perforation
+  Stem:   stems/Boerhaave Esophagus - Esophageal Spontaneous Perforation.jpg
+  Images: (none)
+
+Case: Breast Cancer in Pregnancy
+  Stem:   stems/Breast Cancer in Pregnancy.jpg
+  Images: (none)
+
+Case: Breast DCIS
+  Stem:   stems/Breast DCIS.jpg
+  Image:  clinical-images/Breast DCIS.jpg
+
+Case: Breast Ductal Papilloma
+  Stem:   stems/Breast Ductal Papilloma.jpg
+  Image:  clinical-images/Breast Ductal Papilloma.jpg
+
+Case: Breast LCIS
+  Stem:   stems/Breast LCIS.jpg
+  Images: (none)
+
+Case: Burn
+  Stem:   stems/Burn.jpg
+  Images: (none)
+
+Case: Carotid Artery Stenosis
+  Stem:   stems/Carotid Artery Stenosis.jpg
+  Images: (none)
+
+Case: Cholecystectomy Complications
+  Stem:   stems/Cholecystectomy Complications.jpg
+  Image:  clinical-images/Cholecystectomy Complications.jpg
+
+Case: EC Fistula
+  Stem:   stems/EC Fistula.jpg
+  Images: (none)
+
+Case: Electric Injury
+  Stem:   stems/Electric Injury.jpg
+  Images: (none)
+
+Case: Enterovesicular Fistula (Crohns)
+  Stem:   stems/Enterovesicular Fistula (Crohns).jpg
+  Image:  clinical-images/Enterovesicular Fistula (Crohns)_1.jpg
+  Image:  clinical-images/Enterovesicular Fistula (Crohns)_2.jpg
+
+Case: GI Bleeding
+  Stem:   stems/GI Bleeding.jpg
+  Images: (none)
+
+Case: GIST
+  Stem:   stems/GIST.jpg
+  Image:  clinical-images/GIST.jpg
+
+Case: Gallstone Ileus
+  Stem:   stems/Gallstone Ileus.jpg
+  Image:  clinical-images/Gallstone Ileus_1.jpg
+  Image:  clinical-images/Gallstone Ileus_2.jpg
+
+Case: Gastric Mass
+  Stem:   stems/Gastric Mass.jpg
+  Images: (none)
+
+Case: Hepatic Abscess
+  Stem:   stems/Hepatic Abscess.jpg
+  Images: (none)
+
+Case: Hirschsprung Disease
+  Stem:   stems/Hirschsprung Disease.jpg
+  Images: (none)
+
+Case: Incarcerated Femoral Hernia
+  Stem:   stems/Incarcerated Femoral Hernia.jpg
+  Image:  clinical-images/Incarcerated Femoral Hernia.jpg
+
+Case: Incarcerated Inguinal Hernia
+  Stem:   stems/Incarcerated Inguinal Hernia.jpg
+  Image:  clinical-images/Incarcerated Inguinal Hernia.jpg
+
+Case: Infected Ventral Hernia Mesh
+  Stem:   stems/Infected Ventral Hernia Mesh.jpg
+  Images: (none)
+
+Case: Intussusception
+  Stem:   stems/Intussusception.jpg
+  Image:  clinical-images/Intussusception.jpg
+
+Case: Ischemic Colitis Post-Op Leak
+  Stem:   stems/Ischemic Colitis Post-Op Leak.jpg
+  Images: (none)
+
+Case: Ischemic Lower Extremity After Aorto-Bifemoral Bypass
+  Stem:   stems/Ischemic Lower Extremity After Aorto-Bifemoral Bypass.jpg
+  Images: (none)
+
+Case: Large Abdominal Aortic Aneurysm with Colon Cancer
+  Stem:   stems/Large Abdominal Aortic Aneurysm with Colon Cancer.jpg
+  Image:  clinical-images/Large Abdominal Aortic Aneurysm with Colon Cancer.jpg
+
+Case: Leak After Bariatric Surgery
+  Stem:   stems/Leak After Bariatric Surgery.jpg
+  Image:  clinical-images/Leak After Bariatric Surgery_1.jpg
+  Image:  clinical-images/Leak After Bariatric Surgery_2.jpg
+
+Case: Liver Metastasis
+  Stem:   stems/Liver Metastasis.jpg
+  Images: (none)
+
+Case: Low Rectal Cancer
+  Stem:   stems/Low Rectal Cancer.jpg
+  Images: (none)
+
+Case: MVC with Pelvic Fracture
+  Stem:   stems/MVC with Pelvic Fracture.jpg
+  Images: (none)
+
+Case: Melanoma
+  Stem:   stems/Melanoma.jpg
+  Image:  clinical-images/Melanoma.jpg
+
+Case: Pancreatic MVC
+  Stem:   stems/Pancreatic MVC.jpg
+  Images: (none)
+
+Case: Pancreatic Pseudocyst
+  Stem:   stems/Pancreatic Pseudocyst.jpg
+  Images: (none)
+
+Case: Pediatric Duodenal Hematoma
+  Stem:   stems/Pediatric Duodenal Hematoma.jpg
+  Images: (none)
+
+Case: Pediatric Esophageal Burn
+  Stem:   stems/Pediatric Esophageal Burn.jpg
+  Images: (none)
+
+Case: Pediatric Pyloric Stenosis
+  Stem:   stems/Pediatric Pyloric Stenosis.jpg
+  Images: (none)
+
+Case: Pelvic Fracture
+  Stem:   stems/Pelvic Fracture.jpg
+  Image:  clinical-images/Pelvic Fracture_1.jpg
+  Image:  clinical-images/Pelvic Fracture_2.jpg
+  Image:  clinical-images/Pelvic Fracture_3.jpg
+
+Case: Penetrating Trauma Zone II Neck
+  Stem:   stems/Penetrating Trauma Zone II Neck.jpg
+  Images: (none)
+
+Case: Perforated Appendicitis
+  Stem:   stems/Perforated Appendicitis.jpg
+  Image:  clinical-images/Perforated Appendicitis.jpg
+
+Case: Perforated Duodenal Ulcer
+  Stem:   stems/Perforated Duodenal Ulcer.jpg
+  Images: (none)
+
+Case: Pulsatile Abdominal Mass
+  Stem:   stems/Pulsatile Abdominal Mass.jpg
+  Image:  clinical-images/Pulsatile Abdominal Mass_1.jpg
+  Image:  clinical-images/Pulsatile Abdominal Mass_2.jpg
+
+Case: Rectal Prolapse
+  Stem:   stems/Rectal Prolapse.jpg
+  Image:  clinical-images/Rectal Prolapse.jpg
+
+Case: Sarcoma
+  Stem:   stems/Sarcoma.jpg
+  Images: (none)
+
+Case: Splenectomy
+  Stem:   stems/Splenectomy.jpg
+  Images: (none)
+
+Case: Spontaneous pneumothorax reviewed by Speicher
+  Stem:   stems/Spontaneous pneumothorax reviewed by Speicher.jpg
+  Image:  clinical-images/Spontaneous pneumothorax reviewed by Speicher_1.jpg
+  Image:  clinical-images/Spontaneous pneumothorax reviewed by Speicher_2.jpg
+
+Case: TE Fistula
+  Stem:   stems/TE Fistula.jpg
+  Image:  clinical-images/TE Fistula_1.jpg
+  Image:  clinical-images/TE Fistula_2.jpg
+  Image:  clinical-images/TE Fistula_3.jpg
+  Image:  clinical-images/TE Fistula_4.jpg
+  Image:  clinical-images/TE Fistula_5.jpg
+  Image:  clinical-images/TE Fistula_6.jpg
+  Image:  clinical-images/TE Fistula_7.jpg
+  Image:  clinical-images/TE Fistula_8.jpg
+
+Case: Thoracic Vascular Injury
+  Stem:   stems/Thoracic Vascular Injury.jpg
+  Images: (none)
+
+Case: Toxic Megacolon
+  Stem:   stems/Toxic Megacolon.jpg
+  Images: (none)
+
+Case: UGI Bleed - Portal Hypertension with GE Varices
+  Stem:   stems/UGI Bleed - Portal Hypertension with GE Varices.jpg
+  Images: (none)
+
+Case: Umbilical Hernia in a Cirrhotic
+  Stem:   stems/Umbilical Hernia in a Cirrhotic.jpg
+  Images: (none)
+
+Case: Ventilator-Associated Pneumonia
+  Stem:   stems/Ventilator-Associated Pneumonia.jpg
+  Images: (none)
+
+Case: Volvulus
+  Stem:   stems/Volvulus.jpg
+  Images: (none)
+
+============================================================
+Total cases: 60
+Stem JPGs: 60
+Clinical images: 38

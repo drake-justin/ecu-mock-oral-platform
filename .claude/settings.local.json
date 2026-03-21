@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:portal.absurgery.org)",
+      "Bash(npm install)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: ECU Mock Oral Platform\n\n- Express.js server with SQLite database\n- Admin panel for exam, credential, and file management\n- One-time login credentials for examinees\n- File upload support for PDFs and images\n- Rate limiting and session-based authentication\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gh auth status:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(where python:*)",
+      "Bash(py --version)",
+      "Bash(OUT=\"C:/Users/DRAKEJU24/OneDrive - East Carolina University/Desktop/Claude Research/ECU Mock Oral Platform/organized-content\")",
+      "Bash(__NEW_LINE_3dea85de3c327d86__ python -c \":*)",
+      "Bash(python edit_docx.py)",
+      "Bash(python:*)",
+      "Bash(SRC=\"C:/Users/DRAKEJU24/OneDrive - East Carolina University/Desktop/Claude Research/ECU Mock Oral Platform/OneDrive_1_3-19-2026\")",
+      "Bash(OUT=\"C:/Users/DRAKEJU24/OneDrive - East Carolina University/Desktop/Claude Research/ECU Mock Oral Platform/organized-content/question-stems\")",
+      "Bash(rm -rf \"$OUT\")",
+      "Bash(mkdir -p \"$OUT/breast\" \"$OUT/colorectal\" \"$OUT/general-surgery\" \"$OUT/trauma-acute-care\" \"$OUT/vascular\" \"$OUT/thoracic\" \"$OUT/surgical-oncology-hpb\" \"$OUT/pediatric\" \"$OUT/bariatrics\" \"$OUT/hernia\")",
+      "Bash(cp \"$SRC/Cases reviewed by attendings/Breast/Advanced Breast cancer.docx\" \"$OUT/breast/Advanced Breast Cancer.docx\")",
+      "Bash(ls *.docx)",
+      "Bash(pip list:*)",
+      "Bash(rm -rf \"C:/Users/DRAKEJU24/OneDrive - East Carolina University/Desktop/Claude Research/ECU Mock Oral Platform/OneDrive_1_3-19-2026/Exam Images/stems\")",
+      "Bash(rm -rf \"C:/Users/DRAKEJU24/OneDrive - East Carolina University/Desktop/Claude Research/ECU Mock Oral Platform/OneDrive_1_3-19-2026/Exam Images/clinical-images\")"
+    ]
+  }
+}
