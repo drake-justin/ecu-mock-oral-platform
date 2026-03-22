@@ -159,9 +159,11 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
         });
 
         const assignments = await db.execute({
-            sql: `SELECT era.*, r.name, r.pgy_level
+            sql: `SELECT era.*, r.name, r.pgy_level, c.username, c.password, c.is_used, c.id as credential_id
                   FROM exam_room_assignments era
                   JOIN residents r ON era.resident_id = r.id
+                  LEFT JOIN exam_residents er2 ON er2.exam_id = era.exam_id AND er2.resident_id = era.resident_id
+                  LEFT JOIN credentials c ON er2.credential_id = c.id
                   WHERE era.exam_id = ?
                   ORDER BY era.room_number, r.name`,
             args: [examId]
@@ -516,6 +518,96 @@ router.delete('/exams/:examId/room-assignments/:id', requireAdmin, async (req, r
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to remove room assignment' });
+    }
+});
+
+// Delete all content from a room
+router.delete('/exams/:examId/rooms/:roomNumber/content', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const roomNum = parseInt(req.params.roomNumber);
+    try {
+        await db.execute({
+            sql: 'DELETE FROM files WHERE exam_id = ? AND room_number = ?',
+            args: [examId, roomNum]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete content' });
+    }
+});
+
+// Reset a credential from admin
+router.post('/credentials/:id/reset', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({
+            sql: 'UPDATE credentials SET is_used = 0, used_at = NULL WHERE id = ?',
+            args: [parseInt(req.params.id)]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reset credential' });
+    }
+});
+
+// Send email to a single examiner
+router.post('/exams/:id/email-examiner/:examinerId', requireAdmin, async (req, res) => {
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+    const examId = parseInt(req.params.id);
+    const examinerId = parseInt(req.params.examinerId);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+        const examiner = await db.execute({ sql: 'SELECT * FROM examiners WHERE id = ?', args: [examinerId] });
+        if (!examiner.rows[0]?.email) return res.status(400).json({ error: 'Examiner has no email address' });
+
+        const residents = await db.execute({
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password
+                  FROM exam_residents er JOIN residents r ON er.resident_id = r.id
+                  LEFT JOIN credentials c ON er.credential_id = c.id
+                  WHERE er.exam_id = ? ORDER BY r.pgy_level DESC, r.name`,
+            args: [examId]
+        });
+
+        await emailModule.sendExaminerEmail({
+            examinerName: examiner.rows[0].name, examinerEmail: examiner.rows[0].email,
+            username: examiner.rows[0].username, password: examiner.rows[0].password,
+            examName: exam.rows[0].name, examDate: exam.rows[0].date,
+            roomNumber: examiner.rows[0].room_number, examinees: residents.rows,
+            siteUrl: req.protocol + '://' + req.get('host')
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to send email: ' + err.message });
+    }
+});
+
+// Send email to a single resident
+router.post('/exams/:id/email-resident/:residentId', requireAdmin, async (req, res) => {
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+    const examId = parseInt(req.params.id);
+    const residentId = parseInt(req.params.residentId);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+        const resident = await db.execute({
+            sql: `SELECT r.*, c.username, c.password FROM exam_residents er
+                  JOIN residents r ON er.resident_id = r.id
+                  LEFT JOIN credentials c ON er.credential_id = c.id
+                  WHERE er.exam_id = ? AND er.resident_id = ?`,
+            args: [examId, residentId]
+        });
+        if (!resident.rows[0]?.email) return res.status(400).json({ error: 'Resident has no email address' });
+
+        await emailModule.sendResidentEmail({
+            residentName: resident.rows[0].name, residentEmail: resident.rows[0].email,
+            username: resident.rows[0].username, password: resident.rows[0].password,
+            examName: exam.rows[0].name, examDate: exam.rows[0].date,
+            startTime: exam.rows[0].start_time,
+            siteUrl: req.protocol + '://' + req.get('host')
+        });
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to send email: ' + err.message });
     }
 });
 

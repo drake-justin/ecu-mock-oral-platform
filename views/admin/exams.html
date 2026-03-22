@@ -224,8 +224,9 @@ function renderRoom(room){
                     <button class="btn btn-primary btn-xs" onclick="addExaminer(${rn})">Add</button>
                 </div>
                 ${room.examiners.length?room.examiners.map(ex=>`<div class="room-item"><span>${ex.name} ${ex.email?`<small style="color:#888">(${ex.email})</small>`:''}</span>
-                    <span><span class="cred-info">${ex.username} / ${ex.password}</span>
-                    <button class="btn btn-xs btn-danger" onclick="removeExaminer(${ex.id})" style="margin-left:6px">&times;</button></span></div>`).join('')
+                    <span style="display:flex;align-items:center;gap:4px"><span class="cred-info">${ex.username} / ${ex.password}</span>
+                    ${ex.email?`<button class="btn btn-xs btn-secondary" onclick="emailExaminerSingle(${ex.id})" title="Send email" style="font-size:10px">✉</button>`:''}
+                    <button class="btn btn-xs btn-danger" onclick="removeExaminer(${ex.id})">&times;</button></span></div>`).join('')
                 :'<div style="color:#999;font-size:13px">No examiner assigned.</div>'}
             </div>
 
@@ -241,7 +242,7 @@ function renderRoom(room){
                         ${allRepoFiles.map(f=>`<option value="${f.id}">${f.display_name} [${f.category}]${f.specialty?' - '+f.specialty:''}</option>`).join('')}</select>
                     <button class="btn btn-primary btn-xs" onclick="addContent(${rn})">Add</button>
                 </div>
-                ${room.files.length?room.files.map(f=>{
+                ${room.files.length?`${room.files.map(f=>{
                     const isStm=f.item_type==='stem';
                     return `<div class="room-item">
                         <span>${catLabel(f.item_type)} ${f.display_name}</span>
@@ -252,7 +253,8 @@ function renderRoom(room){
                             </select>`:`${f.assigned_examiner_name?`<span style="font-size:11px;color:#888">${f.assigned_examiner_name}</span>`:''}`}
                             <button class="btn btn-xs btn-danger" onclick="removeFile(${f.id})">&times;</button>
                         </span>
-                    </div>`}).join('')
+                    </div>`}).join('')}
+                    <button class="btn btn-xs btn-danger" style="margin-top:8px" onclick="deleteAllContent(${rn})">Delete All Content</button>`
                 :'<div style="color:#999;font-size:13px">No content added.</div>'}
             </div>
 
@@ -271,9 +273,20 @@ function renderRoom(room){
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},2)">PGY-2</button>
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},1)">PGY-1</button>
                 </div>
-                ${room.residents.length?room.residents.map(a=>`<span class="room-resident-tag">${a.name}
-                    <span class="pgy-badge pgy-${Math.min(a.pgy_level,5)}">PGY-${a.pgy_level}</span>
-                    <span style="cursor:pointer;color:#dc3545;margin-left:4px" onclick="removeRoomRes(${a.id})">&times;</span></span>`).join('')
+                ${room.residents.length?`<table class="small-table" style="margin-top:6px"><thead><tr><th>Resident</th><th>PGY</th><th>Username</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
+                    ${room.residents.map(a=>`<tr>
+                        <td>${a.name}</td>
+                        <td><span class="pgy-badge pgy-${Math.min(a.pgy_level,5)}">PGY-${a.pgy_level}</span></td>
+                        <td class="cred-info">${a.username||'-'}</td>
+                        <td class="cred-info">${a.password||'-'}</td>
+                        <td>${a.is_used?'<span style="color:#28a745;font-size:11px">Used</span>':'<span style="color:#888;font-size:11px">Avail</span>'}</td>
+                        <td style="white-space:nowrap">
+                            ${a.is_used&&a.credential_id?`<button class="btn btn-xs btn-secondary" onclick="resetCred(${a.credential_id})" style="font-size:10px">Reset</button>`:''}
+                            ${a.resident_id?`<button class="btn btn-xs btn-secondary" onclick="emailResident(${a.resident_id})" style="font-size:10px" title="Send email">✉</button>`:''}
+                            <button class="btn btn-xs btn-danger" onclick="removeRoomRes(${a.id})" style="font-size:10px">&times;</button>
+                        </td>
+                    </tr>`).join('')}
+                    </tbody></table>`
                 :'<div style="color:#999;font-size:13px">No residents assigned.</div>'}
             </div>
         </div>
@@ -306,6 +319,18 @@ async function addContent(rn){
     const r=await fetch('/admin/files/from-repository',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({examId:currentExamId,repositoryIds:ids,roomNumber:rn})});
     const d=await r.json();if(d.success){msg(`Added ${d.added} file(s) to Room ${rn}.`,'success');loadRooms()}else msg(d.error,'error')}
 async function removeFile(id){await fetch(`/admin/files/${id}`,{method:'DELETE'});loadRooms()}
+async function deleteAllContent(rn){
+    if(!confirm('Delete ALL content from Room '+rn+'?'))return;
+    await fetch(`/admin/exams/${currentExamId}/rooms/${rn}/content`,{method:'DELETE'});
+    msg('Room '+rn+' content deleted.','success');loadRooms()}
+async function resetCred(credId){
+    await fetch(`/admin/credentials/${credId}/reset`,{method:'POST'});loadRooms()}
+async function emailExaminerSingle(exId){
+    const r=await fetch(`/admin/exams/${currentExamId}/email-examiner/${exId}`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json();if(d.success)msg('Email sent!','success');else msg(d.error,'error')}
+async function emailResident(resId){
+    const r=await fetch(`/admin/exams/${currentExamId}/email-resident/${resId}`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json();if(d.success)msg('Email sent!','success');else msg(d.error,'error')}
 async function assignExaminerToQ(fileId,examinerId){
     await fetch(`/admin/exams/${currentExamId}/assign-examiner-to-question`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileId,examinerId:examinerId||null})});
     loadRooms()}
