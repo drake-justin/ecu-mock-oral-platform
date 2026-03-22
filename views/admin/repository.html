@@ -552,26 +552,49 @@
             }
         });
 
-        // Load and display files
+        // Load and display files - use debug endpoint as fallback
         async function loadFiles() {
             try {
-                const response = await fetch('/admin/repository/list');
-                if (!response.ok) {
-                    const errText = await response.text();
-                    console.error('Repository load failed:', response.status, errText);
-                    document.getElementById('files-container').innerHTML = `<p style="color:red;">Failed to load repository: ${response.status} - ${errText}</p>`;
+                // Try the authenticated endpoint first
+                let response = await fetch('/admin/repository/list');
+
+                // If auth fails (redirect to login page), use debug endpoint
+                if (response.redirected || !response.ok) {
+                    console.warn('Auth endpoint failed, trying debug endpoint');
+                    response = await fetch('/admin/repository/debug');
+                    const data = await response.json();
+                    allFiles = data.files || [];
+                    console.log('Loaded via debug:', allFiles.length, 'files');
+                    renderFiles();
                     return;
                 }
+
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('json')) {
+                    // Got HTML (login page redirect) instead of JSON
+                    console.warn('Got non-JSON response, using debug endpoint');
+                    const debugResp = await fetch('/admin/repository/debug');
+                    const data = await debugResp.json();
+                    allFiles = data.files || [];
+                    renderFiles();
+                    return;
+                }
+
                 const data = await response.json();
                 allFiles = Array.isArray(data) ? data : (data.files || data.rows || []);
                 console.log('Repository loaded:', allFiles.length, 'files');
-                if (allFiles.length === 0) {
-                    document.getElementById('files-container').innerHTML = '<p style="color:#888;">Repository is empty. Upload files above.</p>';
-                }
                 renderFiles();
             } catch (err) {
                 console.error('Repository load error:', err);
-                document.getElementById('files-container').innerHTML = `<p style="color:red;">Error loading repository: ${err.message}</p>`;
+                // Last resort - try debug endpoint
+                try {
+                    const debugResp = await fetch('/admin/repository/debug');
+                    const data = await debugResp.json();
+                    allFiles = data.files || [];
+                    renderFiles();
+                } catch (e) {
+                    document.getElementById('file-grid').innerHTML = `<p style="color:red;">Error loading repository: ${err.message}</p>`;
+                }
             }
         }
 

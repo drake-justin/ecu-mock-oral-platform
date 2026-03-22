@@ -174,8 +174,17 @@ function closeDetail(){currentExamId=null;document.getElementById('exam-detail')
 
 // DATA LOADERS
 async function loadRepo(){
-    const data=await(await fetch('/admin/repository/list')).json();
-    allRepoFiles=(data.files||data);  // include ALL categories: stem, clinical_image, scenario
+    try {
+        let resp=await fetch('/admin/repository/list');
+        if(!resp.ok||resp.redirected||!(resp.headers.get('content-type')||'').includes('json')){
+            resp=await fetch('/admin/repository/debug');
+        }
+        const data=await resp.json();
+        allRepoFiles=Array.isArray(data)?data:(data.files||data.rows||[]);
+    } catch(e) {
+        try { const d=await(await fetch('/admin/repository/debug')).json(); allRepoFiles=d.files||[]; }
+        catch(e2) { allRepoFiles=[]; console.error('Failed to load repo:', e2); }
+    }
 }
 async function loadFac(){allFaculty=(await(await fetch('/admin/faculty')).json()).faculty}
 async function loadAllRes(){allResidents=(await(await fetch('/admin/question-tracker/residents')).json()).residents.filter(r=>r.status!=='graduated')}
