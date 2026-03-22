@@ -865,13 +865,26 @@ router.get('/repository', requireAdmin, (req, res) => {
     res.sendFile('admin/repository.html', { root: './views' });
 });
 
-// Debug endpoint - temporary, remove after fixing
+// Debug endpoint - temporary
 router.get('/repository/debug', async (req, res) => {
+    const start = Date.now();
     try {
-        const result = await db.execute('SELECT id, display_name, file_url, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, display_name');
-        res.json({ count: result.rows.length, ok: true, files: result.rows });
+        const result = await db.execute('SELECT id, display_name, category FROM repository LIMIT 5');
+        res.json({ ms: Date.now() - start, count: result.rows.length, rows: result.rows, ok: true });
     } catch (err) {
-        res.json({ error: err.message, ok: false });
+        res.json({ ms: Date.now() - start, error: err.message, stack: err.stack?.substring(0, 300), ok: false });
+    }
+});
+
+// Debug endpoint 2 - test full query
+router.get('/repository/debug2', async (req, res) => {
+    const start = Date.now();
+    try {
+        const result = await db.execute('SELECT COUNT(*) as c FROM repository');
+        const count = result.rows[0]?.c;
+        res.json({ ms: Date.now() - start, count, ok: true });
+    } catch (err) {
+        res.json({ ms: Date.now() - start, error: err.message, ok: false });
     }
 });
 
