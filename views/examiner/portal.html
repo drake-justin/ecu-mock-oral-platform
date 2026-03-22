@@ -74,12 +74,11 @@
 
         <!-- Examiner Guide Tab -->
         <div id="tab-guide">
-            <div class="card" style="max-width:800px">
-                <h2 style="color:#003366;margin:0 0 5px">Examiner Instructions</h2>
-                <p style="color:#666;margin-bottom:20px">Please review these guidelines before beginning the examination.</p>
-
-                <div style="background:#f0f4f8;padding:20px;border-radius:8px;margin-bottom:25px;border-left:4px solid #003366">
-                    <ol style="font-size:16px;line-height:2;margin:0;padding-left:20px">
+            <div style="display:flex;gap:20px;align-items:flex-start">
+                <!-- Left: Instructions -->
+                <div class="card" style="flex:1;min-width:300px">
+                    <h2 style="color:#003366;margin:0 0 15px;font-size:20px">Examiner Instructions</h2>
+                    <ol style="font-size:14px;line-height:1.9;margin:0;padding-left:20px">
                         <li><strong>Read the stem aloud.</strong> Do not show the stem to the candidate unless instructed.</li>
                         <li><strong>Ask questions in order.</strong> Allow the candidate to drive the discussion; redirect only if they stall.</li>
                         <li><strong>Do not lead the candidate.</strong> If they are on the wrong path, ask: <em>"Are you sure?"</em> or <em>"Is there anything else?"</em></li>
@@ -88,64 +87,66 @@
                         <li><strong>Grade each case independently.</strong> A candidate may pass one case and fail another in the same session.</li>
                         <li><strong>Provide written feedback.</strong> Brief, specific feedback helps the resident improve for the real boards.</li>
                     </ol>
-                </div>
-
-                <h2 style="color:#003366;margin:0 0 15px">Scoring Guide</h2>
-                <p style="color:#666;margin-bottom:20px">Based on the American Board of Surgery Certifying Examination format. Each question scenario receives <strong>one of three grades</strong>:</p>
-
-                <!-- PASS -->
-                <div style="display:flex;margin-bottom:15px;border-radius:8px;overflow:hidden;border:1px solid #c3e6cb">
-                    <div style="background:#28a745;color:white;padding:20px 25px;display:flex;align-items:center;min-width:100px;justify-content:center">
-                        <strong style="font-size:22px">PASS</strong>
-                    </div>
-                    <div style="background:#d4edda;padding:15px 20px;flex:1">
-                        <p style="font-weight:600;color:#155724;margin:0 0 8px;font-size:15px">The candidate demonstrated safe, competent surgical management.</p>
-                        <ul style="margin:0;padding-left:18px;font-size:14px;color:#155724;line-height:1.8">
-                            <li>Correctly identified the diagnosis or developed an appropriate differential</li>
-                            <li>Proposed a logical and safe workup and treatment plan</li>
-                            <li>Recognized critical decision points (when to operate, when to observe)</li>
-                            <li>Responded appropriately to scenario evolutions and complications</li>
-                            <li>May have minor knowledge gaps but no unsafe decisions</li>
-                        </ul>
+                    <div style="background:#f0f4f8;padding:12px 15px;border-radius:6px;margin-top:15px;font-size:13px;color:#666;border-left:3px solid #003366">
+                        <strong style="color:#003366">Reminder:</strong> After each case, use the <strong>Score & Feedback</strong> tab to record your grade and comments.
                     </div>
                 </div>
 
-                <!-- MARGINAL -->
-                <div style="display:flex;margin-bottom:15px;border-radius:8px;overflow:hidden;border:1px solid #ffeeba">
-                    <div style="background:#ffc107;color:#333;padding:20px 15px;display:flex;align-items:center;min-width:100px;justify-content:center">
-                        <strong style="font-size:18px">MARGINAL</strong>
-                    </div>
-                    <div style="background:#fff3cd;padding:15px 20px;flex:1">
-                        <p style="font-weight:600;color:#856404;margin:0 0 8px;font-size:15px">The candidate showed significant knowledge gaps or inconsistencies.</p>
-                        <ul style="margin:0;padding-left:18px;font-size:14px;color:#856404;line-height:1.8">
-                            <li>Reached the correct diagnosis but with significant prompting</li>
-                            <li>Treatment plan was partially correct but included errors or omissions</li>
-                            <li>Struggled with critical decision-making or operative details</li>
-                            <li>Required multiple redirections to stay on a safe management path</li>
-                            <li>Did not commit a dangerous error, but performance raises concern</li>
-                        </ul>
-                    </div>
-                </div>
+                <!-- Right: Scoring Guide -->
+                <div class="card" style="flex:1;min-width:300px">
+                    <h2 style="color:#003366;margin:0 0 5px;font-size:20px">Scoring Guide</h2>
+                    <p style="color:#666;margin-bottom:15px;font-size:13px">ABS format. Each case receives one of three grades:</p>
 
-                <!-- FAIL -->
-                <div style="display:flex;margin-bottom:15px;border-radius:8px;overflow:hidden;border:1px solid #f5c6cb">
-                    <div style="background:#dc3545;color:white;padding:20px 25px;display:flex;align-items:center;min-width:100px;justify-content:center">
-                        <strong style="font-size:22px">FAIL</strong>
+                    <!-- PASS -->
+                    <div style="display:flex;margin-bottom:10px;border-radius:6px;overflow:hidden;border:1px solid #c3e6cb">
+                        <div style="background:#28a745;color:white;padding:12px;display:flex;align-items:center;min-width:75px;justify-content:center">
+                            <strong style="font-size:16px">PASS</strong>
+                        </div>
+                        <div style="background:#d4edda;padding:10px 14px;flex:1">
+                            <p style="font-weight:600;color:#155724;margin:0 0 5px;font-size:13px">Safe, competent surgical management.</p>
+                            <ul style="margin:0;padding-left:16px;font-size:12px;color:#155724;line-height:1.7">
+                                <li>Correctly identified diagnosis or appropriate differential</li>
+                                <li>Logical and safe workup and treatment plan</li>
+                                <li>Recognized critical decision points</li>
+                                <li>Responded appropriately to evolutions</li>
+                                <li>Minor gaps OK if no unsafe decisions</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div style="background:#f8d7da;padding:15px 20px;flex:1">
-                        <p style="font-weight:600;color:#721c24;margin:0 0 8px;font-size:15px">The candidate made unsafe decisions or demonstrated critical deficiencies.</p>
-                        <ul style="margin:0;padding-left:18px;font-size:14px;color:#721c24;line-height:1.8">
-                            <li>Failed to recognize a life-threatening condition or surgical emergency</li>
-                            <li>Proposed management that would result in patient harm</li>
-                            <li>Unable to describe basic operative steps for a required procedure</li>
-                            <li>Committed a critical error (see Critical Errors list per case)</li>
-                            <li>Could not be redirected to a safe management plan despite prompts</li>
-                        </ul>
-                    </div>
-                </div>
 
-                <div style="background:#f8f9fa;padding:15px 20px;border-radius:8px;margin-top:20px;font-size:14px;color:#666;border:1px solid #e0e0e0">
-                    <strong style="color:#003366">Reminder:</strong> After completing each case, go to the <strong>Score & Feedback</strong> tab to record your grade and provide written comments for the resident.
+                    <!-- MARGINAL -->
+                    <div style="display:flex;margin-bottom:10px;border-radius:6px;overflow:hidden;border:1px solid #ffeeba">
+                        <div style="background:#ffc107;color:#333;padding:12px 8px;display:flex;align-items:center;min-width:75px;justify-content:center">
+                            <strong style="font-size:13px">MARGINAL</strong>
+                        </div>
+                        <div style="background:#fff3cd;padding:10px 14px;flex:1">
+                            <p style="font-weight:600;color:#856404;margin:0 0 5px;font-size:13px">Significant knowledge gaps or inconsistencies.</p>
+                            <ul style="margin:0;padding-left:16px;font-size:12px;color:#856404;line-height:1.7">
+                                <li>Correct diagnosis but with significant prompting</li>
+                                <li>Partially correct plan with errors or omissions</li>
+                                <li>Struggled with decision-making or operative details</li>
+                                <li>Required multiple redirections</li>
+                                <li>No dangerous error, but raises concern</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- FAIL -->
+                    <div style="display:flex;margin-bottom:10px;border-radius:6px;overflow:hidden;border:1px solid #f5c6cb">
+                        <div style="background:#dc3545;color:white;padding:12px;display:flex;align-items:center;min-width:75px;justify-content:center">
+                            <strong style="font-size:16px">FAIL</strong>
+                        </div>
+                        <div style="background:#f8d7da;padding:10px 14px;flex:1">
+                            <p style="font-weight:600;color:#721c24;margin:0 0 5px;font-size:13px">Unsafe decisions or critical deficiencies.</p>
+                            <ul style="margin:0;padding-left:16px;font-size:12px;color:#721c24;line-height:1.7">
+                                <li>Failed to recognize life-threatening condition</li>
+                                <li>Management would result in patient harm</li>
+                                <li>Unable to describe basic operative steps</li>
+                                <li>Committed a critical error (see case list)</li>
+                                <li>Could not be redirected to safe plan</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
