@@ -122,6 +122,27 @@ async function initializeDatabase() {
         )
     `);
 
+    // Exam scores - examiner grades per question per resident
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_scores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            resident_id INTEGER NOT NULL,
+            file_id INTEGER,
+            repository_stem_id INTEGER,
+            question_name TEXT NOT NULL,
+            score TEXT NOT NULL CHECK(score IN ('pass', 'marginal', 'fail')),
+            comments TEXT,
+            examiner_name TEXT,
+            room_number INTEGER,
+            scored_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE,
+            FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE SET NULL,
+            FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+        )
+    `);
+
     // Question tracking table - tracks which stems each resident has been tested on
     await db.execute(`
         CREATE TABLE IF NOT EXISTS question_history (

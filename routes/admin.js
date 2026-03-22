@@ -946,6 +946,171 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// === EXAMINER SCORING ===
+
+router.get('/scoring', requireAdmin, (req, res) => {
+    res.sendFile('admin/scoring.html', { root: './views' });
+});
+
+// Get scoring data for an exam (residents + their assigned questions)
+router.get('/scoring/:examId', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+
+        // Get residents in this exam
+        const residents = await db.execute({
+            sql: `SELECT DISTINCT r.id, r.name, r.pgy_level
+                  FROM exam_residents er
+                  JOIN residents r ON er.resident_id = r.id
+                  WHERE er.exam_id = ?
+                  ORDER BY r.name`,
+            args: [examId]
+        });
+
+        // Get files for this exam
+        const files = await db.execute({
+            sql: `SELECT f.id, f.display_name, f.room_number, f.item_number,
+                         r.id as repo_stem_id, r.specialty
+                  FROM files f
+                  LEFT JOIN repository r ON f.public_id = r.public_id AND r.category = 'stem'
+                  WHERE f.exam_id = ?
+                  ORDER BY f.room_number, f.sort_order, f.id`,
+            args: [examId]
+        });
+
+        // Get existing scores
+        const scores = await db.execute({
+            sql: 'SELECT * FROM exam_scores WHERE exam_id = ? ORDER BY scored_at DESC',
+            args: [examId]
+        });
+
+        res.json({
+            exam: exam.rows[0],
+            residents: residents.rows,
+            files: files.rows,
+            scores: scores.rows
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load scoring data' });
+    }
+});
+
+// Submit scores
+router.post('/scoring/submit', requireAdmin, async (req, res) => {
+    const { examId, scores, examinerName } = req.body;
+
+    if (!examId || !scores || !scores.length) {
+        return res.status(400).json({ error: 'Exam and scores are required' });
+    }
+
+    try {
+        let saved = 0;
+        for (const s of scores) {
+            // Check for existing score (update if exists)
+            const existing = await db.execute({
+                sql: 'SELECT id FROM exam_scores WHERE exam_id = ? AND resident_id = ? AND file_id = ?',
+                args: [parseInt(examId), parseInt(s.residentId), s.fileId ? parseInt(s.fileId) : null]
+            });
+
+            if (existing.rows.length > 0) {
+                await db.execute({
+                    sql: `UPDATE exam_scores SET score = ?, comments = ?, examiner_name = ?, scored_at = CURRENT_TIMESTAMP
+                          WHERE id = ?`,
+                    args: [s.score, s.comments || null, examinerName || null, existing.rows[0].id]
+                });
+            } else {
+                await db.execute({
+                    sql: `INSERT INTO exam_scores (exam_id, resident_id, file_id, repository_stem_id, question_name, score, comments, examiner_name, room_number)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    args: [parseInt(examId), parseInt(s.residentId), s.fileId ? parseInt(s.fileId) : null,
+                           s.repoStemId ? parseInt(s.repoStemId) : null,
+                           s.questionName || 'Unknown', s.score, s.comments || null,
+                           examinerName || null, s.roomNumber ? parseInt(s.roomNumber) : null]
+                });
+            }
+            saved++;
+        }
+        res.json({ success: true, saved });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to save scores' });
+    }
+});
+
+// Delete a score
+router.delete('/scoring/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({ sql: 'DELETE FROM exam_scores WHERE id = ?', args: [parseInt(req.params.id)] });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete score' });
+    }
+});
+
+// Get resident's longitudinal scores (all exams)
+router.get('/scoring/resident/:id', requireAdmin, async (req, res) => {
+    const residentId = parseInt(req.params.id);
+    try {
+        const resident = await db.execute({ sql: 'SELECT * FROM residents WHERE id = ?', args: [residentId] });
+
+        const scores = await db.execute({
+            sql: `SELECT es.*, e.name as exam_name, e.date as exam_date
+                  FROM exam_scores es
+                  JOIN exams e ON es.exam_id = e.id
+                  WHERE es.resident_id = ?
+                  ORDER BY e.date DESC, es.scored_at DESC`,
+            args: [residentId]
+        });
+
+        // Summary stats
+        const stats = await db.execute({
+            sql: `SELECT score, COUNT(*) as cnt
+                  FROM exam_scores WHERE resident_id = ? GROUP BY score`,
+            args: [residentId]
+        });
+
+        res.json({
+            resident: resident.rows[0],
+            scores: scores.rows,
+            stats: stats.rows
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load resident scores' });
+    }
+});
+
+// Exam summary report for a resident
+router.get('/scoring/report/:examId/:residentId', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const residentId = parseInt(req.params.residentId);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+        const resident = await db.execute({ sql: 'SELECT * FROM residents WHERE id = ?', args: [residentId] });
+        const scores = await db.execute({
+            sql: `SELECT * FROM exam_scores WHERE exam_id = ? AND resident_id = ? ORDER BY room_number, scored_at`,
+            args: [examId, residentId]
+        });
+
+        // All-time stats for context
+        const allStats = await db.execute({
+            sql: 'SELECT score, COUNT(*) as cnt FROM exam_scores WHERE resident_id = ? GROUP BY score',
+            args: [residentId]
+        });
+
+        res.json({
+            exam: exam.rows[0],
+            resident: resident.rows[0],
+            scores: scores.rows,
+            allTimeStats: allStats.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to generate report' });
+    }
+});
+
 // === QUESTION TRACKER ===
 
 router.get('/question-tracker', requireAdmin, (req, res) => {
