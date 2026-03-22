@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const SITE_URL = process.env.SITE_URL || 'https://ecu-mock-oral-platform-production.up.railway.app';
+const SITE_URL = process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || 'https://ecu-mock-oral-platform.onrender.com';
 const FROM = `"ECU Mock Oral Platform" <${process.env.GMAIL_USER}>`;
 
 // Send email to an examiner with their credentials, examinees, and exam details

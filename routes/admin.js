@@ -7,7 +7,12 @@ const { requireAdmin } = require('../middleware/auth');
 let cheerio;
 try { cheerio = require('cheerio'); } catch (e) { /* cheerio not installed */ }
 let emailModule;
-try { emailModule = require('../email'); } catch (e) { /* nodemailer not installed */ }
+try {
+    emailModule = require('../email');
+    console.log('Email module loaded successfully');
+} catch (e) {
+    console.error('Email module failed to load:', e.message);
+}
 
 // Admin dashboard
 router.get('/', requireAdmin, (req, res) => {
@@ -1618,7 +1623,7 @@ router.get('/question-tracker/exams', requireAdmin, async (req, res) => {
 
 // Send emails to all examiners for an exam
 router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
-    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured. Check that nodemailer is installed and GMAIL_USER/GMAIL_APP_PASSWORD are set.' });
 
     const examId = parseInt(req.params.id);
     try {
@@ -1669,14 +1674,14 @@ router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
 
         res.json({ success: true, sent, errors });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to send examiner emails' });
+        console.error('Email examiner error:', err);
+        res.status(500).json({ error: 'Failed to send examiner emails: ' + err.message });
     }
 });
 
 // Send emails to all residents for an exam
 router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
-    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured. Check that nodemailer is installed and GMAIL_USER/GMAIL_APP_PASSWORD are set.' });
 
     const examId = parseInt(req.params.id);
     try {
@@ -1720,8 +1725,8 @@ router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
 
         res.json({ success: true, sent, errors });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to send resident emails' });
+        console.error('Email resident error:', err);
+        res.status(500).json({ error: 'Failed to send resident emails: ' + err.message });
     }
 });
 
