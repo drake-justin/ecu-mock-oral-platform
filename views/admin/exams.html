@@ -19,8 +19,9 @@
         .checkbox-list label{display:block;padding:3px 6px;font-size:13px;cursor:pointer}
         .checkbox-list label:hover{background:#f0f4f8}
         .room-card{border:2px solid #003366;border-radius:10px;margin-bottom:20px;overflow:hidden}
-        .room-card-header{background:#003366;color:white;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+        .room-card-header{background:#003366;color:white;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
         .room-card-header h3{color:white;margin:0;font-size:16px}
+        .room-card-body.collapsed{display:none}
         .room-card-body{padding:18px}
         .room-section{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee}
         .room-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
@@ -210,11 +211,12 @@ function renderRoom(room){
     const examResidentIds=new Set();
     // We need to get all exam residents - fetch from the rooms data
     return `<div class="room-card">
-        <div class="room-card-header">
-            <h3>${room.room_name||'Room '+rn}</h3>
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" onclick="deleteRoom(${rn})">Delete Room</button>
+        <div class="room-card-header" onclick="toggleRoom(${rn})">
+            <h3><span id="room-arrow-${rn}" style="margin-right:6px">▼</span>${room.room_name||'Room '+rn}
+                <span style="font-weight:normal;font-size:12px;opacity:0.7;margin-left:10px">${room.files.length} files · ${room.examiners.length} examiner(s) · ${room.residents.length} resident(s)</span></h3>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" onclick="event.stopPropagation();deleteRoom(${rn})">Delete Room</button>
         </div>
-        <div class="room-card-body">
+        <div class="room-card-body" id="room-body-${rn}">
             <!-- EXAMINER -->
             <div class="room-section">
                 <div class="room-section-title">Examiner(s)</div>
@@ -243,11 +245,11 @@ function renderRoom(room){
                     <button class="btn btn-primary btn-xs" onclick="addContent(${rn})">Add</button>
                 </div>
                 ${room.files.length?`${room.files.map(f=>{
-                    const isStm=f.item_type==='stem';
+                    const isScenario=f.item_type==='scenario';
                     return `<div class="room-item">
                         <span>${catLabel(f.item_type)} ${f.display_name}</span>
                         <span style="display:flex;align-items:center;gap:4px">
-                            ${isStm?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${f.id},this.value)">
+                            ${isScenario&&room.examiners.length>1?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${f.id},this.value)">
                                 <option value="">Unassigned</option>
                                 ${room.examiners.map(ex=>`<option value="${ex.id}" ${f.assigned_examiner_id===ex.id||f.assigned_examiner_name===ex.name?'selected':''}>${ex.name}</option>`).join('')}
                             </select>`:`${f.assigned_examiner_name?`<span style="font-size:11px;color:#888">${f.assigned_examiner_name}</span>`:''}`}
@@ -273,7 +275,7 @@ function renderRoom(room){
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},2)">PGY-2</button>
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},1)">PGY-1</button>
                 </div>
-                ${room.residents.length?`<table class="small-table" style="margin-top:6px"><thead><tr><th>Resident</th><th>PGY</th><th>Username</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
+                ${room.residents.length?`<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:6px"><thead><tr style="text-align:left;border-bottom:1px solid #ddd"><th style="padding:4px 6px;width:25%">Resident</th><th style="padding:4px 6px;width:8%">PGY</th><th style="padding:4px 6px;width:18%">Username</th><th style="padding:4px 6px;width:18%">Password</th><th style="padding:4px 6px;width:10%">Status</th><th style="padding:4px 6px;width:21%"></th></tr></thead><tbody>
                     ${room.residents.map(a=>`<tr>
                         <td>${a.name}</td>
                         <td><span class="pgy-badge pgy-${Math.min(a.pgy_level,5)}">PGY-${a.pgy_level}</span></td>
@@ -300,6 +302,12 @@ function filterRepo(rn){
     if(cat)filtered=filtered.filter(f=>f.category===cat);
     document.getElementById('repo-'+rn).innerHTML=filtered.map(f=>
         `<option value="${f.id}">${f.display_name} [${f.category}]${f.specialty?' - '+f.specialty:''}</option>`).join('')}
+
+function toggleRoom(rn){
+    const body=document.getElementById('room-body-'+rn);
+    const arrow=document.getElementById('room-arrow-'+rn);
+    if(body.classList.contains('collapsed')){body.classList.remove('collapsed');arrow.textContent='▼'}
+    else{body.classList.add('collapsed');arrow.textContent='▶'}}
 
 async function addRoom(){
     const r=await fetch(`/admin/exams/${currentExamId}/rooms`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
