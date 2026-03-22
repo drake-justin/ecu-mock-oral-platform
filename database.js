@@ -1,14 +1,15 @@
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 
-// Create Turso client
-const dbUrl = process.env.TURSO_DATABASE_URL || 'file:local.db';
+// Create Turso client - force HTTPS for reliable connections on hosted platforms
+const rawUrl = process.env.TURSO_DATABASE_URL || 'file:local.db';
+const dbUrl = rawUrl.startsWith('libsql://') ? rawUrl.replace('libsql://', 'https://') : rawUrl;
 const db = createClient({
     url: dbUrl,
     authToken: process.env.TURSO_AUTH_TOKEN
 });
 
-console.log('Database URL:', dbUrl.substring(0, 40) + '...');
+console.log('Database URL:', dbUrl.substring(0, 50) + '...');
 
 // Initialize database schema
 async function initializeDatabase() {
