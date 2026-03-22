@@ -119,19 +119,17 @@
                     <h3>Examiners</h3>
                     <p style="font-size: 13px; color: #666;">Create login accounts for faculty examiners. They access the Examiner Portal at <strong>/examiner/login</strong></p>
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: end;">
-                        <div class="form-group" style="margin: 0; flex: 2; min-width: 180px;">
-                            <label style="font-size: 12px;">Examiner Name</label>
-                            <input type="text" id="new-examiner-name" class="form-control" placeholder="e.g., Dr. Smith">
-                        </div>
-                        <div class="form-group" style="margin: 0; flex: 2; min-width: 180px;">
-                            <label style="font-size: 12px;">Email</label>
-                            <input type="email" id="new-examiner-email" class="form-control" placeholder="smith@ecu.edu">
+                        <div class="form-group" style="margin: 0; flex: 3; min-width: 220px;">
+                            <label style="font-size: 12px;">Select Faculty</label>
+                            <select id="new-examiner-faculty" class="form-control">
+                                <option value="">-- Select Faculty --</option>
+                            </select>
                         </div>
                         <div class="form-group" style="margin: 0; flex: 1; min-width: 80px;">
                             <label style="font-size: 12px;">Room #</label>
                             <input type="number" id="new-examiner-room" class="form-control" placeholder="1">
                         </div>
-                        <button class="btn btn-primary btn-sm" onclick="addExaminer()">Create</button>
+                        <button class="btn btn-primary btn-sm" onclick="addExaminer()">Add Examiner</button>
                     </div>
                     <table class="table exam-residents-table" id="examiners-table">
                         <thead><tr><th>Name</th><th>Email</th><th>Room</th><th>Username</th><th>Password</th><th></th></tr></thead>
@@ -302,6 +300,7 @@
             document.getElementById('individual-add').style.display = 'none';
             await loadAllResidents();
             await loadExamResidents();
+            await loadFaculty();
             await loadExaminers();
             await loadExamFiles();
             await loadAssignments();
@@ -399,7 +398,14 @@
             }
         }
 
-        // === EXAMINERS ===
+        // === FACULTY & EXAMINERS ===
+        async function loadFaculty() {
+            const data = await (await fetch('/admin/faculty')).json();
+            const select = document.getElementById('new-examiner-faculty');
+            select.innerHTML = '<option value="">-- Select Faculty --</option>' +
+                data.faculty.map(f => `<option value="${f.id}">${f.name}${f.email ? ` (${f.email})` : ''}</option>`).join('');
+        }
+
         async function loadExaminers() {
             const data = await (await fetch(`/admin/exams/${currentExamId}/examiners`)).json();
             const tbody = document.querySelector('#examiners-table tbody');
@@ -420,19 +426,17 @@
         }
 
         async function addExaminer() {
-            const name = document.getElementById('new-examiner-name').value.trim();
-            const email = document.getElementById('new-examiner-email').value.trim();
+            const facultyId = document.getElementById('new-examiner-faculty').value;
             const room = document.getElementById('new-examiner-room').value;
-            if (!name) return alert('Enter examiner name');
+            if (!facultyId) return alert('Select a faculty member');
             const res = await fetch(`/admin/exams/${currentExamId}/examiners`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, roomNumber: room })
+                body: JSON.stringify({ facultyId, roomNumber: room })
             });
             const data = await res.json();
             if (data.success) {
                 showMessage(`Examiner created: ${data.username} / ${data.password}`, 'success');
-                document.getElementById('new-examiner-name').value = '';
-                document.getElementById('new-examiner-email').value = '';
+                document.getElementById('new-examiner-faculty').value = '';
                 loadExaminers();
             } else { showMessage(data.error, 'error'); }
         }

@@ -948,6 +948,37 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// === FACULTY DIRECTORY ===
+
+router.get('/faculty', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute("SELECT * FROM faculty WHERE status = 'active' ORDER BY name");
+        res.json({ faculty: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load faculty' });
+    }
+});
+
+router.post('/faculty', requireAdmin, async (req, res) => {
+    const { name, email } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    try {
+        await db.execute({ sql: 'INSERT INTO faculty (name, email) VALUES (?, ?)', args: [name, email || null] });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to add faculty' });
+    }
+});
+
+router.delete('/faculty/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({ sql: "UPDATE faculty SET status = 'inactive' WHERE id = ?", args: [parseInt(req.params.id)] });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to remove faculty' });
+    }
+});
+
 // === EXAMINER MANAGEMENT ===
 
 // Get examiners for an exam
@@ -963,10 +994,19 @@ router.get('/exams/:id/examiners', requireAdmin, async (req, res) => {
     }
 });
 
-// Create examiner for an exam
+// Create examiner for an exam (from faculty directory or manual)
 router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
-    const { name, roomNumber, email } = req.body;
+    let { name, roomNumber, email, facultyId } = req.body;
+
+    // If facultyId provided, look up name and email from faculty table
+    if (facultyId) {
+        const fac = await db.execute({ sql: 'SELECT * FROM faculty WHERE id = ?', args: [parseInt(facultyId)] });
+        if (fac.rows[0]) {
+            name = fac.rows[0].name;
+            email = fac.rows[0].email;
+        }
+    }
 
     if (!name) return res.status(400).json({ error: 'Examiner name is required' });
 

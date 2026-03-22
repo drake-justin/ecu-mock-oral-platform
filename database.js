@@ -122,6 +122,18 @@ async function initializeDatabase() {
         )
     `);
 
+    // Faculty directory - all attending surgeons
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS faculty (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT,
+            department TEXT DEFAULT 'Surgery',
+            status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     // Examiners - separate login for faculty running exam rooms
     await db.execute(`
         CREATE TABLE IF NOT EXISTS examiners (
