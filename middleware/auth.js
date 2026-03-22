@@ -13,6 +13,10 @@ function requireAdmin(req, res, next) {
     if (req.session && req.session.admin) {
         return next();
     }
+    // Return JSON for API requests, redirect for page requests
+    if (req.xhr || req.headers.accept?.includes('application/json') || req.path.includes('/list') || req.path.includes('/data')) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
     res.redirect('/admin/login');
 }
 

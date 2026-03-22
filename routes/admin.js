@@ -879,9 +879,11 @@ router.get('/repository/debug', async (req, res) => {
 router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute(
-            'SELECT * FROM repository ORDER BY category, specialty, display_name'
+            'SELECT id, display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, specialty, display_name'
         );
-        res.json(result.rows);
+        const rows = result.rows || [];
+        console.log(`Repository list: returning ${rows.length} rows`);
+        return res.json(rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch files' });
