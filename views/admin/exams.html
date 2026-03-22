@@ -317,12 +317,25 @@ async function addPgyToRoom(rn,level){
 async function removeRoomRes(id){await fetch(`/admin/exams/${currentExamId}/room-assignments/${id}`,{method:'DELETE'});loadRooms()}
 
 // EMAIL
-async function emailExaminers(){if(!confirm('Email all examiners?'))return;document.getElementById('email-status').innerHTML='Sending...';
-    const r=await fetch(`/admin/exams/${currentExamId}/email-examiners`,{method:'POST',headers:{'Content-Type':'application/json'}});const d=await r.json();
-    document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent}.</span>`:`<span style="color:red">${d.error}</span>`}
-async function emailResidents(){if(!confirm('Email all residents?'))return;document.getElementById('email-status').innerHTML='Sending...';
-    const r=await fetch(`/admin/exams/${currentExamId}/email-residents`,{method:'POST',headers:{'Content-Type':'application/json'}});const d=await r.json();
-    document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent}.</span>`:`<span style="color:red">${d.error}</span>`}
+async function emailExaminers(){
+    if(!confirm('Email all examiners?'))return;
+    document.getElementById('email-status').innerHTML='Sending...';
+    try{
+        const r=await fetch(`/admin/exams/${currentExamId}/email-examiners`,{method:'POST',headers:{'Content-Type':'application/json'}});
+        if(r.redirected||!r.ok&&r.status!==400){document.getElementById('email-status').innerHTML='<span style="color:red">Session expired. Please log in again.</span>';return}
+        const d=await r.json();
+        document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent} examiner(s).${d.errors?.length?' Errors: '+d.errors.join(', '):''}</span>`:`<span style="color:red">${d.error}</span>`;
+    }catch(e){document.getElementById('email-status').innerHTML=`<span style="color:red">Error: ${e.message}</span>`}}
+
+async function emailResidents(){
+    if(!confirm('Email all residents?'))return;
+    document.getElementById('email-status').innerHTML='Sending...';
+    try{
+        const r=await fetch(`/admin/exams/${currentExamId}/email-residents`,{method:'POST',headers:{'Content-Type':'application/json'}});
+        if(r.redirected||!r.ok&&r.status!==400){document.getElementById('email-status').innerHTML='<span style="color:red">Session expired. Please log in again.</span>';return}
+        const d=await r.json();
+        document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent} resident(s).${d.errors?.length?' Errors: '+d.errors.join(', '):''}</span>`:`<span style="color:red">${d.error}</span>`;
+    }catch(e){document.getElementById('email-status').innerHTML=`<span style="color:red">Error: ${e.message}</span>`}}
 
 loadExams();
 </script>

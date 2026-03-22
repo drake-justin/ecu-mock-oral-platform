@@ -13,9 +13,10 @@ function requireAdmin(req, res, next) {
     if (req.session && req.session.admin) {
         return next();
     }
-    // Return JSON for API requests, redirect for page requests
-    if (req.xhr || req.headers.accept?.includes('application/json') || req.path.includes('/list') || req.path.includes('/data')) {
-        return res.status(401).json({ error: 'Not authenticated' });
+    // Return JSON for non-GET requests and API-style GET requests
+    // Only redirect for GET requests that serve HTML pages
+    if (req.method !== 'GET' || req.xhr || (req.headers.accept && req.headers.accept.includes('application/json')) || req.headers['content-type']?.includes('json')) {
+        return res.status(401).json({ error: 'Not authenticated. Please log in again.' });
     }
     res.redirect('/admin/login');
 }
