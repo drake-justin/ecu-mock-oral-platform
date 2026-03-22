@@ -7,15 +7,25 @@
     <link rel="stylesheet" href="/css/styles.css">
     <style>
         .tracker-layout { display: flex; gap: 20px; min-height: 600px; }
-        .resident-panel { flex: 0 0 300px; }
+        .resident-panel { flex: 0 0 320px; }
         .detail-panel { flex: 1; }
         .resident-search { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; font-size: 14px; }
-        .resident-list { max-height: 500px; overflow-y: auto; }
-        .resident-item { padding: 10px 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .filter-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .filter-row select { flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .resident-list { max-height: 450px; overflow-y: auto; }
+        .resident-item { padding: 10px 12px; border-bottom: 1px solid #eee; cursor: pointer; }
         .resident-item:hover { background: #f0f4f8; }
         .resident-item.active { background: #003366; color: white; }
-        .resident-item .count { font-size: 12px; color: #888; }
-        .resident-item.active .count { color: #ccc; }
+        .resident-item .res-name { font-weight: 500; }
+        .resident-item .res-meta { font-size: 12px; color: #888; display: flex; justify-content: space-between; margin-top: 3px; }
+        .resident-item.active .res-meta { color: #ccc; }
+        .pgy-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pgy-1 { background: #e3f2fd; color: #1565c0; }
+        .pgy-2 { background: #e8f5e9; color: #2e7d32; }
+        .pgy-3 { background: #fff3e0; color: #e65100; }
+        .pgy-4 { background: #fce4ec; color: #c62828; }
+        .pgy-5 { background: #f3e5f5; color: #6a1b9a; }
+        .pgy-research { background: #e0f7fa; color: #00838f; }
         .topic-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
         .topic-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
         .topic-badge.covered { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -23,19 +33,27 @@
         .history-exam { margin-bottom: 20px; }
         .history-exam h4 { margin-bottom: 8px; color: #003366; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
-        .history-item .specialty-tag { font-size: 11px; background: #e9ecef; padding: 2px 8px; border-radius: 10px; color: #555; }
-        .history-item .delete-btn { color: #dc3545; cursor: pointer; border: none; background: none; font-size: 14px; }
+        .history-item .specialty-tag { font-size: 11px; background: #e9ecef; padding: 2px 8px; border-radius: 10px; color: #555; margin-left: 8px; }
+        .history-item .delete-btn { color: #dc3545; cursor: pointer; border: none; background: none; font-size: 16px; padding: 0 4px; }
         .coverage-summary { display: flex; gap: 20px; margin-bottom: 15px; }
         .coverage-stat { text-align: center; }
         .coverage-stat .number { font-size: 28px; font-weight: bold; color: #003366; }
         .coverage-stat .label { font-size: 12px; color: #666; }
         .add-record-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; }
-        .add-record-form .form-group { flex: 1; min-width: 200px; }
+        .add-record-form .form-group { flex: 1; min-width: 180px; }
         .add-record-form label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #555; }
-        .add-record-form select, .add-record-form input { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-        .import-section { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 6px; border-left: 4px solid #003366; }
+        .add-record-form select { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .import-section { margin-top: 15px; padding: 15px; background: #f0f4f8; border-radius: 6px; border-left: 4px solid #003366; }
         .no-selection { text-align: center; padding: 60px 20px; color: #999; }
         .no-selection h3 { margin-bottom: 10px; }
+        .manage-section { margin-top: 15px; padding: 15px; background: #fff3e0; border-radius: 6px; border-left: 4px solid #e65100; }
+        .manage-section h4 { margin-bottom: 8px; color: #e65100; }
+        .add-resident-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+        .add-resident-form input, .add-resident-form select { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .advance-warning { margin-top: 10px; padding: 10px; background: #f8d7da; border-radius: 4px; font-size: 13px; color: #721c24; }
+        .tabs { display: flex; gap: 0; margin-bottom: 15px; border-bottom: 2px solid #003366; }
+        .tab { padding: 8px 20px; cursor: pointer; font-weight: 500; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab.active { color: #003366; border-bottom-color: #003366; }
     </style>
 </head>
 <body>
@@ -59,7 +77,7 @@
 
     <div class="container">
         <h2>Question Tracker</h2>
-        <p style="color: #666; margin-bottom: 20px;">Track which questions each resident has been tested on across all exams.</p>
+        <p style="color: #666; margin-bottom: 20px;">Track which questions each resident has been tested on across all mock oral exams.</p>
 
         <div class="tracker-layout">
             <!-- Resident List Panel -->
@@ -67,6 +85,22 @@
                 <div class="card">
                     <h3 class="card-title">Residents</h3>
                     <input type="text" class="resident-search" id="resident-search" placeholder="Search residents...">
+                    <div class="filter-row">
+                        <select id="pgy-filter">
+                            <option value="">All PGY</option>
+                            <option value="5">PGY-5 (Chief)</option>
+                            <option value="4">PGY-4</option>
+                            <option value="3">PGY-3</option>
+                            <option value="2">PGY-2</option>
+                            <option value="1">PGY-1</option>
+                        </select>
+                        <select id="status-filter">
+                            <option value="active">Active</option>
+                            <option value="">All</option>
+                            <option value="research">Research</option>
+                            <option value="graduated">Graduated</option>
+                        </select>
+                    </div>
                     <div class="resident-list" id="resident-list">
                         <div style="padding: 20px; text-align: center; color: #999;">Loading...</div>
                     </div>
@@ -75,11 +109,33 @@
                 <!-- Import from Exam -->
                 <div class="import-section">
                     <h4 style="margin-bottom: 8px;">Import from Exam</h4>
-                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Auto-record all stems assigned to an exam for all residents in that exam.</p>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Auto-record all stems for all residents in an exam.</p>
                     <select id="import-exam-select" class="form-control" style="margin-bottom: 8px;">
                         <option value="">-- Select Exam --</option>
                     </select>
                     <button class="btn btn-primary btn-sm" onclick="importExam()">Import</button>
+                </div>
+
+                <!-- Manage Residents -->
+                <div class="manage-section">
+                    <h4>Manage Residents</h4>
+                    <div class="add-resident-form">
+                        <input type="text" id="new-res-name" placeholder="Full Name, MD" style="flex: 2; min-width: 150px;">
+                        <select id="new-res-pgy" style="width: 80px;">
+                            <option value="1">PGY-1</option>
+                            <option value="2">PGY-2</option>
+                            <option value="3">PGY-3</option>
+                            <option value="4">PGY-4</option>
+                            <option value="5">PGY-5</option>
+                        </select>
+                        <input type="number" id="new-res-year" placeholder="Start Year" value="2026" style="width: 90px;">
+                        <button class="btn btn-primary btn-sm" onclick="addResident()">Add</button>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-secondary btn-sm" onclick="advanceYear()" style="font-size: 12px;">
+                            Advance All (July Rollover)
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -92,10 +148,13 @@
                     </div>
 
                     <div id="resident-detail" style="display: none;">
-                        <h3 id="detail-name" class="card-title"></h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 id="detail-name" class="card-title" style="margin: 0;"></h3>
+                            <span id="detail-pgy" class="pgy-badge"></span>
+                        </div>
 
                         <!-- Coverage Summary -->
-                        <div class="coverage-summary">
+                        <div class="coverage-summary" style="margin-top: 15px;">
                             <div class="coverage-stat">
                                 <div class="number" id="total-questions">0</div>
                                 <div class="label">Questions Tested</div>
@@ -108,38 +167,52 @@
                                 <div class="number" id="topics-total">0</div>
                                 <div class="label">Total Topics</div>
                             </div>
-                        </div>
-
-                        <!-- Topic Coverage Grid -->
-                        <h4>Topic Coverage</h4>
-                        <div class="topic-grid" id="topic-grid"></div>
-
-                        <!-- Add Record Form -->
-                        <h4 style="margin-top: 20px;">Add Question Record</h4>
-                        <div class="add-record-form">
-                            <div class="form-group">
-                                <label>Exam</label>
-                                <select id="add-exam" class="form-control"></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Core Topic</label>
-                                <select id="add-topic-filter" class="form-control" onchange="filterStems()">
-                                    <option value="">-- All Topics --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Question Stem</label>
-                                <select id="add-stem" class="form-control"></select>
-                            </div>
-                            <div class="form-group" style="flex: 0;">
-                                <label>&nbsp;</label>
-                                <button class="btn btn-primary" onclick="addRecord()">Add</button>
+                            <div class="coverage-stat">
+                                <div class="number" id="coverage-pct">0%</div>
+                                <div class="label">Coverage</div>
                             </div>
                         </div>
 
-                        <!-- Question History by Exam -->
-                        <h4>Question History</h4>
-                        <div id="history-list"></div>
+                        <!-- Tabs -->
+                        <div class="tabs">
+                            <div class="tab active" onclick="showTab('coverage')">Topic Coverage</div>
+                            <div class="tab" onclick="showTab('history')">Question History</div>
+                            <div class="tab" onclick="showTab('add')">Add Record</div>
+                        </div>
+
+                        <!-- Topic Coverage Tab -->
+                        <div id="tab-coverage">
+                            <div class="topic-grid" id="topic-grid"></div>
+                        </div>
+
+                        <!-- Question History Tab -->
+                        <div id="tab-history" style="display: none;">
+                            <div id="history-list"></div>
+                        </div>
+
+                        <!-- Add Record Tab -->
+                        <div id="tab-add" style="display: none;">
+                            <div class="add-record-form">
+                                <div class="form-group">
+                                    <label>Exam</label>
+                                    <select id="add-exam"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Core Topic</label>
+                                    <select id="add-topic-filter" onchange="filterStems()">
+                                        <option value="">-- All Topics --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Question Stem</label>
+                                    <select id="add-stem"></select>
+                                </div>
+                                <div class="form-group" style="flex: 0;">
+                                    <label>&nbsp;</label>
+                                    <button class="btn btn-primary" onclick="addRecord()">Add</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -149,8 +222,26 @@
     <script>
         let allResidents = [];
         let allStems = [];
-        let allExams = [];
-        let selectedResident = null;
+        let selectedResidentId = null;
+
+        function getPgyClass(level, status) {
+            if (status === 'research') return 'pgy-research';
+            return 'pgy-' + Math.min(level, 5);
+        }
+
+        function getPgyLabel(level, status) {
+            if (status === 'research') return 'Research';
+            if (status === 'graduated') return 'Graduated';
+            if (level >= 5) return 'PGY-5 (Chief)';
+            return 'PGY-' + level;
+        }
+
+        function showTab(name) {
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+            document.getElementById('tab-' + name).style.display = 'block';
+            event.target.classList.add('active');
+        }
 
         async function loadResidents() {
             try {
@@ -165,74 +256,86 @@
 
         function renderResidents() {
             const search = document.getElementById('resident-search').value.toLowerCase();
-            const filtered = allResidents.filter(r => r.name.toLowerCase().includes(search));
-            const list = document.getElementById('resident-list');
+            const pgyFilter = document.getElementById('pgy-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
 
+            let filtered = allResidents;
+            if (search) filtered = filtered.filter(r => r.name.toLowerCase().includes(search));
+            if (pgyFilter) filtered = filtered.filter(r => r.pgy_level == pgyFilter);
+            if (statusFilter) filtered = filtered.filter(r => r.status === statusFilter);
+
+            const list = document.getElementById('resident-list');
             if (filtered.length === 0) {
-                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No residents found.<br><small>Residents appear here after credentials are created with examinee names.</small></div>';
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No residents found.</div>';
                 return;
             }
 
             list.innerHTML = filtered.map(r => `
-                <div class="resident-item ${selectedResident === r.name ? 'active' : ''}"
-                     onclick="selectResident('${r.name.replace(/'/g, "\\'")}')">
-                    <span>${r.name}</span>
-                    <span class="count">${r.questions} Q / ${r.topics} topics</span>
+                <div class="resident-item ${selectedResidentId === r.id ? 'active' : ''}"
+                     onclick="selectResident(${r.id})">
+                    <div class="res-name">${r.name}</div>
+                    <div class="res-meta">
+                        <span class="pgy-badge ${getPgyClass(r.pgy_level, r.status)}">${getPgyLabel(r.pgy_level, r.status)}</span>
+                        <span>${r.question_count} Q / ${r.topic_count} topics</span>
+                    </div>
                 </div>
             `).join('');
         }
 
-        async function selectResident(name) {
-            selectedResident = name;
+        async function selectResident(id) {
+            selectedResidentId = id;
             renderResidents();
 
             document.getElementById('no-selection').style.display = 'none';
             document.getElementById('resident-detail').style.display = 'block';
-            document.getElementById('detail-name').textContent = name;
 
             try {
-                const res = await fetch(`/admin/question-tracker/resident/${encodeURIComponent(name)}`);
+                const res = await fetch(`/admin/question-tracker/resident/${id}`);
                 const data = await res.json();
+                const r = data.resident;
 
-                // Coverage summary
+                document.getElementById('detail-name').textContent = r.name;
+                const pgyBadge = document.getElementById('detail-pgy');
+                pgyBadge.textContent = getPgyLabel(r.pgy_level, r.status);
+                pgyBadge.className = 'pgy-badge ' + getPgyClass(r.pgy_level, r.status);
+
+                // Coverage stats
                 document.getElementById('total-questions').textContent = data.history.length;
                 document.getElementById('topics-covered').textContent = data.testedTopics.length;
                 document.getElementById('topics-total').textContent = data.allTopics.length;
+                const pct = data.allTopics.length > 0
+                    ? Math.round((data.testedTopics.length / data.allTopics.length) * 100)
+                    : 0;
+                document.getElementById('coverage-pct').textContent = pct + '%';
 
                 // Topic grid
-                const grid = document.getElementById('topic-grid');
-                grid.innerHTML = data.allTopics.map(topic => {
+                document.getElementById('topic-grid').innerHTML = data.allTopics.map(topic => {
                     const covered = data.testedTopics.includes(topic);
                     return `<span class="topic-badge ${covered ? 'covered' : 'not-covered'}">${topic}</span>`;
                 }).join('');
 
-                // History grouped by exam
+                // History by exam
                 const historyByExam = {};
                 for (const h of data.history) {
                     const key = h.exam_id;
                     if (!historyByExam[key]) {
-                        historyByExam[key] = {
-                            examName: h.exam_name || 'Unknown Exam',
-                            examDate: h.exam_date || '',
-                            items: []
-                        };
+                        historyByExam[key] = { examName: h.exam_name || 'Unknown', examDate: h.exam_date || '', items: [] };
                     }
                     historyByExam[key].items.push(h);
                 }
 
                 const historyDiv = document.getElementById('history-list');
                 if (Object.keys(historyByExam).length === 0) {
-                    historyDiv.innerHTML = '<p style="color: #999;">No questions recorded yet for this resident.</p>';
+                    historyDiv.innerHTML = '<p style="color: #999;">No questions recorded yet.</p>';
                 } else {
-                    historyDiv.innerHTML = Object.entries(historyByExam).map(([examId, exam]) => `
+                    historyDiv.innerHTML = Object.entries(historyByExam).map(([eid, exam]) => `
                         <div class="history-exam">
                             <h4>${exam.examName} ${exam.examDate ? `(${new Date(exam.examDate).toLocaleDateString()})` : ''}</h4>
                             ${exam.items.map(item => `
                                 <div class="history-item">
                                     <div>
-                                        <span>${item.stem_display_name}</span>
+                                        ${item.stem_display_name}
                                         ${item.specialty ? `<span class="specialty-tag">${item.specialty}</span>` : ''}
-                                        ${item.room_number ? `<span class="specialty-tag">Room ${item.room_number}</span>` : ''}
                                     </div>
                                     <button class="delete-btn" onclick="deleteRecord(${item.id})" title="Remove">&times;</button>
                                 </div>
@@ -241,9 +344,8 @@
                     `).join('');
                 }
 
-                // Populate add-exam dropdown with this resident's exams
-                const addExam = document.getElementById('add-exam');
-                addExam.innerHTML = '<option value="">-- Select Exam --</option>' +
+                // Exam dropdown for adding records
+                document.getElementById('add-exam').innerHTML = '<option value="">-- Select Exam --</option>' +
                     data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
 
             } catch (err) {
@@ -256,13 +358,9 @@
                 const res = await fetch('/admin/question-tracker/stems');
                 const data = await res.json();
                 allStems = data.stems;
-
-                // Populate topic filter
                 const topics = [...new Set(allStems.map(s => s.specialty).filter(Boolean))].sort();
-                const topicFilter = document.getElementById('add-topic-filter');
-                topicFilter.innerHTML = '<option value="">-- All Topics --</option>' +
+                document.getElementById('add-topic-filter').innerHTML = '<option value="">-- All Topics --</option>' +
                     topics.map(t => `<option value="${t}">${t}</option>`).join('');
-
                 filterStems();
             } catch (err) {
                 console.error('Failed to load stems:', err);
@@ -272,13 +370,12 @@
         function filterStems() {
             const topic = document.getElementById('add-topic-filter').value;
             const filtered = topic ? allStems.filter(s => s.specialty === topic) : allStems;
-            const stemSelect = document.getElementById('add-stem');
-            stemSelect.innerHTML = '<option value="">-- Select Stem --</option>' +
+            document.getElementById('add-stem').innerHTML = '<option value="">-- Select Stem --</option>' +
                 filtered.map(s => `<option value="${s.id}">${s.display_name} ${s.specialty ? `[${s.specialty}]` : ''}</option>`).join('');
         }
 
         async function addRecord() {
-            if (!selectedResident) return alert('Select a resident first');
+            if (!selectedResidentId) return alert('Select a resident first');
             const examId = document.getElementById('add-exam').value;
             const stemId = document.getElementById('add-stem').value;
             if (!examId || !stemId) return alert('Select an exam and a question stem');
@@ -287,50 +384,37 @@
                 const res = await fetch('/admin/question-tracker/record', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ residentName: selectedResident, examId, repositoryStemId: stemId })
+                    body: JSON.stringify({ residentId: selectedResidentId, examId, repositoryStemId: stemId })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    selectResident(selectedResident);
+                if ((await res.json()).success) {
+                    selectResident(selectedResidentId);
                     loadResidents();
-                } else {
-                    alert(data.error || 'Failed to add record');
                 }
-            } catch (err) {
-                alert('Failed to add record');
-            }
+            } catch (err) { alert('Failed to add record'); }
         }
 
         async function deleteRecord(id) {
             if (!confirm('Remove this question record?')) return;
             try {
                 await fetch(`/admin/question-tracker/${id}`, { method: 'DELETE' });
-                selectResident(selectedResident);
+                selectResident(selectedResidentId);
                 loadResidents();
-            } catch (err) {
-                alert('Failed to delete record');
-            }
+            } catch (err) { alert('Failed to delete'); }
         }
 
         async function loadExams() {
             try {
                 const res = await fetch('/admin/question-tracker/exams');
                 const data = await res.json();
-                allExams = data.exams;
-                const select = document.getElementById('import-exam-select');
-                select.innerHTML = '<option value="">-- Select Exam --</option>' +
+                document.getElementById('import-exam-select').innerHTML = '<option value="">-- Select Exam --</option>' +
                     data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
-            } catch (err) {
-                console.error('Failed to load exams:', err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         async function importExam() {
             const examId = document.getElementById('import-exam-select').value;
-            if (!examId) return alert('Select an exam to import');
-
-            if (!confirm('This will record all exam stems as tested for all residents in this exam. Continue?')) return;
-
+            if (!examId) return alert('Select an exam');
+            if (!confirm('Import all stems for all residents in this exam?')) return;
             try {
                 const res = await fetch('/admin/question-tracker/import-exam', {
                     method: 'POST',
@@ -339,21 +423,51 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert(`Imported ${data.imported} question records.`);
+                    alert(`Imported ${data.imported} records.`);
                     loadResidents();
-                    if (selectedResident) selectResident(selectedResident);
-                } else {
-                    alert(data.error || 'Failed to import');
-                }
-            } catch (err) {
-                alert('Failed to import exam data');
-            }
+                    if (selectedResidentId) selectResident(selectedResidentId);
+                } else { alert(data.error); }
+            } catch (err) { alert('Failed to import'); }
         }
 
-        // Search filter
-        document.getElementById('resident-search').addEventListener('input', renderResidents);
+        async function addResident() {
+            const name = document.getElementById('new-res-name').value.trim();
+            const pgy = document.getElementById('new-res-pgy').value;
+            const year = document.getElementById('new-res-year').value;
+            if (!name) return alert('Enter resident name');
 
-        // Initialize
+            try {
+                const res = await fetch('/admin/question-tracker/residents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, pgyLevel: pgy, startYear: year })
+                });
+                if ((await res.json()).success) {
+                    document.getElementById('new-res-name').value = '';
+                    loadResidents();
+                }
+            } catch (err) { alert('Failed to add resident'); }
+        }
+
+        async function advanceYear() {
+            if (!confirm('This will:\n- Graduate all PGY-5 chiefs\n- Move research residents back to active\n- Advance everyone by 1 PGY level\n\nThis is typically done in July. Continue?')) return;
+            try {
+                const res = await fetch('/admin/question-tracker/advance-year', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Year advanced. ${data.graduated} residents graduated.`);
+                    loadResidents();
+                }
+            } catch (err) { alert('Failed to advance year'); }
+        }
+
+        document.getElementById('resident-search').addEventListener('input', renderResidents);
+        document.getElementById('pgy-filter').addEventListener('change', renderResidents);
+        document.getElementById('status-filter').addEventListener('change', renderResidents);
+
         loadResidents();
         loadStems();
         loadExams();

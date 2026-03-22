@@ -77,10 +77,24 @@ async function initializeDatabase() {
         )
     `);
 
+    // Residents table - tracks all residents across years
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS residents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            pgy_level INTEGER NOT NULL,
+            start_year INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'graduated', 'research')),
+            email TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     // Question tracking table - tracks which stems each resident has been tested on
     await db.execute(`
         CREATE TABLE IF NOT EXISTS question_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            resident_id INTEGER,
             resident_name TEXT NOT NULL,
             exam_id INTEGER NOT NULL,
             repository_stem_id INTEGER,
@@ -89,6 +103,7 @@ async function initializeDatabase() {
             room_number INTEGER,
             recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             recorded_by TEXT DEFAULT 'manual',
+            FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE SET NULL,
             FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
             FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL
         )
@@ -118,6 +133,12 @@ async function initializeDatabase() {
     } catch (e) { /* column may already exist */ }
     try {
         await db.execute('ALTER TABLE repository ADD COLUMN specialty TEXT');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE question_history ADD COLUMN resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE credentials ADD COLUMN resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL');
     } catch (e) { /* column may already exist */ }
 
     // Create default admin if none exists
