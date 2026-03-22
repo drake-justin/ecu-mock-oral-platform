@@ -556,10 +556,22 @@
         async function loadFiles() {
             try {
                 const response = await fetch('/admin/repository/list');
-                allFiles = await response.json();
+                if (!response.ok) {
+                    const errText = await response.text();
+                    console.error('Repository load failed:', response.status, errText);
+                    document.getElementById('files-container').innerHTML = `<p style="color:red;">Failed to load repository: ${response.status} - ${errText}</p>`;
+                    return;
+                }
+                const data = await response.json();
+                allFiles = Array.isArray(data) ? data : (data.files || data.rows || []);
+                console.log('Repository loaded:', allFiles.length, 'files');
+                if (allFiles.length === 0) {
+                    document.getElementById('files-container').innerHTML = '<p style="color:#888;">Repository is empty. Upload files above.</p>';
+                }
                 renderFiles();
             } catch (err) {
-                console.error(err);
+                console.error('Repository load error:', err);
+                document.getElementById('files-container').innerHTML = `<p style="color:red;">Error loading repository: ${err.message}</p>`;
             }
         }
 
@@ -581,22 +593,21 @@
                 return;
             }
 
+            const catLabels = { stem: 'Question Stem', clinical_image: 'Clinical Image', scenario: 'Scenario' };
             grid.innerHTML = filtered.map(file => `
                 <div class="file-card ${file.category}">
                     <div class="file-card-header">
                         <span class="file-card-title">${file.display_name}</span>
                         <span class="file-card-category ${file.category}">
-                            ${file.category === 'stem' ? 'Question Stem' : 'Clinical Image'}
+                            ${catLabels[file.category] || file.category}
                         </span>
                     </div>
                     <div class="file-card-meta">
-                        ${file.file_type.toUpperCase()} &bull; ${new Date(file.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}
+                        ${(file.file_type || '').toUpperCase()}
+                        ${file.created_at ? '&bull; ' + new Date(file.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' }) : ''}
                         ${file.specialty ? `&bull; <strong>${file.specialty}</strong>` : ''}
                     </div>
-                    ${file.category === 'clinical_image' && file.stem_name ?
-                        `<div class="file-card-related">Linked to: <strong>${file.stem_name}</strong></div>` :
-                        file.category === 'clinical_image' ?
-                        `<div class="file-card-related" style="color: #999;">Not linked to any stem</div>` : ''}
+                    ${file.related_stem_id ? `<div class="file-card-related">Linked to stem ID: ${file.related_stem_id}</div>` : ''}
                     <div class="file-card-actions">
                         <a href="${file.file_url}" target="_blank" class="btn btn-sm btn-secondary">Preview</a>
                         <button class="btn btn-sm btn-primary" onclick='editFile(${JSON.stringify(file)})'>Edit</button>
