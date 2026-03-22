@@ -868,9 +868,8 @@ router.get('/repository', requireAdmin, (req, res) => {
 // Debug endpoint - temporary, remove after fixing
 router.get('/repository/debug', async (req, res) => {
     try {
-        const count = await db.execute('SELECT COUNT(*) as cnt FROM repository');
-        const sample = await db.execute('SELECT id, display_name, category FROM repository LIMIT 3');
-        res.json({ count: count.rows[0]?.cnt, sample: sample.rows, ok: true });
+        const result = await db.execute('SELECT id, display_name, file_url, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, display_name');
+        res.json({ count: result.rows.length, ok: true, files: result.rows });
     } catch (err) {
         res.json({ error: err.message, ok: false });
     }
@@ -878,12 +877,10 @@ router.get('/repository/debug', async (req, res) => {
 
 router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
-        const result = await db.execute(
-            'SELECT id, display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, specialty, display_name'
-        );
-        const rows = result.rows || [];
-        console.log(`Repository list: returning ${rows.length} rows`);
-        return res.json(rows);
+        console.log('Repository list: starting query...');
+        const result = await db.execute('SELECT id, display_name, file_url, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, display_name');
+        console.log('Repository list: query done, rows:', result.rows?.length);
+        res.json(result.rows || []);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch files' });
