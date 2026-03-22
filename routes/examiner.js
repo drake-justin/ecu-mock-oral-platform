@@ -174,6 +174,27 @@ router.post('/score', requireExaminer, async (req, res) => {
     }
 });
 
+// Remove a clinical image from the exam (examiner can do this)
+router.post('/remove-file/:fileId', requireExaminer, async (req, res) => {
+    const fileId = parseInt(req.params.fileId);
+    const examId = req.session.examiner.examId;
+    try {
+        // Verify file belongs to examiner's exam and is a clinical image
+        const file = await db.execute({
+            sql: 'SELECT * FROM files WHERE id = ? AND exam_id = ?',
+            args: [fileId, examId]
+        });
+        if (!file.rows[0]) return res.status(404).json({ error: 'File not found' });
+        if (file.rows[0].item_type !== 'clinical_image') {
+            return res.status(403).json({ error: 'Can only remove clinical images' });
+        }
+        await db.execute({ sql: 'DELETE FROM files WHERE id = ?', args: [fileId] });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to remove file' });
+    }
+});
+
 // Reset an examinee's credential so they can log in again
 router.post('/reset-credential/:credentialId', requireExaminer, async (req, res) => {
     const credId = parseInt(req.params.credentialId);

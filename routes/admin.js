@@ -823,17 +823,59 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
                 sortOrder++;
 
-                // If this is a stem, also add its linked clinical images
-                if (repoFile.category === 'stem') {
-                    const linkedImages = await db.execute({
+                // If this is a stem or scenario, also add linked files
+                // Scenarios link to stems via related_stem_id; stems have linked images and scenarios
+                let stemId = null;
+                if (repoFile.category === 'scenario' && repoFile.related_stem_id) {
+                    stemId = repoFile.related_stem_id;
+                } else if (repoFile.category === 'stem') {
+                    stemId = parseInt(repoId);
+                }
+
+                if (stemId) {
+                    // Add the stem itself if we came from a scenario
+                    if (repoFile.category === 'scenario') {
+                        const stemResult = await db.execute({
+                            sql: 'SELECT * FROM repo_files WHERE id = ?',
+                            args: [stemId]
+                        });
+                        const stem = stemResult.rows[0];
+                        if (stem) {
+                            // Check if stem already in this exam
+                            const existingCheck = await db.execute({
+                                sql: 'SELECT id FROM files WHERE exam_id = ? AND public_id = ?',
+                                args: [parseInt(examId), stem.public_id]
+                            });
+                            if (existingCheck.rows.length === 0) {
+                                const sResult = await db.execute({
+                                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                    args: [parseInt(examId), stem.display_name, stem.filename, stem.file_url, stem.public_id, stem.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, 'stem']
+                                });
+                                added.push({ id: Number(sResult.lastInsertRowid), display_name: stem.display_name, file_type: stem.file_type });
+                                sortOrder++;
+                            }
+                        }
+                    }
+
+                    // Add all linked clinical images and scenarios for this stem
+                    const linkedFiles = await db.execute({
                         sql: 'SELECT * FROM repo_files WHERE related_stem_id = ?',
-                        args: [parseInt(repoId)]
+                        args: [stemId]
                     });
 
-                    for (const img of linkedImages.rows) {
+                    for (const linked of linkedFiles.rows) {
+                        // Skip if it's the file we just added (the scenario itself)
+                        if (linked.id === parseInt(repoId)) continue;
+                        // Check if already in this exam
+                        const existCheck = await db.execute({
+                            sql: 'SELECT id FROM files WHERE exam_id = ? AND public_id = ?',
+                            args: [parseInt(examId), linked.public_id]
+                        });
+                        if (existCheck.rows.length > 0) continue;
+
                         const imgResult = await db.execute({
-                            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                            args: [parseInt(examId), img.display_name, img.filename, img.file_url, img.public_id, img.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null]
+                            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                            args: [parseInt(examId), linked.display_name, linked.filename, linked.file_url, linked.public_id, linked.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, linked.category]
                         });
 
                         added.push({

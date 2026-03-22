@@ -60,17 +60,37 @@ router.get('/data', requireExaminee, async (req, res) => {
             });
         }
 
-        res.json({
-            examName: exam.name,
-            files: filesResult.rows.map(f => ({
+        // Mask file names so examinees can't see the diagnosis
+        // Stems → "Question 1", "Question 2", etc.
+        // Clinical images → "Image A", "Image B", etc.
+        let questionNum = 0;
+        let imageLetterCode = 65; // ASCII 'A'
+        const maskedFiles = filesResult.rows.map(f => {
+            let maskedName = f.display_name;
+            const itemType = f.item_type || '';
+
+            if (itemType === 'stem') {
+                questionNum++;
+                maskedName = `Question ${questionNum}`;
+            } else if (itemType === 'clinical_image') {
+                maskedName = `Image ${String.fromCharCode(imageLetterCode)}`;
+                imageLetterCode++;
+            }
+
+            return {
                 id: f.id,
-                displayName: f.display_name,
+                displayName: maskedName,
                 fileType: f.file_type,
                 fileUrl: f.file_url,
                 roomNumber: f.room_number,
                 itemNumber: f.item_number,
-                itemType: f.item_type
-            }))
+                itemType: itemType
+            };
+        });
+
+        res.json({
+            examName: exam.name,
+            files: maskedFiles
         });
     } catch (err) {
         console.error('Error loading exam data:', err);

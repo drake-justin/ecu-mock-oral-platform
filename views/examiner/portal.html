@@ -35,12 +35,18 @@
         .score-card-simple h4{margin:0 0 8px;font-size:14px;color:#333}
         .score-row{display:flex;gap:10px;align-items:start;flex-wrap:wrap}
         .score-select{display:flex;gap:0;flex-shrink:0}
-        .score-btn{padding:8px 16px;border:1px solid #ddd;cursor:pointer;font-size:13px;font-weight:600;background:white;transition:all 0.15s}
+        .score-btn{padding:8px 16px;border:1px solid #ddd;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s}
         .score-btn:first-child{border-radius:4px 0 0 4px}.score-btn:last-child{border-radius:0 4px 4px 0}
+        .score-btn.pass{background:#d4edda;color:#155724;border-color:#c3e6cb}
+        .score-btn.marginal{background:#fff3cd;color:#856404;border-color:#ffeeba}
+        .score-btn.fail{background:#f8d7da;color:#721c24;border-color:#f5c6cb}
         .score-btn.pass.selected{background:#28a745;color:white;border-color:#28a745}
         .score-btn.marginal.selected{background:#ffc107;color:#333;border-color:#ffc107}
         .score-btn.fail.selected{background:#dc3545;color:white;border-color:#dc3545}
         .score-btn:hover{opacity:0.85}
+        .masked-name{display:inline-block;background:#e9ecef;padding:2px 8px;border-radius:4px;font-size:12px;color:#555;margin-left:8px}
+        .remove-img-btn{position:absolute;top:4px;right:4px;background:rgba(220,53,69,0.9);color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:20px;text-align:center;display:none}
+        .img-wrapper{position:relative;display:inline-block}.img-wrapper:hover .remove-img-btn{display:block}
         .feedback-area{flex:1;min-width:250px}
         .feedback-area textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;height:60px;resize:vertical;font-family:Calibri,sans-serif}
         .feedback-area label{font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px}
@@ -237,28 +243,40 @@ function renderQuestions(grouped){
         return;
     }
 
+    let imgLetter=65; // A
     let html=cases.map((c,i)=>{
         const name=getCaseName(c);
+        const qNum=i+1;
+        // Generate masked image names for this case
+        const imgLabels=c.images.map(()=>{const l=String.fromCharCode(imgLetter);imgLetter++;return 'Image '+l});
+
         return `<div class="case-card">
             <div class="case-header">
-                <h3>Question ${i+1}: ${name}</h3>
-                ${c.specialty?`<span class="specialty">${c.specialty}</span>`:''}
+                <h3>Question ${qNum}: ${name}</h3>
+                <div>
+                    <span class="masked-name" style="background:rgba(255,255,255,0.2);color:white">Examinee sees: "Question ${qNum}"</span>
+                    ${c.specialty?`<span class="specialty" style="margin-left:8px">${c.specialty}</span>`:''}
+                </div>
             </div>
             <div class="case-body">
                 ${c.stem?`<div class="case-section">
-                    <div class="case-section-title">Patient Stem</div>
-                    <img src="${c.stem.file_url}" alt="${name}" class="stem-image" onerror="this.style.display='none'">
+                    <div class="case-section-title">Patient Stem <span class="masked-name">Examinee sees: "Question ${qNum}"</span></div>
+                    <img src="${c.stem.file_url}" alt="${name}" class="stem-image" onerror="this.parentElement.innerHTML+='<p style=color:red>Image failed to load. URL may be expired.</p>'">
                 </div>`:''}
 
                 ${c.images.length?`<div class="case-section">
                     <div class="case-section-title">Clinical Images</div>
                     <div class="clinical-images">
-                        ${c.images.map(img=>`<img src="${img.file_url}" alt="${img.display_name}" onclick="window.open('${img.file_url}','_blank')">`).join('')}
+                        ${c.images.map((img,j)=>`<div class="img-wrapper">
+                            <img src="${img.file_url}" alt="${img.display_name}" onclick="window.open('${img.file_url}','_blank')">
+                            <button class="remove-img-btn" onclick="removeFile(${img.id})" title="Remove from exam">&times;</button>
+                            <div style="text-align:center;font-size:12px;color:#666;margin-top:4px">${imgLabels[j]} <span class="masked-name">Examinee sees: "${imgLabels[j]}"</span></div>
+                        </div>`).join('')}
                     </div>
                 </div>`:''}
 
                 ${c.scenario?`<div class="case-section">
-                    <div class="case-section-title">Scenario Document</div>
+                    <div class="case-section-title">Scenario Document <span style="font-size:11px;color:#dc3545;text-transform:none;letter-spacing:0">(Examiner Only - not visible to examinees)</span></div>
                     <a href="${c.scenario.file_url}" target="_blank" class="scenario-link">Open Scenario Document</a>
                 </div>`:''}
             </div>
@@ -291,6 +309,15 @@ function renderCredentials(){
                     ${r.is_used?'Reset':'Available'}</button>
             </div>
         </div>`).join('')}</div>`;
+}
+
+async function removeFile(fileId){
+    if(!confirm('Remove this image from the exam?'))return;
+    try{
+        const res=await fetch('/examiner/remove-file/'+fileId,{method:'POST'});
+        const d=await res.json();
+        if(d.success){loadData()}else alert(d.error||'Failed')
+    }catch(e){alert('Failed to remove file')}
 }
 
 async function resetCredential(credId,name){
