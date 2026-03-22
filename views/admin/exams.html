@@ -114,6 +114,27 @@
                     </table>
                 </div>
 
+                <!-- Examiners -->
+                <div class="exam-detail-section">
+                    <h3>Examiners</h3>
+                    <p style="font-size: 13px; color: #666;">Create login accounts for faculty examiners. They access the Examiner Portal at <strong>/examiner/login</strong></p>
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: end;">
+                        <div class="form-group" style="margin: 0; flex: 2; min-width: 180px;">
+                            <label style="font-size: 12px;">Examiner Name</label>
+                            <input type="text" id="new-examiner-name" class="form-control" placeholder="e.g., Dr. Smith">
+                        </div>
+                        <div class="form-group" style="margin: 0; flex: 1; min-width: 80px;">
+                            <label style="font-size: 12px;">Room #</label>
+                            <input type="number" id="new-examiner-room" class="form-control" placeholder="1">
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="addExaminer()">Create</button>
+                    </div>
+                    <table class="table exam-residents-table" id="examiners-table">
+                        <thead><tr><th>Name</th><th>Room</th><th>Username</th><th>Password</th><th></th></tr></thead>
+                        <tbody><tr><td colspan="5" style="text-align: center; color: #999;">No examiners created yet.</td></tr></tbody>
+                    </table>
+                </div>
+
                 <!-- Assign Files -->
                 <div class="exam-detail-section">
                     <h3>Assign Files to Residents</h3>
@@ -266,6 +287,7 @@
             document.getElementById('individual-add').style.display = 'none';
             await loadAllResidents();
             await loadExamResidents();
+            await loadExaminers();
             await loadExamFiles();
             await loadAssignments();
             document.getElementById('exam-detail').scrollIntoView({ behavior: 'smooth' });
@@ -360,6 +382,47 @@
                 document.getElementById('individual-add').style.display = 'none';
                 loadExamResidents();
             }
+        }
+
+        // === EXAMINERS ===
+        async function loadExaminers() {
+            const data = await (await fetch(`/admin/exams/${currentExamId}/examiners`)).json();
+            const tbody = document.querySelector('#examiners-table tbody');
+            if (data.examiners.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No examiners created yet.</td></tr>';
+            } else {
+                tbody.innerHTML = data.examiners.map(ex => `
+                    <tr>
+                        <td>${ex.name}</td>
+                        <td>${ex.room_number || '-'}</td>
+                        <td class="cred-info">${ex.username}</td>
+                        <td class="cred-info">${ex.password}</td>
+                        <td><button class="btn btn-xs btn-danger" onclick="deleteExaminer(${ex.id})">Remove</button></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function addExaminer() {
+            const name = document.getElementById('new-examiner-name').value.trim();
+            const room = document.getElementById('new-examiner-room').value;
+            if (!name) return alert('Enter examiner name');
+            const res = await fetch(`/admin/exams/${currentExamId}/examiners`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, roomNumber: room })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMessage(`Examiner created: ${data.username} / ${data.password}`, 'success');
+                document.getElementById('new-examiner-name').value = '';
+                loadExaminers();
+            } else { showMessage(data.error, 'error'); }
+        }
+
+        async function deleteExaminer(id) {
+            if (!confirm('Remove this examiner?')) return;
+            await fetch(`/admin/exams/${currentExamId}/examiners/${id}`, { method: 'DELETE' });
+            loadExaminers();
         }
 
         async function removeResident(residentId) {

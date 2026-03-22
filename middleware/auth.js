@@ -58,9 +58,18 @@ function clearLoginAttempts(ip) {
     loginAttempts.delete(ip);
 }
 
+// Check if user is authenticated as examiner
+function requireExaminer(req, res, next) {
+    if (req.session && req.session.examiner) {
+        return next();
+    }
+    res.redirect('/examiner/login');
+}
+
 module.exports = {
     requireExaminee,
     requireAdmin,
+    requireExaminer,
     rateLimiter,
     recordLoginAttempt,
     clearLoginAttempts

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examiner Login - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .login-container { max-width: 420px; margin: 80px auto; }
+        .login-card { background: white; border-radius: 8px; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .login-card h2 { color: #003366; margin-bottom: 5px; }
+        .login-card p { color: #666; font-size: 14px; margin-bottom: 25px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">Examiner Portal</p>
+    </header>
+
+    <div class="login-container">
+        <div class="login-card">
+            <h2>Examiner Login</h2>
+            <p>Enter the credentials provided by the exam administrator.</p>
+            <div id="error" class="alert alert-error" style="display: none;"></div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/examiner/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = '/examiner';
+                } else {
+                    document.getElementById('error').textContent = data.error;
+                    document.getElementById('error').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('error').textContent = 'Login failed. Please try again.';
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

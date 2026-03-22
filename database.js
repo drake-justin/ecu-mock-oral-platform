@@ -122,6 +122,21 @@ async function initializeDatabase() {
         )
     `);
 
+    // Examiners - separate login for faculty running exam rooms
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS examiners (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            username TEXT NOT NULL,
+            password TEXT NOT NULL,
+            room_number INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            UNIQUE(username)
+        )
+    `);
+
     // Exam scores - examiner grades per question per resident
     await db.execute(`
         CREATE TABLE IF NOT EXISTS exam_scores (

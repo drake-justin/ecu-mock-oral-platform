@@ -34,10 +34,12 @@ app.use(session({
 const authRoutes = require('./routes/auth');
 const examRoutes = require('./routes/exam');
 const adminRoutes = require('./routes/admin');
+const examinerRoutes = require('./routes/examiner');
 
 app.use('/', authRoutes);
 app.use('/exam', examRoutes);
 app.use('/admin', adminRoutes);
+app.use('/examiner', examinerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

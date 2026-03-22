@@ -946,6 +946,58 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// === EXAMINER MANAGEMENT ===
+
+// Get examiners for an exam
+router.get('/exams/:id/examiners', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute({
+            sql: 'SELECT * FROM examiners WHERE exam_id = ? ORDER BY room_number, name',
+            args: [parseInt(req.params.id)]
+        });
+        res.json({ examiners: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load examiners' });
+    }
+});
+
+// Create examiner for an exam
+router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    const { name, roomNumber } = req.body;
+
+    if (!name) return res.status(400).json({ error: 'Examiner name is required' });
+
+    try {
+        // Generate username and password
+        const username = `EX${examId}R${roomNumber || 0}_${name.split(/[\s,]+/)[0].toUpperCase()}`;
+        const password = generatePassword();
+
+        await db.execute({
+            sql: 'INSERT INTO examiners (exam_id, name, username, password, room_number) VALUES (?, ?, ?, ?, ?)',
+            args: [examId, name, username, password, roomNumber ? parseInt(roomNumber) : null]
+        });
+
+        res.json({ success: true, username, password });
+    } catch (err) {
+        if (err.message?.includes('UNIQUE')) {
+            return res.status(400).json({ error: 'Username already exists. Try a different name.' });
+        }
+        console.error(err);
+        res.status(500).json({ error: 'Failed to create examiner' });
+    }
+});
+
+// Delete examiner
+router.delete('/exams/:examId/examiners/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({ sql: 'DELETE FROM examiners WHERE id = ?', args: [parseInt(req.params.id)] });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete examiner' });
+    }
+});
+
 // === EXAMINER SCORING ===
 
 router.get('/scoring', requireAdmin, (req, res) => {
