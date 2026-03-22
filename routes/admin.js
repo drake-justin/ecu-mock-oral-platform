@@ -169,6 +169,34 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
             args: [examId]
         });
 
+        // Get question history for duplicate detection
+        const history = await db.execute({
+            sql: `SELECT resident_id, repository_stem_id FROM question_history WHERE exam_id != ?`,
+            args: [examId]
+        });
+        // Build a map: resident_id -> Set of repo_stem_ids they've seen
+        const historyMap = {};
+        for (const h of history.rows) {
+            if (!h.resident_id || !h.repository_stem_id) continue;
+            if (!historyMap[h.resident_id]) historyMap[h.resident_id] = new Set();
+            historyMap[h.resident_id].add(h.repository_stem_id);
+        }
+
+        // Get repo stem IDs for files in this exam (for duplicate checking)
+        const repoLinks = await db.execute({
+            sql: `SELECT f.id as file_id, r.id as repo_id, r.related_stem_id, r.category
+                  FROM files f
+                  LEFT JOIN repo_files r ON f.public_id = r.public_id
+                  WHERE f.exam_id = ?`,
+            args: [examId]
+        });
+        // Map file_id -> stem repo ID
+        const fileStemMap = {};
+        for (const rl of repoLinks.rows) {
+            if (rl.category === 'stem') fileStemMap[rl.file_id] = rl.repo_id;
+            else if (rl.related_stem_id) fileStemMap[rl.file_id] = rl.related_stem_id;
+        }
+
         // Group by room
         const roomData = rooms.rows.map(room => ({
             ...room,
@@ -177,7 +205,7 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
             residents: assignments.rows.filter(a => a.room_number === room.room_number)
         }));
 
-        res.json({ rooms: roomData });
+        res.json({ rooms: roomData, historyMap: Object.fromEntries(Object.entries(historyMap).map(([k,v])=>[k,[...v]])), fileStemMap });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to load rooms' });
@@ -1399,13 +1427,13 @@ router.get('/scoring/:examId', requireAdmin, async (req, res) => {
             args: [examId]
         });
 
-        // Get files for this exam
+        // Get only scenario files for scoring (one per question)
         const files = await db.execute({
-            sql: `SELECT f.id, f.display_name, f.room_number, f.item_number,
-                         r.id as repo_stem_id, r.specialty
+            sql: `SELECT f.id, f.display_name, f.room_number, f.item_number, f.item_type,
+                         r.id as repo_stem_id, r.specialty, r.related_stem_id
                   FROM files f
-                  LEFT JOIN repo_files r ON f.public_id = r.public_id AND r.category = 'stem'
-                  WHERE f.exam_id = ?
+                  LEFT JOIN repo_files r ON f.public_id = r.public_id
+                  WHERE f.exam_id = ? AND f.item_type = 'scenario'
                   ORDER BY f.room_number, f.sort_order, f.id`,
             args: [examId]
         });

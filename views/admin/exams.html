@@ -192,11 +192,20 @@ async function loadFac(){allFaculty=(await(await fetch('/admin/faculty')).json()
 async function loadAllRes(){allResidents=(await(await fetch('/admin/question-tracker/residents')).json()).residents.filter(r=>r.status!=='graduated')}
 
 // ROOMS
+let historyMap={},fileStemMap={};
 async function loadRooms(){
     const data=await(await fetch(`/admin/exams/${currentExamId}/rooms`)).json();
+    historyMap=data.historyMap||{};
+    fileStemMap=data.fileStemMap||{};
     const c=document.getElementById('rooms-container');
     if(!data.rooms.length){c.innerHTML='<p style="color:#999">No rooms yet. Click "+ Add Room" to start building the exam.</p>';return}
     c.innerHTML=data.rooms.map(room=>renderRoom(room)).join('')}
+
+function getDuplicateResidents(fileId,roomResidents){
+    const stemId=fileStemMap[fileId];
+    if(!stemId)return[];
+    return roomResidents.filter(r=>historyMap[r.resident_id]&&historyMap[r.resident_id].includes(stemId)).map(r=>r.name.split(',')[0].split(' ').pop());
+}
 
 function catLabel(cat){
     if(cat==='stem')return '<span class="cat-stem">[Stem]</span>';
@@ -246,8 +255,10 @@ function renderRoom(room){
                 </div>
                 ${room.files.length?`${room.files.map(f=>{
                     const isScenario=f.item_type==='scenario';
+                    const dupes=getDuplicateResidents(f.id,room.residents);
                     return `<div class="room-item">
-                        <span>${catLabel(f.item_type)} ${f.display_name}</span>
+                        <span>${catLabel(f.item_type)} ${f.display_name}
+                            ${dupes.length?`<span style="background:#f8d7da;color:#721c24;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px" title="Previously tested: ${dupes.join(', ')}">Duplicate: ${dupes.join(', ')}</span>`:''}</span>
                         <span style="display:flex;align-items:center;gap:4px">
                             ${isScenario&&room.examiners.length>1?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${f.id},this.value)">
                                 <option value="">Unassigned</option>
