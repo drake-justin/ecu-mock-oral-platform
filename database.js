@@ -77,6 +77,23 @@ async function initializeDatabase() {
         )
     `);
 
+    // Question tracking table - tracks which stems each resident has been tested on
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS question_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            resident_name TEXT NOT NULL,
+            exam_id INTEGER NOT NULL,
+            repository_stem_id INTEGER,
+            stem_display_name TEXT NOT NULL,
+            specialty TEXT,
+            room_number INTEGER,
+            recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            recorded_by TEXT DEFAULT 'manual',
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+        )
+    `);
+
     // Add columns to existing tables if they don't exist (migration)
     try {
         await db.execute('ALTER TABLE files ADD COLUMN file_url TEXT');

@@ -663,6 +663,244 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// === QUESTION TRACKER ===
+
+router.get('/question-tracker', requireAdmin, (req, res) => {
+    res.sendFile('admin/question-tracker.html', { root: './views' });
+});
+
+// Get all unique resident names
+router.get('/question-tracker/residents', requireAdmin, async (req, res) => {
+    try {
+        const residents = await db.execute(`
+            SELECT DISTINCT examinee_name as name
+            FROM credentials
+            WHERE examinee_name IS NOT NULL AND examinee_name != ''
+            ORDER BY examinee_name
+        `);
+
+        // Get question counts per resident
+        const counts = await db.execute(`
+            SELECT resident_name, COUNT(*) as question_count,
+                   COUNT(DISTINCT specialty) as topic_count
+            FROM question_history
+            GROUP BY resident_name
+        `);
+
+        const countMap = {};
+        for (const row of counts.rows) {
+            countMap[row.resident_name] = {
+                questions: row.question_count,
+                topics: row.topic_count
+            };
+        }
+
+        res.json({
+            residents: residents.rows.map(r => ({
+                name: r.name,
+                questions: countMap[r.name]?.questions || 0,
+                topics: countMap[r.name]?.topics || 0
+            }))
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load residents' });
+    }
+});
+
+// Get a resident's full question history and coverage
+router.get('/question-tracker/resident/:name', requireAdmin, async (req, res) => {
+    const name = decodeURIComponent(req.params.name);
+    try {
+        // Get question history with exam details
+        const history = await db.execute({
+            sql: `SELECT qh.*, e.name as exam_name, e.date as exam_date
+                  FROM question_history qh
+                  LEFT JOIN exams e ON qh.exam_id = e.id
+                  WHERE qh.resident_name = ?
+                  ORDER BY qh.recorded_at DESC`,
+            args: [name]
+        });
+
+        // Get all specialties from repository stems
+        const allTopics = await db.execute(`
+            SELECT DISTINCT specialty FROM repository
+            WHERE category = 'stem' AND specialty IS NOT NULL AND specialty != ''
+            ORDER BY specialty
+        `);
+
+        // Get tested specialties for this resident
+        const testedTopics = await db.execute({
+            sql: `SELECT DISTINCT specialty FROM question_history
+                  WHERE resident_name = ? AND specialty IS NOT NULL AND specialty != ''`,
+            args: [name]
+        });
+
+        // Get exams this resident participated in
+        const exams = await db.execute({
+            sql: `SELECT DISTINCT e.id, e.name, e.date
+                  FROM credentials c
+                  JOIN exams e ON c.exam_id = e.id
+                  WHERE c.examinee_name = ?
+                  ORDER BY e.date DESC`,
+            args: [name]
+        });
+
+        res.json({
+            history: history.rows,
+            allTopics: allTopics.rows.map(r => r.specialty),
+            testedTopics: testedTopics.rows.map(r => r.specialty),
+            exams: exams.rows
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load resident data' });
+    }
+});
+
+// Record a question as tested for a resident
+router.post('/question-tracker/record', requireAdmin, async (req, res) => {
+    const { residentName, examId, repositoryStemId } = req.body;
+
+    if (!residentName || !examId) {
+        return res.status(400).json({ error: 'Resident name and exam are required' });
+    }
+
+    try {
+        let stemName = 'Unknown';
+        let specialty = null;
+
+        if (repositoryStemId) {
+            const stem = await db.execute({
+                sql: 'SELECT display_name, specialty FROM repository WHERE id = ?',
+                args: [parseInt(repositoryStemId)]
+            });
+            if (stem.rows[0]) {
+                stemName = stem.rows[0].display_name;
+                specialty = stem.rows[0].specialty;
+            }
+        }
+
+        await db.execute({
+            sql: `INSERT INTO question_history
+                  (resident_name, exam_id, repository_stem_id, stem_display_name, specialty, recorded_by)
+                  VALUES (?, ?, ?, ?, ?, 'manual')`,
+            args: [residentName, parseInt(examId), repositoryStemId ? parseInt(repositoryStemId) : null, stemName, specialty]
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to record question' });
+    }
+});
+
+// Import questions from an exam's file assignments for all residents in that exam
+router.post('/question-tracker/import-exam', requireAdmin, async (req, res) => {
+    const { examId } = req.body;
+
+    try {
+        // Get all residents in this exam
+        const credentials = await db.execute({
+            sql: `SELECT DISTINCT examinee_name FROM credentials
+                  WHERE exam_id = ? AND examinee_name IS NOT NULL AND examinee_name != ''`,
+            args: [parseInt(examId)]
+        });
+
+        if (credentials.rows.length === 0) {
+            return res.status(400).json({ error: 'No residents found for this exam' });
+        }
+
+        // Get all stems in the repository that match files in this exam (by public_id)
+        const stems = await db.execute({
+            sql: `SELECT DISTINCT r.id, r.display_name, r.specialty, f.room_number
+                  FROM files f
+                  JOIN repository r ON f.public_id = r.public_id
+                  WHERE f.exam_id = ? AND r.category = 'stem'`,
+            args: [parseInt(examId)]
+        });
+
+        // Also try matching by display_name if public_id doesn't match
+        const stemsByName = await db.execute({
+            sql: `SELECT DISTINCT r.id, r.display_name, r.specialty, f.room_number
+                  FROM files f
+                  JOIN repository r ON f.display_name = r.display_name
+                  WHERE f.exam_id = ? AND r.category = 'stem'`,
+            args: [parseInt(examId)]
+        });
+
+        // Combine and deduplicate
+        const allStems = new Map();
+        for (const s of [...stems.rows, ...stemsByName.rows]) {
+            allStems.set(s.id, s);
+        }
+
+        let imported = 0;
+        for (const resident of credentials.rows) {
+            for (const [stemId, stem] of allStems) {
+                // Check if already recorded
+                const existing = await db.execute({
+                    sql: `SELECT id FROM question_history
+                          WHERE resident_name = ? AND exam_id = ? AND repository_stem_id = ?`,
+                    args: [resident.examinee_name, parseInt(examId), stemId]
+                });
+
+                if (existing.rows.length === 0) {
+                    await db.execute({
+                        sql: `INSERT INTO question_history
+                              (resident_name, exam_id, repository_stem_id, stem_display_name, specialty, room_number, recorded_by)
+                              VALUES (?, ?, ?, ?, ?, ?, 'auto')`,
+                        args: [resident.examinee_name, parseInt(examId), stemId, stem.display_name, stem.specialty, stem.room_number]
+                    });
+                    imported++;
+                }
+            }
+        }
+
+        res.json({ success: true, imported });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to import exam data' });
+    }
+});
+
+// Delete a question history record
+router.delete('/question-tracker/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({
+            sql: 'DELETE FROM question_history WHERE id = ?',
+            args: [parseInt(req.params.id)]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete record' });
+    }
+});
+
+// Get all repository stems for dropdowns
+router.get('/question-tracker/stems', requireAdmin, async (req, res) => {
+    try {
+        const stems = await db.execute(`
+            SELECT id, display_name, specialty FROM repository
+            WHERE category = 'stem'
+            ORDER BY specialty, display_name
+        `);
+        res.json({ stems: stems.rows });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load stems' });
+    }
+});
+
+// Get all exams for dropdowns
+router.get('/question-tracker/exams', requireAdmin, async (req, res) => {
+    try {
+        const exams = await db.execute('SELECT id, name, date FROM exams ORDER BY date DESC');
+        res.json({ exams: exams.rows });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load exams' });
+    }
+});
+
 // === SETTINGS / PASSWORD CHANGE ===
 
 router.get('/settings', requireAdmin, (req, res) => {

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Tracker - ECU Mock Oral</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .tracker-layout { display: flex; gap: 20px; min-height: 600px; }
+        .resident-panel { flex: 0 0 300px; }
+        .detail-panel { flex: 1; }
+        .resident-search { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; font-size: 14px; }
+        .resident-list { max-height: 500px; overflow-y: auto; }
+        .resident-item { padding: 10px 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .resident-item:hover { background: #f0f4f8; }
+        .resident-item.active { background: #003366; color: white; }
+        .resident-item .count { font-size: 12px; color: #888; }
+        .resident-item.active .count { color: #ccc; }
+        .topic-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0; }
+        .topic-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .topic-badge.covered { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .topic-badge.not-covered { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .history-exam { margin-bottom: 20px; }
+        .history-exam h4 { margin-bottom: 8px; color: #003366; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+        .history-item .specialty-tag { font-size: 11px; background: #e9ecef; padding: 2px 8px; border-radius: 10px; color: #555; }
+        .history-item .delete-btn { color: #dc3545; cursor: pointer; border: none; background: none; font-size: 14px; }
+        .coverage-summary { display: flex; gap: 20px; margin-bottom: 15px; }
+        .coverage-stat { text-align: center; }
+        .coverage-stat .number { font-size: 28px; font-weight: bold; color: #003366; }
+        .coverage-stat .label { font-size: 12px; color: #666; }
+        .add-record-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        .add-record-form .form-group { flex: 1; min-width: 200px; }
+        .add-record-form label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #555; }
+        .add-record-form select, .add-record-form input { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .import-section { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 6px; border-left: 4px solid #003366; }
+        .no-selection { text-align: center; padding: 60px 20px; color: #999; }
+        .no-selection h3 { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>ECU Mock Oral Platform</h1>
+        <p class="subtitle">Administration Panel</p>
+    </header>
+
+    <nav class="admin-nav">
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/repository">Repository</a>
+        <a href="/admin/exams">Exams</a>
+        <a href="/admin/credentials">Credentials</a>
+        <a href="/admin/files">Exam Files</a>
+        <a href="/admin/question-tracker" class="active">Question Tracker</a>
+        <a href="/admin/settings">Settings</a>
+        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+        </form>
+    </nav>
+
+    <div class="container">
+        <h2>Question Tracker</h2>
+        <p style="color: #666; margin-bottom: 20px;">Track which questions each resident has been tested on across all exams.</p>
+
+        <div class="tracker-layout">
+            <!-- Resident List Panel -->
+            <div class="resident-panel">
+                <div class="card">
+                    <h3 class="card-title">Residents</h3>
+                    <input type="text" class="resident-search" id="resident-search" placeholder="Search residents...">
+                    <div class="resident-list" id="resident-list">
+                        <div style="padding: 20px; text-align: center; color: #999;">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Import from Exam -->
+                <div class="import-section">
+                    <h4 style="margin-bottom: 8px;">Import from Exam</h4>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Auto-record all stems assigned to an exam for all residents in that exam.</p>
+                    <select id="import-exam-select" class="form-control" style="margin-bottom: 8px;">
+                        <option value="">-- Select Exam --</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="importExam()">Import</button>
+                </div>
+            </div>
+
+            <!-- Detail Panel -->
+            <div class="detail-panel">
+                <div class="card" id="detail-card">
+                    <div class="no-selection" id="no-selection">
+                        <h3>Select a Resident</h3>
+                        <p>Click a resident from the list to view their question history and topic coverage.</p>
+                    </div>
+
+                    <div id="resident-detail" style="display: none;">
+                        <h3 id="detail-name" class="card-title"></h3>
+
+                        <!-- Coverage Summary -->
+                        <div class="coverage-summary">
+                            <div class="coverage-stat">
+                                <div class="number" id="total-questions">0</div>
+                                <div class="label">Questions Tested</div>
+                            </div>
+                            <div class="coverage-stat">
+                                <div class="number" id="topics-covered">0</div>
+                                <div class="label">Topics Covered</div>
+                            </div>
+                            <div class="coverage-stat">
+                                <div class="number" id="topics-total">0</div>
+                                <div class="label">Total Topics</div>
+                            </div>
+                        </div>
+
+                        <!-- Topic Coverage Grid -->
+                        <h4>Topic Coverage</h4>
+                        <div class="topic-grid" id="topic-grid"></div>
+
+                        <!-- Add Record Form -->
+                        <h4 style="margin-top: 20px;">Add Question Record</h4>
+                        <div class="add-record-form">
+                            <div class="form-group">
+                                <label>Exam</label>
+                                <select id="add-exam" class="form-control"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Core Topic</label>
+                                <select id="add-topic-filter" class="form-control" onchange="filterStems()">
+                                    <option value="">-- All Topics --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Question Stem</label>
+                                <select id="add-stem" class="form-control"></select>
+                            </div>
+                            <div class="form-group" style="flex: 0;">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="addRecord()">Add</button>
+                            </div>
+                        </div>
+
+                        <!-- Question History by Exam -->
+                        <h4>Question History</h4>
+                        <div id="history-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allResidents = [];
+        let allStems = [];
+        let allExams = [];
+        let selectedResident = null;
+
+        async function loadResidents() {
+            try {
+                const res = await fetch('/admin/question-tracker/residents');
+                const data = await res.json();
+                allResidents = data.residents;
+                renderResidents();
+            } catch (err) {
+                console.error('Failed to load residents:', err);
+            }
+        }
+
+        function renderResidents() {
+            const search = document.getElementById('resident-search').value.toLowerCase();
+            const filtered = allResidents.filter(r => r.name.toLowerCase().includes(search));
+            const list = document.getElementById('resident-list');
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No residents found.<br><small>Residents appear here after credentials are created with examinee names.</small></div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(r => `
+                <div class="resident-item ${selectedResident === r.name ? 'active' : ''}"
+                     onclick="selectResident('${r.name.replace(/'/g, "\\'")}')">
+                    <span>${r.name}</span>
+                    <span class="count">${r.questions} Q / ${r.topics} topics</span>
+                </div>
+            `).join('');
+        }
+
+        async function selectResident(name) {
+            selectedResident = name;
+            renderResidents();
+
+            document.getElementById('no-selection').style.display = 'none';
+            document.getElementById('resident-detail').style.display = 'block';
+            document.getElementById('detail-name').textContent = name;
+
+            try {
+                const res = await fetch(`/admin/question-tracker/resident/${encodeURIComponent(name)}`);
+                const data = await res.json();
+
+                // Coverage summary
+                document.getElementById('total-questions').textContent = data.history.length;
+                document.getElementById('topics-covered').textContent = data.testedTopics.length;
+                document.getElementById('topics-total').textContent = data.allTopics.length;
+
+                // Topic grid
+                const grid = document.getElementById('topic-grid');
+                grid.innerHTML = data.allTopics.map(topic => {
+                    const covered = data.testedTopics.includes(topic);
+                    return `<span class="topic-badge ${covered ? 'covered' : 'not-covered'}">${topic}</span>`;
+                }).join('');
+
+                // History grouped by exam
+                const historyByExam = {};
+                for (const h of data.history) {
+                    const key = h.exam_id;
+                    if (!historyByExam[key]) {
+                        historyByExam[key] = {
+                            examName: h.exam_name || 'Unknown Exam',
+                            examDate: h.exam_date || '',
+                            items: []
+                        };
+                    }
+                    historyByExam[key].items.push(h);
+                }
+
+                const historyDiv = document.getElementById('history-list');
+                if (Object.keys(historyByExam).length === 0) {
+                    historyDiv.innerHTML = '<p style="color: #999;">No questions recorded yet for this resident.</p>';
+                } else {
+                    historyDiv.innerHTML = Object.entries(historyByExam).map(([examId, exam]) => `
+                        <div class="history-exam">
+                            <h4>${exam.examName} ${exam.examDate ? `(${new Date(exam.examDate).toLocaleDateString()})` : ''}</h4>
+                            ${exam.items.map(item => `
+                                <div class="history-item">
+                                    <div>
+                                        <span>${item.stem_display_name}</span>
+                                        ${item.specialty ? `<span class="specialty-tag">${item.specialty}</span>` : ''}
+                                        ${item.room_number ? `<span class="specialty-tag">Room ${item.room_number}</span>` : ''}
+                                    </div>
+                                    <button class="delete-btn" onclick="deleteRecord(${item.id})" title="Remove">&times;</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `).join('');
+                }
+
+                // Populate add-exam dropdown with this resident's exams
+                const addExam = document.getElementById('add-exam');
+                addExam.innerHTML = '<option value="">-- Select Exam --</option>' +
+                    data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
+
+            } catch (err) {
+                console.error('Failed to load resident data:', err);
+            }
+        }
+
+        async function loadStems() {
+            try {
+                const res = await fetch('/admin/question-tracker/stems');
+                const data = await res.json();
+                allStems = data.stems;
+
+                // Populate topic filter
+                const topics = [...new Set(allStems.map(s => s.specialty).filter(Boolean))].sort();
+                const topicFilter = document.getElementById('add-topic-filter');
+                topicFilter.innerHTML = '<option value="">-- All Topics --</option>' +
+                    topics.map(t => `<option value="${t}">${t}</option>`).join('');
+
+                filterStems();
+            } catch (err) {
+                console.error('Failed to load stems:', err);
+            }
+        }
+
+        function filterStems() {
+            const topic = document.getElementById('add-topic-filter').value;
+            const filtered = topic ? allStems.filter(s => s.specialty === topic) : allStems;
+            const stemSelect = document.getElementById('add-stem');
+            stemSelect.innerHTML = '<option value="">-- Select Stem --</option>' +
+                filtered.map(s => `<option value="${s.id}">${s.display_name} ${s.specialty ? `[${s.specialty}]` : ''}</option>`).join('');
+        }
+
+        async function addRecord() {
+            if (!selectedResident) return alert('Select a resident first');
+            const examId = document.getElementById('add-exam').value;
+            const stemId = document.getElementById('add-stem').value;
+            if (!examId || !stemId) return alert('Select an exam and a question stem');
+
+            try {
+                const res = await fetch('/admin/question-tracker/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ residentName: selectedResident, examId, repositoryStemId: stemId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    selectResident(selectedResident);
+                    loadResidents();
+                } else {
+                    alert(data.error || 'Failed to add record');
+                }
+            } catch (err) {
+                alert('Failed to add record');
+            }
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm('Remove this question record?')) return;
+            try {
+                await fetch(`/admin/question-tracker/${id}`, { method: 'DELETE' });
+                selectResident(selectedResident);
+                loadResidents();
+            } catch (err) {
+                alert('Failed to delete record');
+            }
+        }
+
+        async function loadExams() {
+            try {
+                const res = await fetch('/admin/question-tracker/exams');
+                const data = await res.json();
+                allExams = data.exams;
+                const select = document.getElementById('import-exam-select');
+                select.innerHTML = '<option value="">-- Select Exam --</option>' +
+                    data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
+            } catch (err) {
+                console.error('Failed to load exams:', err);
+            }
+        }
+
+        async function importExam() {
+            const examId = document.getElementById('import-exam-select').value;
+            if (!examId) return alert('Select an exam to import');
+
+            if (!confirm('This will record all exam stems as tested for all residents in this exam. Continue?')) return;
+
+            try {
+                const res = await fetch('/admin/question-tracker/import-exam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ examId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Imported ${data.imported} question records.`);
+                    loadResidents();
+                    if (selectedResident) selectResident(selectedResident);
+                } else {
+                    alert(data.error || 'Failed to import');
+                }
+            } catch (err) {
+                alert('Failed to import exam data');
+            }
+        }
+
+        // Search filter
+        document.getElementById('resident-search').addEventListener('input', renderResidents);
+
+        // Initialize
+        loadResidents();
+        loadStems();
+        loadExams();
+    </script>
+</body>
+</html>
