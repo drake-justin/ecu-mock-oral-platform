@@ -1631,7 +1631,7 @@ router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
         if (!exam.rows[0]) return res.status(404).json({ error: 'Exam not found' });
 
         const examiners = await db.execute({
-            sql: 'SELECT * FROM examiners WHERE exam_id = ? AND email IS NOT NULL AND email != ""',
+            sql: "SELECT * FROM examiners WHERE exam_id = ? AND email IS NOT NULL AND email != ''",
             args: [examId]
         });
 
