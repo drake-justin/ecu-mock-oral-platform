@@ -96,7 +96,7 @@ router.get('/data', requireExaminer, async (req, res) => {
 
         // Get residents assigned to this exam
         const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password, c.id as credential_id, c.is_used
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -163,6 +163,34 @@ router.post('/score', requireExaminer, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to save scores' });
+    }
+});
+
+// Reset an examinee's credential so they can log in again
+router.post('/reset-credential/:credentialId', requireExaminer, async (req, res) => {
+    const credId = parseInt(req.params.credentialId);
+    const examId = req.session.examiner.examId;
+
+    try {
+        // Verify this credential belongs to the examiner's exam
+        const cred = await db.execute({
+            sql: 'SELECT * FROM credentials WHERE id = ? AND exam_id = ?',
+            args: [credId, examId]
+        });
+
+        if (!cred.rows[0]) {
+            return res.status(404).json({ error: 'Credential not found for this exam' });
+        }
+
+        await db.execute({
+            sql: 'UPDATE credentials SET is_used = 0, used_at = NULL WHERE id = ?',
+            args: [credId]
+        });
+
+        res.json({ success: true, name: cred.rows[0].examinee_name });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to reset credential' });
     }
 });
 

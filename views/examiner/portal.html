@@ -175,21 +175,43 @@
             container.innerHTML = `
                 <div class="card">
                     <h3 class="card-title">Examinee Login Credentials</h3>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Give each examinee their username and password to log in and view their question stem.</p>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Give each examinee their username and password. If they close the page accidentally, click Reset to let them log in again.</p>
                     ${portalData.residents.map(r => `
                         <div class="cred-card">
-                            <div>
+                            <div style="flex: 1;">
                                 <span class="name">${r.name}</span>
                                 <span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span>
                             </div>
-                            <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <span class="cred-info">${r.username || 'N/A'}</span>
-                                <span class="cred-info" style="margin-left: 8px;">${r.password || 'N/A'}</span>
+                                <span class="cred-info">${r.password || 'N/A'}</span>
+                                <button class="btn btn-sm ${r.is_used ? 'btn-danger' : 'btn-secondary'}"
+                                        onclick="resetCredential(${r.credential_id}, '${r.name.replace(/'/g, "\\'")}')"
+                                        ${!r.is_used ? 'disabled' : ''}
+                                        style="font-size: 11px; padding: 3px 10px;">
+                                    ${r.is_used ? 'Reset' : 'Available'}
+                                </button>
                             </div>
                         </div>
                     `).join('')}
                 </div>
             `;
+        }
+
+        async function resetCredential(credentialId, name) {
+            if (!confirm('Reset credentials for ' + name + '? This will allow them to log in again.')) return;
+            try {
+                const res = await fetch('/examiner/reset-credential/' + credentialId, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.name + "'s credentials have been reset. They can log in again.");
+                    loadData();
+                } else {
+                    alert(data.error || 'Failed to reset');
+                }
+            } catch (err) {
+                alert('Failed to reset credentials');
+            }
         }
 
         function renderScoring() {
