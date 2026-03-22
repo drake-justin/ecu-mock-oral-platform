@@ -19,7 +19,7 @@ router.get('/data', requireExaminee, async (req, res) => {
         });
         const exam = examResult.rows[0];
 
-        // Check if this examinee has per-resident file assignments
+        // Check if this examinee has room assignments
         const credId = req.session.examinee.id;
         const credResult = await db.execute({
             sql: 'SELECT resident_id FROM credentials WHERE id = ?',
@@ -29,22 +29,23 @@ router.get('/data', requireExaminee, async (req, res) => {
 
         let filesResult;
         if (residentId) {
-            // Check if per-resident assignments exist
-            const assignCheck = await db.execute({
-                sql: 'SELECT COUNT(*) as cnt FROM exam_assignments WHERE exam_id = ? AND resident_id = ?',
+            // Check if room assignments exist for this resident
+            const rooms = await db.execute({
+                sql: 'SELECT room_number FROM exam_room_assignments WHERE exam_id = ? AND resident_id = ?',
                 args: [examId, residentId]
             });
-            if (assignCheck.rows[0]?.cnt > 0) {
-                // Serve only assigned files
+
+            if (rooms.rows.length > 0) {
+                // Serve files for assigned rooms only
+                const roomNums = rooms.rows.map(r => r.room_number);
+                const placeholders = roomNums.map(() => '?').join(',');
                 filesResult = await db.execute({
-                    sql: `SELECT f.* FROM files f
-                          JOIN exam_assignments ea ON ea.file_id = f.id
-                          WHERE ea.exam_id = ? AND ea.resident_id = ?
-                          ORDER BY f.sort_order, f.id`,
-                    args: [examId, residentId]
+                    sql: `SELECT * FROM files WHERE exam_id = ? AND room_number IN (${placeholders})
+                          ORDER BY room_number, sort_order, id`,
+                    args: [examId, ...roomNums]
                 });
             } else {
-                // No assignments - serve all exam files
+                // No room assignments - serve all exam files
                 filesResult = await db.execute({
                     sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
                     args: [examId]

@@ -294,103 +294,106 @@ router.delete('/exams/:examId/residents/:residentId', requireAdmin, async (req, 
     }
 });
 
-// === FILE ASSIGNMENT ===
+// === ROOM ASSIGNMENTS ===
 
-// Get file assignments for an exam
-router.get('/exams/:examId/assignments', requireAdmin, async (req, res) => {
+// Get room assignments for an exam
+router.get('/exams/:examId/room-assignments', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute({
-            sql: `SELECT ea.id, ea.file_id, ea.resident_id, ea.repository_stem_id,
-                         f.display_name as file_name, f.file_type, f.room_number,
+            sql: `SELECT era.id, era.room_number, era.resident_id,
                          r.name as resident_name, r.pgy_level
-                  FROM exam_assignments ea
-                  JOIN files f ON ea.file_id = f.id
-                  JOIN residents r ON ea.resident_id = r.id
-                  WHERE ea.exam_id = ?
-                  ORDER BY r.name, f.sort_order`,
+                  FROM exam_room_assignments era
+                  JOIN residents r ON era.resident_id = r.id
+                  WHERE era.exam_id = ?
+                  ORDER BY era.room_number, r.name`,
             args: [parseInt(req.params.examId)]
         });
-        res.json({ assignments: result.rows });
+
+        // Get rooms that have files
+        const rooms = await db.execute({
+            sql: `SELECT DISTINCT room_number FROM files
+                  WHERE exam_id = ? AND room_number IS NOT NULL
+                  ORDER BY room_number`,
+            args: [parseInt(req.params.examId)]
+        });
+
+        res.json({
+            assignments: result.rows,
+            rooms: rooms.rows.map(r => r.room_number)
+        });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to load assignments' });
+        res.status(500).json({ error: 'Failed to load room assignments' });
     }
 });
 
-// Assign files to residents (auto-logs question history)
-router.post('/exams/:examId/assignments', requireAdmin, async (req, res) => {
+// Assign residents to a room (auto-logs question history)
+router.post('/exams/:examId/room-assignments', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
-    const { fileIds, residentIds } = req.body;
+    const { residentIds, roomNumber } = req.body;
 
-    if (!fileIds?.length || !residentIds?.length) {
-        return res.status(400).json({ error: 'Select files and residents' });
+    if (!residentIds?.length || !roomNumber) {
+        return res.status(400).json({ error: 'Select residents and a room number' });
     }
 
     try {
         let assigned = 0;
-        for (const fileId of fileIds) {
-            // Look up repository stem ID for this file
-            const fileInfo = await db.execute({
-                sql: `SELECT f.*, r.id as repo_stem_id, r.display_name as stem_name, r.specialty
+        for (const resId of residentIds) {
+            try {
+                await db.execute({
+                    sql: 'INSERT OR IGNORE INTO exam_room_assignments (exam_id, resident_id, room_number) VALUES (?, ?, ?)',
+                    args: [examId, parseInt(resId), parseInt(roomNumber)]
+                });
+                assigned++;
+            } catch (e) { continue; }
+
+            // Auto-log question history for all stems in this room
+            const roomFiles = await db.execute({
+                sql: `SELECT f.display_name, r.id as repo_stem_id, r.display_name as stem_name, r.specialty
                       FROM files f
                       LEFT JOIN repository r ON f.public_id = r.public_id AND r.category = 'stem'
-                      WHERE f.id = ?`,
-                args: [parseInt(fileId)]
+                      WHERE f.exam_id = ? AND f.room_number = ?`,
+                args: [examId, parseInt(roomNumber)]
             });
-            const file = fileInfo.rows[0];
-            if (!file) continue;
 
-            for (const resId of residentIds) {
-                // Insert assignment (skip if exists)
-                try {
+            const resident = await db.execute({
+                sql: 'SELECT name FROM residents WHERE id = ?',
+                args: [parseInt(resId)]
+            });
+            const resName = resident.rows[0]?.name || 'Unknown';
+
+            for (const file of roomFiles.rows) {
+                if (!file.repo_stem_id) continue;
+                const existing = await db.execute({
+                    sql: 'SELECT id FROM question_history WHERE resident_id = ? AND exam_id = ? AND repository_stem_id = ?',
+                    args: [parseInt(resId), examId, file.repo_stem_id]
+                });
+                if (existing.rows.length === 0) {
                     await db.execute({
-                        sql: `INSERT OR IGNORE INTO exam_assignments (exam_id, resident_id, file_id, repository_stem_id) VALUES (?, ?, ?, ?)`,
-                        args: [examId, parseInt(resId), parseInt(fileId), file.repo_stem_id || null]
+                        sql: `INSERT INTO question_history
+                              (resident_id, resident_name, exam_id, repository_stem_id, stem_display_name, specialty, room_number, recorded_by)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, 'auto-room')`,
+                        args: [parseInt(resId), resName, examId, file.repo_stem_id, file.stem_name, file.specialty, parseInt(roomNumber)]
                     });
-                } catch (e) { continue; } // duplicate
-
-                // Auto-log to question history if this is a stem
-                if (file.repo_stem_id) {
-                    const resident = await db.execute({
-                        sql: 'SELECT name FROM residents WHERE id = ?',
-                        args: [parseInt(resId)]
-                    });
-                    const resName = resident.rows[0]?.name || 'Unknown';
-
-                    // Check for duplicate
-                    const existing = await db.execute({
-                        sql: 'SELECT id FROM question_history WHERE resident_id = ? AND exam_id = ? AND repository_stem_id = ?',
-                        args: [parseInt(resId), examId, file.repo_stem_id]
-                    });
-
-                    if (existing.rows.length === 0) {
-                        await db.execute({
-                            sql: `INSERT INTO question_history
-                                  (resident_id, resident_name, exam_id, repository_stem_id, stem_display_name, specialty, recorded_by)
-                                  VALUES (?, ?, ?, ?, ?, ?, 'auto-assign')`,
-                            args: [parseInt(resId), resName, examId, file.repo_stem_id, file.stem_name, file.specialty]
-                        });
-                    }
                 }
-                assigned++;
             }
         }
         res.json({ success: true, assigned });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to assign files' });
+        res.status(500).json({ error: 'Failed to assign rooms' });
     }
 });
 
-// Remove a file assignment
-router.delete('/exams/:examId/assignments/:id', requireAdmin, async (req, res) => {
+// Remove a room assignment
+router.delete('/exams/:examId/room-assignments/:id', requireAdmin, async (req, res) => {
     try {
         await db.execute({
-            sql: 'DELETE FROM exam_assignments WHERE id = ? AND exam_id = ?',
+            sql: 'DELETE FROM exam_room_assignments WHERE id = ? AND exam_id = ?',
             args: [parseInt(req.params.id), parseInt(req.params.examId)]
         });
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to remove assignment' });
+        res.status(500).json({ error: 'Failed to remove room assignment' });
     }
 });
 

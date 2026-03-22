@@ -148,26 +148,27 @@
                     <div id="email-status" style="margin-top: 8px; font-size: 13px;"></div>
                 </div>
 
-                <!-- Assign Files -->
+                <!-- Room Assignments -->
                 <div class="exam-detail-section">
-                    <h3>Assign Files to Residents</h3>
-                    <p style="font-size: 13px; color: #666;">Select files and residents, then click Assign. Questions auto-log to the tracker.</p>
-                    <div class="assign-panel">
-                        <div class="panel">
-                            <h5>Exam Files</h5>
-                            <div class="assign-list" id="assign-files-list">No files added to this exam yet.</div>
+                    <h3>Assign Residents to Rooms</h3>
+                    <p style="font-size: 13px; color: #666;">Files are assigned to rooms on the Exam Files page. Assign residents to rooms here. Questions auto-log to the tracker.</p>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: end;">
+                        <div class="form-group" style="margin: 0; flex: 1; min-width: 100px;">
+                            <label style="font-size: 12px;">Room</label>
+                            <select id="assign-room" class="form-control"></select>
                         </div>
-                        <div class="panel">
-                            <h5>Assign To</h5>
-                            <div class="pgy-buttons" id="assign-pgy-buttons"></div>
-                            <div class="assign-list" id="assign-residents-list">No residents in this exam.</div>
+                        <div class="form-group" style="margin: 0; flex: 3; min-width: 200px;">
+                            <label style="font-size: 12px;">Residents</label>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="assign-pgy-buttons"></div>
                         </div>
                     </div>
-                    <button class="btn btn-primary btn-sm" style="margin-top: 10px;" onclick="assignFiles()">Assign Selected</button>
+                    <div class="assign-list" id="assign-residents-list" style="margin-bottom: 10px;">No residents in this exam.</div>
+                    <button class="btn btn-primary btn-sm" onclick="assignRoom()">Assign to Room</button>
 
-                    <h4 style="margin-top: 20px;">Current Assignments</h4>
-                    <div id="assignments-list" style="max-height: 300px; overflow-y: auto;">
-                        <p style="color: #999; font-size: 13px;">No assignments yet.</p>
+                    <h4 style="margin-top: 20px;">Current Room Assignments</h4>
+                    <div id="room-assignments-list" style="max-height: 300px; overflow-y: auto;">
+                        <p style="color: #999; font-size: 13px;">No room assignments yet.</p>
                     </div>
                 </div>
             </div>
@@ -302,8 +303,7 @@
             await loadExamResidents();
             await loadFaculty();
             await loadExaminers();
-            await loadExamFiles();
-            await loadAssignments();
+            await loadRoomData();
             document.getElementById('exam-detail').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -454,17 +454,42 @@
             loadAssignments();
         }
 
-        // === FILE ASSIGNMENT ===
-        async function loadExamFiles() {
-            const data = await (await fetch(`/admin/files/list/${currentExamId}`)).json();
-            const list = document.getElementById('assign-files-list');
-            if (!data.length) {
-                list.innerHTML = 'No files added to this exam yet. Go to <a href="/admin/files">Exam Files</a> to add files.';
+        // === ROOM ASSIGNMENTS ===
+        async function loadRoomData() {
+            const data = await (await fetch(`/admin/exams/${currentExamId}/room-assignments`)).json();
+
+            // Populate room dropdown
+            const roomSelect = document.getElementById('assign-room');
+            if (data.rooms.length === 0) {
+                roomSelect.innerHTML = '<option value="">No rooms — assign room numbers to files first</option>';
+            } else {
+                roomSelect.innerHTML = data.rooms.map(r => `<option value="${r}">Room ${r}</option>`).join('');
+            }
+
+            // Render current assignments grouped by room
+            const div = document.getElementById('room-assignments-list');
+            if (!data.assignments?.length) {
+                div.innerHTML = '<p style="color: #999; font-size: 13px;">No room assignments yet.</p>';
                 return;
             }
-            list.innerHTML = data.map(f =>
-                `<label><input type="checkbox" value="${f.id}"> ${f.display_name} <small style="color:#888">[${f.file_type}]</small></label>`
-            ).join('');
+
+            const byRoom = {};
+            for (const a of data.assignments) {
+                if (!byRoom[a.room_number]) byRoom[a.room_number] = [];
+                byRoom[a.room_number].push(a);
+            }
+
+            div.innerHTML = Object.entries(byRoom).sort((a, b) => a[0] - b[0]).map(([room, residents]) => `
+                <div style="margin-bottom: 12px;">
+                    <strong style="color: #003366;">Room ${room}</strong>
+                    ${residents.map(a => `
+                        <div class="assignment-item">
+                            <span>${a.resident_name} <span class="pgy-badge pgy-${Math.min(a.pgy_level, 5)}">PGY-${a.pgy_level}</span></span>
+                            <button class="btn btn-xs btn-danger" onclick="removeRoomAssignment(${a.id})">&times;</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
         }
 
         function selectAssignPgy(level) {
@@ -477,54 +502,26 @@
             document.querySelectorAll('#assign-residents-list input').forEach(cb => cb.checked = true);
         }
 
-        async function assignFiles() {
-            const fileIds = [...document.querySelectorAll('#assign-files-list input:checked')].map(cb => parseInt(cb.value));
+        async function assignRoom() {
+            const roomNumber = document.getElementById('assign-room').value;
             const residentIds = [...document.querySelectorAll('#assign-residents-list input:checked')].map(cb => parseInt(cb.value));
-            if (!fileIds.length || !residentIds.length) return alert('Select files and residents');
+            if (!roomNumber) return alert('Select a room');
+            if (!residentIds.length) return alert('Select at least one resident');
 
-            const res = await fetch(`/admin/exams/${currentExamId}/assignments`, {
+            const res = await fetch(`/admin/exams/${currentExamId}/room-assignments`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fileIds, residentIds })
+                body: JSON.stringify({ residentIds, roomNumber })
             });
             const data = await res.json();
             if (data.success) {
-                showMessage(`Assigned ${data.assigned} file-resident pairs. Questions auto-logged.`, 'success');
-                loadAssignments();
+                showMessage(`Assigned ${data.assigned} resident(s) to Room ${roomNumber}. Questions auto-logged.`, 'success');
+                loadRoomData();
             }
         }
 
-        async function loadAssignments() {
-            const data = await (await fetch(`/admin/exams/${currentExamId}/assignments`)).json();
-            const div = document.getElementById('assignments-list');
-
-            if (!data.assignments?.length) {
-                div.innerHTML = '<p style="color: #999; font-size: 13px;">No assignments yet.</p>';
-                return;
-            }
-
-            // Group by resident
-            const byResident = {};
-            for (const a of data.assignments) {
-                if (!byResident[a.resident_name]) byResident[a.resident_name] = { pgy: a.pgy_level, items: [] };
-                byResident[a.resident_name].items.push(a);
-            }
-
-            div.innerHTML = Object.entries(byResident).map(([name, info]) => `
-                <div style="margin-bottom: 12px;">
-                    <strong>${name}</strong> <span class="pgy-badge pgy-${Math.min(info.pgy, 5)}">PGY-${info.pgy}</span>
-                    ${info.items.map(a => `
-                        <div class="assignment-item">
-                            <span>${a.file_name} <small style="color:#888">[${a.file_type}]</small></span>
-                            <button class="btn btn-xs btn-danger" onclick="removeAssignment(${a.id})">&times;</button>
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-        }
-
-        async function removeAssignment(id) {
-            await fetch(`/admin/exams/${currentExamId}/assignments/${id}`, { method: 'DELETE' });
-            loadAssignments();
+        async function removeRoomAssignment(id) {
+            await fetch(`/admin/exams/${currentExamId}/room-assignments/${id}`, { method: 'DELETE' });
+            loadRoomData();
         }
 
         // === EMAIL ===
