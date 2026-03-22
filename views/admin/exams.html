@@ -123,6 +123,10 @@
                             <label style="font-size: 12px;">Examiner Name</label>
                             <input type="text" id="new-examiner-name" class="form-control" placeholder="e.g., Dr. Smith">
                         </div>
+                        <div class="form-group" style="margin: 0; flex: 2; min-width: 180px;">
+                            <label style="font-size: 12px;">Email</label>
+                            <input type="email" id="new-examiner-email" class="form-control" placeholder="smith@ecu.edu">
+                        </div>
                         <div class="form-group" style="margin: 0; flex: 1; min-width: 80px;">
                             <label style="font-size: 12px;">Room #</label>
                             <input type="number" id="new-examiner-room" class="form-control" placeholder="1">
@@ -130,9 +134,20 @@
                         <button class="btn btn-primary btn-sm" onclick="addExaminer()">Create</button>
                     </div>
                     <table class="table exam-residents-table" id="examiners-table">
-                        <thead><tr><th>Name</th><th>Room</th><th>Username</th><th>Password</th><th></th></tr></thead>
+                        <thead><tr><th>Name</th><th>Email</th><th>Room</th><th>Username</th><th>Password</th><th></th></tr></thead>
                         <tbody><tr><td colspan="5" style="text-align: center; color: #999;">No examiners created yet.</td></tr></tbody>
                     </table>
+                </div>
+
+                <!-- Email Notifications -->
+                <div class="exam-detail-section">
+                    <h3>Send Email Notifications</h3>
+                    <p style="font-size: 13px; color: #666;">Send login credentials and exam details via email. Requires emails on examiner and resident records.</p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary btn-sm" onclick="emailExaminers()">Email All Examiners</button>
+                        <button class="btn btn-primary btn-sm" onclick="emailResidents()">Email All Residents</button>
+                    </div>
+                    <div id="email-status" style="margin-top: 8px; font-size: 13px;"></div>
                 </div>
 
                 <!-- Assign Files -->
@@ -389,11 +404,12 @@
             const data = await (await fetch(`/admin/exams/${currentExamId}/examiners`)).json();
             const tbody = document.querySelector('#examiners-table tbody');
             if (data.examiners.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No examiners created yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No examiners created yet.</td></tr>';
             } else {
                 tbody.innerHTML = data.examiners.map(ex => `
                     <tr>
                         <td>${ex.name}</td>
+                        <td style="font-size: 12px;">${ex.email || '<span style="color:#ccc">—</span>'}</td>
                         <td>${ex.room_number || '-'}</td>
                         <td class="cred-info">${ex.username}</td>
                         <td class="cred-info">${ex.password}</td>
@@ -405,16 +421,18 @@
 
         async function addExaminer() {
             const name = document.getElementById('new-examiner-name').value.trim();
+            const email = document.getElementById('new-examiner-email').value.trim();
             const room = document.getElementById('new-examiner-room').value;
             if (!name) return alert('Enter examiner name');
             const res = await fetch(`/admin/exams/${currentExamId}/examiners`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, roomNumber: room })
+                body: JSON.stringify({ name, email, roomNumber: room })
             });
             const data = await res.json();
             if (data.success) {
                 showMessage(`Examiner created: ${data.username} / ${data.password}`, 'success');
                 document.getElementById('new-examiner-name').value = '';
+                document.getElementById('new-examiner-email').value = '';
                 loadExaminers();
             } else { showMessage(data.error, 'error'); }
         }
@@ -503,6 +521,43 @@
         async function removeAssignment(id) {
             await fetch(`/admin/exams/${currentExamId}/assignments/${id}`, { method: 'DELETE' });
             loadAssignments();
+        }
+
+        // === EMAIL ===
+        async function emailExaminers() {
+            if (!confirm('Send credentials and exam details to all examiners with email addresses?')) return;
+            document.getElementById('email-status').innerHTML = 'Sending...';
+            try {
+                const res = await fetch(`/admin/exams/${currentExamId}/email-examiners`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const data = await res.json();
+                if (data.success) {
+                    let msg = `Sent to ${data.sent} examiner(s).`;
+                    if (data.errors?.length) msg += ` Errors: ${data.errors.join(', ')}`;
+                    document.getElementById('email-status').innerHTML = `<span style="color: green;">${msg}</span>`;
+                } else {
+                    document.getElementById('email-status').innerHTML = `<span style="color: red;">${data.error}</span>`;
+                }
+            } catch (err) {
+                document.getElementById('email-status').innerHTML = '<span style="color: red;">Failed to send emails.</span>';
+            }
+        }
+
+        async function emailResidents() {
+            if (!confirm('Send login credentials to all residents with email addresses?')) return;
+            document.getElementById('email-status').innerHTML = 'Sending...';
+            try {
+                const res = await fetch(`/admin/exams/${currentExamId}/email-residents`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const data = await res.json();
+                if (data.success) {
+                    let msg = `Sent to ${data.sent} resident(s).`;
+                    if (data.errors?.length) msg += ` Errors: ${data.errors.join(', ')}`;
+                    document.getElementById('email-status').innerHTML = `<span style="color: green;">${msg}</span>`;
+                } else {
+                    document.getElementById('email-status').innerHTML = `<span style="color: red;">${data.error}</span>`;
+                }
+            } catch (err) {
+                document.getElementById('email-status').innerHTML = '<span style="color: red;">Failed to send emails.</span>';
+            }
         }
 
         loadExams();

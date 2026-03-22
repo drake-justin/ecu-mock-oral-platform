@@ -55,6 +55,16 @@ router.post('/login', rateLimiter, async (req, res) => {
             return res.status(403).json({ error: 'This exam is not currently active' });
         }
 
+        // Check if exam has a start time and if it's been reached
+        if (exam.start_time) {
+            const startTime = new Date(exam.start_time);
+            if (new Date() < startTime) {
+                const options = { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+                const formatted = startTime.toLocaleString('en-US', options);
+                return res.status(403).json({ error: `This exam does not open until ${formatted} ET` });
+            }
+        }
+
         // Mark credential as used
         await db.execute({
             sql: 'UPDATE credentials SET is_used = 1, used_at = CURRENT_TIMESTAMP WHERE id = ?',

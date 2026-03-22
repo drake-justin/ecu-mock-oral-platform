@@ -203,6 +203,12 @@ async function initializeDatabase() {
         await db.execute('ALTER TABLE repository ADD COLUMN specialty TEXT');
     } catch (e) { /* column may already exist */ }
     try {
+        await db.execute('ALTER TABLE exams ADD COLUMN start_time DATETIME');
+    } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE examiners ADD COLUMN email TEXT');
+    } catch (e) { /* column may already exist */ }
+    try {
         await db.execute('ALTER TABLE question_history ADD COLUMN resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL');
     } catch (e) { /* column may already exist */ }
     try {

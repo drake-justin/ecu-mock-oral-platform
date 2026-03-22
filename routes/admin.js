@@ -6,6 +6,8 @@ const { upload, deleteFile } = require('../cloudinary');
 const { requireAdmin } = require('../middleware/auth');
 let cheerio;
 try { cheerio = require('cheerio'); } catch (e) { /* cheerio not installed */ }
+let emailModule;
+try { emailModule = require('../email'); } catch (e) { /* nodemailer not installed */ }
 
 // Admin dashboard
 router.get('/', requireAdmin, (req, res) => {
@@ -964,7 +966,7 @@ router.get('/exams/:id/examiners', requireAdmin, async (req, res) => {
 // Create examiner for an exam
 router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
-    const { name, roomNumber } = req.body;
+    const { name, roomNumber, email } = req.body;
 
     if (!name) return res.status(400).json({ error: 'Examiner name is required' });
 
@@ -974,8 +976,8 @@ router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
         const password = generatePassword();
 
         await db.execute({
-            sql: 'INSERT INTO examiners (exam_id, name, username, password, room_number) VALUES (?, ?, ?, ?, ?)',
-            args: [examId, name, username, password, roomNumber ? parseInt(roomNumber) : null]
+            sql: 'INSERT INTO examiners (exam_id, name, username, password, room_number, email) VALUES (?, ?, ?, ?, ?, ?)',
+            args: [examId, name, username, password, roomNumber ? parseInt(roomNumber) : null, email || null]
         });
 
         res.json({ success: true, username, password });
@@ -1567,6 +1569,124 @@ router.get('/question-tracker/exams', requireAdmin, async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: 'Failed to load exams' });
     }
+});
+
+// === EMAIL NOTIFICATIONS ===
+
+// Send emails to all examiners for an exam
+router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+
+    const examId = parseInt(req.params.id);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+        if (!exam.rows[0]) return res.status(404).json({ error: 'Exam not found' });
+
+        const examiners = await db.execute({
+            sql: 'SELECT * FROM examiners WHERE exam_id = ? AND email IS NOT NULL AND email != ""',
+            args: [examId]
+        });
+
+        if (examiners.rows.length === 0) {
+            return res.status(400).json({ error: 'No examiners with email addresses found' });
+        }
+
+        // Get all residents for this exam with credentials
+        const residents = await db.execute({
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password
+                  FROM exam_residents er
+                  JOIN residents r ON er.resident_id = r.id
+                  LEFT JOIN credentials c ON er.credential_id = c.id
+                  WHERE er.exam_id = ?
+                  ORDER BY r.pgy_level DESC, r.name`,
+            args: [examId]
+        });
+
+        let sent = 0;
+        let errors = [];
+
+        for (const examiner of examiners.rows) {
+            try {
+                await emailModule.sendExaminerEmail({
+                    examinerName: examiner.name,
+                    examinerEmail: examiner.email,
+                    username: examiner.username,
+                    password: examiner.password,
+                    examName: exam.rows[0].name,
+                    examDate: exam.rows[0].date,
+                    roomNumber: examiner.room_number,
+                    examinees: residents.rows,
+                    siteUrl: req.protocol + '://' + req.get('host')
+                });
+                sent++;
+            } catch (err) {
+                errors.push(`${examiner.name}: ${err.message}`);
+            }
+        }
+
+        res.json({ success: true, sent, errors });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to send examiner emails' });
+    }
+});
+
+// Send emails to all residents for an exam
+router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
+    if (!emailModule) return res.status(500).json({ error: 'Email module not configured' });
+
+    const examId = parseInt(req.params.id);
+    try {
+        const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
+        if (!exam.rows[0]) return res.status(404).json({ error: 'Exam not found' });
+
+        // Get residents with credentials and emails
+        const residents = await db.execute({
+            sql: `SELECT r.id, r.name, r.pgy_level, r.email, c.username, c.password
+                  FROM exam_residents er
+                  JOIN residents r ON er.resident_id = r.id
+                  LEFT JOIN credentials c ON er.credential_id = c.id
+                  WHERE er.exam_id = ? AND r.email IS NOT NULL AND r.email != ''`,
+            args: [examId]
+        });
+
+        if (residents.rows.length === 0) {
+            return res.status(400).json({ error: 'No residents with email addresses found. Add emails on the Question Tracker page.' });
+        }
+
+        let sent = 0;
+        let errors = [];
+
+        for (const resident of residents.rows) {
+            try {
+                await emailModule.sendResidentEmail({
+                    residentName: resident.name,
+                    residentEmail: resident.email,
+                    username: resident.username,
+                    password: resident.password,
+                    examName: exam.rows[0].name,
+                    examDate: exam.rows[0].date,
+                    startTime: exam.rows[0].start_time,
+                    siteUrl: req.protocol + '://' + req.get('host')
+                });
+                sent++;
+            } catch (err) {
+                errors.push(`${resident.name}: ${err.message}`);
+            }
+        }
+
+        res.json({ success: true, sent, errors });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to send resident emails' });
+    }
+});
+
+// Verify email config
+router.get('/email/verify', requireAdmin, async (req, res) => {
+    if (!emailModule) return res.json({ configured: false, error: 'Email module not loaded' });
+    const ok = await emailModule.verifyEmailConfig();
+    res.json({ configured: ok });
 });
 
 // === SETTINGS / PASSWORD CHANGE ===
