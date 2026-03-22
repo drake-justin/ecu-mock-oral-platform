@@ -867,15 +867,9 @@ router.get('/repository', requireAdmin, (req, res) => {
 
 router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
-        const result = await db.execute(`
-            SELECT r.*,
-                   s.display_name as stem_name
-            FROM repository r
-            LEFT JOIN repository s ON r.related_stem_id = s.id
-            ORDER BY r.created_at DESC
-        `);
-        // Debug: log repository data
-        console.log('Repository files:', JSON.stringify(result.rows.map(r => ({ id: r.id, name: r.display_name, file_url: r.file_url })), null, 2));
+        const result = await db.execute(
+            'SELECT * FROM repository ORDER BY category, specialty, display_name'
+        );
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -1059,7 +1053,7 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
 
 router.get('/faculty', requireAdmin, async (req, res) => {
     try {
-        const result = await db.execute("SELECT * FROM faculty WHERE status = 'active' ORDER BY name");
+        const result = await db.execute("SELECT * FROM faculty WHERE status = 'active' ORDER BY SUBSTR(name, INSTR(name, ' ') + 1)");
         res.json({ faculty: result.rows });
     } catch (err) {
         res.status(500).json({ error: 'Failed to load faculty' });
