@@ -1,8 +1,8 @@
 const express = require('express');
 const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
 const path = require('path');
 const { initializeDatabase } = require('./database');
+const TursoSessionStore = require('./session-store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,11 +15,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Session configuration with memory store
+// Session configuration with database-backed store (survives redeploys)
+const sessionStore = new TursoSessionStore();
 app.use(session({
-    store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'ecu-mock-oral-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
@@ -29,6 +28,9 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
+// Clean up expired sessions every hour
+setInterval(() => sessionStore.cleanup(), 60 * 60 * 1000);
 
 // Routes
 const authRoutes = require('./routes/auth');

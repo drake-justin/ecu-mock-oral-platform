@@ -239,6 +239,15 @@ async function initializeDatabase() {
         await db.execute('ALTER TABLE credentials ADD COLUMN resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL');
     } catch (e) { /* column may already exist */ }
 
+    // Session store table
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            sid TEXT PRIMARY KEY,
+            sess TEXT NOT NULL,
+            expired DATETIME NOT NULL
+        )
+    `);
+
     // Create default admin if none exists
     const result = await db.execute('SELECT COUNT(*) as count FROM admins');
     if (result.rows[0].count === 0) {
