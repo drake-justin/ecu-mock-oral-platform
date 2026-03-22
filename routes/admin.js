@@ -124,6 +124,22 @@ router.delete('/exams/:id', requireAdmin, async (req, res) => {
 router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     try {
+        // Auto-create exam_rooms entries for any rooms that exist in files/examiners/assignments but not in exam_rooms
+        const orphanedRooms = await db.execute({
+            sql: `SELECT DISTINCT room_number FROM (
+                    SELECT room_number FROM files WHERE exam_id = ? AND room_number IS NOT NULL
+                    UNION SELECT room_number FROM examiners WHERE exam_id = ? AND room_number IS NOT NULL
+                    UNION SELECT room_number FROM exam_room_assignments WHERE exam_id = ? AND room_number IS NOT NULL
+                  ) WHERE room_number NOT IN (SELECT room_number FROM exam_rooms WHERE exam_id = ?)`,
+            args: [examId, examId, examId, examId]
+        });
+        for (const r of orphanedRooms.rows) {
+            await db.execute({
+                sql: 'INSERT OR IGNORE INTO exam_rooms (exam_id, room_number, room_name) VALUES (?, ?, ?)',
+                args: [examId, r.room_number, `Room ${r.room_number}`]
+            });
+        }
+
         const rooms = await db.execute({
             sql: 'SELECT * FROM exam_rooms WHERE exam_id = ? ORDER BY room_number',
             args: [examId]
