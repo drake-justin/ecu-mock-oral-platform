@@ -66,7 +66,7 @@ async function initializeDatabase() {
 
     // Repository table for standalone file management with Cloudinary support
     await db.execute(`
-        CREATE TABLE IF NOT EXISTS repository (
+        CREATE TABLE IF NOT EXISTS repo_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             display_name TEXT NOT NULL,
             filename TEXT NOT NULL,
@@ -77,7 +77,7 @@ async function initializeDatabase() {
             related_stem_id INTEGER,
             specialty TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (related_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+            FOREIGN KEY (related_stem_id) REFERENCES repo_files(id) ON DELETE SET NULL
         )
     `);
 
@@ -179,7 +179,7 @@ async function initializeDatabase() {
             FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
             FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE,
             FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE SET NULL,
-            FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+            FOREIGN KEY (repository_stem_id) REFERENCES repo_files(id) ON DELETE SET NULL
         )
     `);
 
@@ -198,7 +198,7 @@ async function initializeDatabase() {
             recorded_by TEXT DEFAULT 'manual',
             FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE SET NULL,
             FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
-            FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL
+            FOREIGN KEY (repository_stem_id) REFERENCES repo_files(id) ON DELETE SET NULL
         )
     `);
 
@@ -219,13 +219,13 @@ async function initializeDatabase() {
         await db.execute('ALTER TABLE files ADD COLUMN item_type TEXT');
     } catch (e) { /* column may already exist */ }
     try {
-        await db.execute('ALTER TABLE repository ADD COLUMN file_url TEXT');
+        await db.execute('ALTER TABLE repo_files ADD COLUMN file_url TEXT');
     } catch (e) { /* column may already exist */ }
     try {
-        await db.execute('ALTER TABLE repository ADD COLUMN public_id TEXT');
+        await db.execute('ALTER TABLE repo_files ADD COLUMN public_id TEXT');
     } catch (e) { /* column may already exist */ }
     try {
-        await db.execute('ALTER TABLE repository ADD COLUMN specialty TEXT');
+        await db.execute('ALTER TABLE repo_files ADD COLUMN specialty TEXT');
     } catch (e) { /* column may already exist */ }
     try {
         await db.execute('ALTER TABLE exams ADD COLUMN start_time DATETIME');

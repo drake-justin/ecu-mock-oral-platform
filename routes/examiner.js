@@ -80,14 +80,14 @@ router.get('/data', requireExaminer, async (req, res) => {
         if (roomNumber) {
             filesQuery = `SELECT f.*, r.id as repo_stem_id, r.specialty, r.category
                           FROM files f
-                          LEFT JOIN repository r ON f.public_id = r.public_id
+                          LEFT JOIN repo_files r ON f.public_id = r.public_id
                           WHERE f.exam_id = ? AND (f.room_number = ? OR f.room_number IS NULL)
                           ORDER BY f.sort_order, f.id`;
             filesArgs = [examId, roomNumber];
         } else {
             filesQuery = `SELECT f.*, r.id as repo_stem_id, r.specialty, r.category
                           FROM files f
-                          LEFT JOIN repository r ON f.public_id = r.public_id
+                          LEFT JOIN repo_files r ON f.public_id = r.public_id
                           WHERE f.exam_id = ?
                           ORDER BY f.room_number, f.sort_order, f.id`;
             filesArgs = [examId];

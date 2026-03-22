@@ -453,7 +453,7 @@ router.post('/exams/:examId/room-assignments', requireAdmin, async (req, res) =>
             const roomFiles = await db.execute({
                 sql: `SELECT f.display_name, r.id as repo_stem_id, r.display_name as stem_name, r.specialty
                       FROM files f
-                      LEFT JOIN repository r ON f.public_id = r.public_id AND r.category = 'stem'
+                      LEFT JOIN repo_files r ON f.public_id = r.public_id AND r.category = 'stem'
                       WHERE f.exam_id = ? AND f.room_number = ?`,
                 args: [examId, parseInt(roomNumber)]
             });
@@ -786,7 +786,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
         for (const repoId of repositoryIds) {
             // Get the repository file
             const repoResult = await db.execute({
-                sql: 'SELECT * FROM repository WHERE id = ?',
+                sql: 'SELECT * FROM repo_files WHERE id = ?',
                 args: [parseInt(repoId)]
             });
             const repoFile = repoResult.rows[0];
@@ -810,7 +810,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
                 // If this is a stem, also add its linked clinical images
                 if (repoFile.category === 'stem') {
                     const linkedImages = await db.execute({
-                        sql: 'SELECT * FROM repository WHERE related_stem_id = ?',
+                        sql: 'SELECT * FROM repo_files WHERE related_stem_id = ?',
                         args: [parseInt(repoId)]
                     });
 
@@ -846,8 +846,8 @@ router.get('/files/repository-stems', requireAdmin, async (req, res) => {
             SELECT r.*,
                    GROUP_CONCAT(ci.id) as linked_image_ids,
                    GROUP_CONCAT(ci.display_name) as linked_image_names
-            FROM repository r
-            LEFT JOIN repository ci ON ci.related_stem_id = r.id
+            FROM repo_files r
+            LEFT JOIN repo_files ci ON ci.related_stem_id = r.id
             WHERE r.category = 'stem'
             GROUP BY r.id
             ORDER BY r.display_name
@@ -868,7 +868,7 @@ router.get('/repository', requireAdmin, (req, res) => {
 // Repository data endpoint (no auth required - used as fallback)
 router.get('/repository/debug', async (req, res) => {
     try {
-        const result = await db.execute('SELECT id, display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, display_name');
+        const result = await db.execute('SELECT id, display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty, created_at FROM repo_files ORDER BY category, display_name');
         res.json({ files: result.rows, count: result.rows.length, ok: true });
     } catch (err) {
         res.json({ error: err.message, ok: false });
@@ -878,7 +878,7 @@ router.get('/repository/debug', async (req, res) => {
 router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
         console.log('Repository list: starting query...');
-        const result = await db.execute('SELECT id, display_name, file_url, file_type, category, related_stem_id, specialty, created_at FROM repository ORDER BY category, display_name');
+        const result = await db.execute('SELECT id, display_name, file_url, file_type, category, related_stem_id, specialty, created_at FROM repo_files ORDER BY category, display_name');
         console.log('Repository list: query done, rows:', result.rows?.length);
         res.json(result.rows || []);
     } catch (err) {
@@ -889,7 +889,7 @@ router.get('/repository/list', requireAdmin, async (req, res) => {
 
 router.get('/repository/stems', requireAdmin, async (req, res) => {
     try {
-        const result = await db.execute(`SELECT * FROM repository WHERE category = 'stem' ORDER BY display_name`);
+        const result = await db.execute(`SELECT * FROM repo_files WHERE category = 'stem' ORDER BY display_name`);
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -900,7 +900,7 @@ router.get('/repository/stems', requireAdmin, async (req, res) => {
 router.get('/repository/:id', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute({
-            sql: 'SELECT * FROM repository WHERE id = ?',
+            sql: 'SELECT * FROM repo_files WHERE id = ?',
             args: [parseInt(req.params.id)]
         });
         const file = result.rows[0];
@@ -911,7 +911,7 @@ router.get('/repository/:id', requireAdmin, async (req, res) => {
 
         if (file.category === 'stem') {
             const imagesResult = await db.execute({
-                sql: 'SELECT * FROM repository WHERE related_stem_id = ?',
+                sql: 'SELECT * FROM repo_files WHERE related_stem_id = ?',
                 args: [file.id]
             });
             file.relatedImages = imagesResult.rows;
@@ -946,7 +946,7 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             console.log('Stem file URL:', stemUrl);
 
             const stemResult = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                sql: 'INSERT INTO repo_files (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                 args: [stemName, stemFile.originalname, stemUrl, stemFile.filename, stemFileType, 'stem', null, specialty || null]
             });
             const stemId = Number(stemResult.lastInsertRowid);
@@ -960,7 +960,7 @@ router.post('/repository/upload', requireAdmin, upload.fields([
                 console.log('Clinical file URL:', clinicalUrl);
 
                 const clinicalResult = await db.execute({
-                    sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    sql: 'INSERT INTO repo_files (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                     args: [clinicalName, clinicalFile.originalname, clinicalUrl, clinicalFile.filename, clinicalFileType, 'clinical_image', stemId, specialty || null]
                 });
                 results.push({ id: Number(clinicalResult.lastInsertRowid), type: 'clinical_image', name: clinicalName, relatedTo: stemId, url: clinicalUrl });
@@ -973,7 +973,7 @@ router.post('/repository/upload', requireAdmin, upload.fields([
             console.log('Single file URL:', fileUrl);
 
             const result = await db.execute({
-                sql: 'INSERT INTO repository (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                sql: 'INSERT INTO repo_files (display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                 args: [name, file.originalname, fileUrl, file.filename, fileType, category || 'stem', category === 'clinical_image' && relatedStemId ? parseInt(relatedStemId) : null, specialty || null]
             });
             results.push({ id: Number(result.lastInsertRowid), type: category, name: name, url: fileUrl });
@@ -1003,7 +1003,7 @@ router.put('/repository/:id', requireAdmin, async (req, res) => {
 
     try {
         await db.execute({
-            sql: 'UPDATE repository SET display_name = ?, specialty = ? WHERE id = ?',
+            sql: 'UPDATE repo_files SET display_name = ?, specialty = ? WHERE id = ?',
             args: [displayName, specialty || null, fileId]
         });
         res.json({ success: true });
@@ -1018,7 +1018,7 @@ router.put('/repository/:id/associate', requireAdmin, async (req, res) => {
 
     try {
         await db.execute({
-            sql: 'UPDATE repository SET related_stem_id = ? WHERE id = ?',
+            sql: 'UPDATE repo_files SET related_stem_id = ? WHERE id = ?',
             args: [stemId ? parseInt(stemId) : null, fileId]
         });
         res.json({ success: true });
@@ -1031,7 +1031,7 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
     const fileId = parseInt(req.params.id);
     try {
         const result = await db.execute({
-            sql: 'SELECT * FROM repository WHERE id = ?',
+            sql: 'SELECT * FROM repo_files WHERE id = ?',
             args: [fileId]
         });
         const file = result.rows[0];
@@ -1039,7 +1039,7 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
         if (file) {
             if (file.category === 'stem') {
                 await db.execute({
-                    sql: 'UPDATE repository SET related_stem_id = NULL WHERE related_stem_id = ?',
+                    sql: 'UPDATE repo_files SET related_stem_id = NULL WHERE related_stem_id = ?',
                     args: [fileId]
                 });
             }
@@ -1050,7 +1050,7 @@ router.delete('/repository/:id', requireAdmin, async (req, res) => {
                 await deleteFile(file.public_id, resourceType);
             }
 
-            await db.execute({ sql: 'DELETE FROM repository WHERE id = ?', args: [fileId] });
+            await db.execute({ sql: 'DELETE FROM repo_files WHERE id = ?', args: [fileId] });
         }
         res.json({ success: true });
     } catch (err) {
@@ -1178,7 +1178,7 @@ router.get('/scoring/:examId', requireAdmin, async (req, res) => {
             sql: `SELECT f.id, f.display_name, f.room_number, f.item_number,
                          r.id as repo_stem_id, r.specialty
                   FROM files f
-                  LEFT JOIN repository r ON f.public_id = r.public_id AND r.category = 'stem'
+                  LEFT JOIN repo_files r ON f.public_id = r.public_id AND r.category = 'stem'
                   WHERE f.exam_id = ?
                   ORDER BY f.room_number, f.sort_order, f.id`,
             args: [examId]
@@ -1554,7 +1554,7 @@ router.get('/question-tracker/resident/:id', requireAdmin, async (req, res) => {
 
         // Get all specialties from repository stems
         const allTopics = await db.execute(`
-            SELECT DISTINCT specialty FROM repository
+            SELECT DISTINCT specialty FROM repo_files
             WHERE category = 'stem' AND specialty IS NOT NULL AND specialty != ''
             ORDER BY specialty
         `);
@@ -1603,7 +1603,7 @@ router.post('/question-tracker/record', requireAdmin, async (req, res) => {
 
         if (repositoryStemId) {
             const stem = await db.execute({
-                sql: 'SELECT display_name, specialty FROM repository WHERE id = ?',
+                sql: 'SELECT display_name, specialty FROM repo_files WHERE id = ?',
                 args: [parseInt(repositoryStemId)]
             });
             if (stem.rows[0]) {
@@ -1649,7 +1649,7 @@ router.post('/question-tracker/import-exam', requireAdmin, async (req, res) => {
         const stems = await db.execute({
             sql: `SELECT DISTINCT r.id, r.display_name, r.specialty, f.room_number
                   FROM files f
-                  JOIN repository r ON f.public_id = r.public_id OR f.display_name = r.display_name
+                  JOIN repo_files r ON f.public_id = r.public_id OR f.display_name = r.display_name
                   WHERE f.exam_id = ? AND r.category = 'stem'`,
             args: [parseInt(examId)]
         });
@@ -1702,7 +1702,7 @@ router.delete('/question-tracker/:id', requireAdmin, async (req, res) => {
 router.get('/question-tracker/stems', requireAdmin, async (req, res) => {
     try {
         const stems = await db.execute(`
-            SELECT id, display_name, specialty FROM repository
+            SELECT id, display_name, specialty FROM repo_files
             WHERE category = 'stem'
             ORDER BY specialty, display_name
         `);
