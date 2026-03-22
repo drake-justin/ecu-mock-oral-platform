@@ -32,8 +32,16 @@ router.post('/login', rateLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        if (!examiner.is_active) {
-            return res.status(403).json({ error: 'This exam is not currently active' });
+        // Examiners can access before the exam is active (to review scenarios)
+        // But credentials expire the day after the exam date
+        if (examiner.exam_date) {
+            const examDate = new Date(examiner.exam_date);
+            const dayAfter = new Date(examDate);
+            dayAfter.setDate(dayAfter.getDate() + 1);
+            dayAfter.setHours(23, 59, 59);
+            if (new Date() > dayAfter) {
+                return res.status(403).json({ error: 'This exam has ended. Examiner access expired.' });
+            }
         }
 
         clearLoginAttempts(req.ip);

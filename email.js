@@ -15,63 +15,62 @@ const FROM = `"ECU Mock Oral Platform" <${process.env.GMAIL_USER}>`;
 // Send email to an examiner with their credentials, examinees, and exam details
 async function sendExaminerEmail({ examinerName, examinerEmail, username, password, examName, examDate, roomNumber, examinees, siteUrl }) {
     const url = siteUrl || SITE_URL;
-    const examineeList = examinees.map(e =>
-        `  - ${e.name} (PGY-${e.pgy_level}) — Credential: ${e.username} / ${e.password}`
-    ).join('\n');
 
     const html = `
-        <div style="font-family: Calibri, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #003366; color: white; padding: 20px; text-align: center;">
-                <h1 style="margin: 0; font-size: 22px;">ECU Mock Oral Examination</h1>
-                <p style="margin: 5px 0 0; opacity: 0.8;">Examiner Assignment</p>
+        <div style="font-family: Calibri, Arial, sans-serif; max-width: 650px; margin: 0 auto; font-size: 16px; line-height: 1.6;">
+            <div style="background: #003366; color: white; padding: 25px; text-align: center;">
+                <h1 style="margin: 0; font-size: 26px;">ECU Mock Oral Examination</h1>
+                <p style="margin: 8px 0 0; opacity: 0.8; font-size: 18px;">Examiner Assignment</p>
             </div>
-            <div style="padding: 25px; border: 1px solid #ddd; border-top: none;">
-                <p>Dear Dr. ${examinerName.split(',')[0].split(' ').pop()},</p>
-                <p>You have been assigned as an examiner for the upcoming mock oral examination.</p>
+            <div style="padding: 30px; border: 1px solid #ddd; border-top: none;">
+                <p style="font-size: 18px;">Dear Dr. ${examinerName.split(',')[0].split(' ').pop()},</p>
+                <p style="font-size: 16px;">You have been assigned as an examiner for the upcoming mock oral examination. You may log in at any time before the exam to review your question scenarios.</p>
 
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h3 style="color: #003366; margin: 0 0 10px;">Exam Details</h3>
-                    <p style="margin: 4px 0;"><strong>Exam:</strong> ${examName}</p>
-                    <p style="margin: 4px 0;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
-                    ${roomNumber ? `<p style="margin: 4px 0;"><strong>Room:</strong> ${roomNumber}</p>` : ''}
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #003366; margin: 0 0 12px; font-size: 20px;">Exam Details</h3>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${examName}</p>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
+                    ${roomNumber ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Room:</strong> ${roomNumber}</p>` : ''}
                 </div>
 
-                <div style="background: #003366; color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h3 style="margin: 0 0 10px;">Your Examiner Login</h3>
-                    <p style="margin: 4px 0;">Website: <a href="${url}/examiner/login" style="color: #7cb9e8;">${url}/examiner/login</a></p>
-                    <p style="margin: 4px 0;">Username: <strong>${username}</strong></p>
-                    <p style="margin: 4px 0;">Password: <strong>${password}</strong></p>
+                <div style="background: #003366; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 12px; font-size: 20px;">Your Examiner Login</h3>
+                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${url}/examiner/login" style="color: #7cb9e8; font-size: 16px;">${url}/examiner/login</a></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 20px;">${username}</strong></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 20px;">${password}</strong></p>
                 </div>
 
-                <div style="background: #f0f4f8; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h3 style="color: #003366; margin: 0 0 10px;">Your Examinees</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
+                ${examinees.length > 0 ? `
+                <div style="background: #f0f4f8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #003366; margin: 0 0 12px; font-size: 20px;">Your Examinees</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
                         <tr style="background: #003366; color: white;">
-                            <th style="padding: 6px 10px; text-align: left;">Resident</th>
-                            <th style="padding: 6px 10px; text-align: left;">PGY</th>
-                            <th style="padding: 6px 10px; text-align: left;">Username</th>
-                            <th style="padding: 6px 10px; text-align: left;">Password</th>
+                            <th style="padding: 10px 12px; text-align: left;">Resident</th>
+                            <th style="padding: 10px 12px; text-align: left;">PGY</th>
+                            <th style="padding: 10px 12px; text-align: left;">Username</th>
+                            <th style="padding: 10px 12px; text-align: left;">Password</th>
                         </tr>
                         ${examinees.map(e => `
                             <tr style="border-bottom: 1px solid #ddd;">
-                                <td style="padding: 6px 10px;">${e.name}</td>
-                                <td style="padding: 6px 10px;">PGY-${e.pgy_level}</td>
-                                <td style="padding: 6px 10px; font-family: monospace;">${e.username}</td>
-                                <td style="padding: 6px 10px; font-family: monospace;">${e.password}</td>
+                                <td style="padding: 10px 12px; font-size: 15px;">${e.name}</td>
+                                <td style="padding: 10px 12px; font-size: 15px;">PGY-${e.pgy_level}</td>
+                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${e.username}</td>
+                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${e.password}</td>
                             </tr>
                         `).join('')}
                     </table>
-                </div>
+                </div>` : ''}
 
-                <p><strong>What to do:</strong></p>
-                <ol>
-                    <li>Log in to the Examiner Portal before the exam to review your question scenarios</li>
-                    <li>Give each examinee their login credentials at exam time</li>
-                    <li>Use the Score & Feedback tab to grade each examinee after their session</li>
+                <h3 style="color: #003366; font-size: 18px;">What to do:</h3>
+                <ol style="font-size: 16px; line-height: 1.8;">
+                    <li>Log in to the <strong>Examiner Portal</strong> before the exam to review your question scenarios and scoring rubric</li>
+                    <li>On exam day, give each examinee their login credentials</li>
+                    <li>After each session, use the <strong>Score & Feedback</strong> tab to grade the examinee</li>
                 </ol>
 
-                <p style="color: #888; font-size: 13px; margin-top: 20px;">
+                <p style="color: #888; font-size: 14px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
                     This is an automated message from the ECU Mock Oral Platform.<br>
+                    Your examiner credentials remain active until the day after the exam.<br>
                     Questions? Contact the exam coordinator.
                 </p>
             </div>
@@ -91,38 +90,38 @@ async function sendResidentEmail({ residentName, residentEmail, username, passwo
     const url = siteUrl || SITE_URL;
 
     const html = `
-        <div style="font-family: Calibri, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #003366; color: white; padding: 20px; text-align: center;">
-                <h1 style="margin: 0; font-size: 22px;">ECU Mock Oral Examination</h1>
-                <p style="margin: 5px 0 0; opacity: 0.8;">Examinee Credentials</p>
+        <div style="font-family: Calibri, Arial, sans-serif; max-width: 650px; margin: 0 auto; font-size: 16px; line-height: 1.6;">
+            <div style="background: #003366; color: white; padding: 25px; text-align: center;">
+                <h1 style="margin: 0; font-size: 26px;">ECU Mock Oral Examination</h1>
+                <p style="margin: 8px 0 0; opacity: 0.8; font-size: 18px;">Examinee Credentials</p>
             </div>
-            <div style="padding: 25px; border: 1px solid #ddd; border-top: none;">
-                <p>Dear ${residentName.split(',')[0]},</p>
-                <p>You have been registered for the upcoming mock oral examination. Below are your login credentials.</p>
+            <div style="padding: 30px; border: 1px solid #ddd; border-top: none;">
+                <p style="font-size: 18px;">Dear ${residentName.split(',')[0]},</p>
+                <p style="font-size: 16px;">You have been registered for the upcoming mock oral examination. Below are your login credentials.</p>
 
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h3 style="color: #003366; margin: 0 0 10px;">Exam Details</h3>
-                    <p style="margin: 4px 0;"><strong>Exam:</strong> ${examName}</p>
-                    <p style="margin: 4px 0;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
-                    ${startTime ? `<p style="margin: 4px 0;"><strong>Access opens:</strong> ${startTime}</p>` : ''}
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #003366; margin: 0 0 12px; font-size: 20px;">Exam Details</h3>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${examName}</p>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
+                    ${startTime ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Access opens:</strong> ${startTime}</p>` : ''}
                 </div>
 
-                <div style="background: #003366; color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h3 style="margin: 0 0 10px;">Your Login Credentials</h3>
-                    <p style="margin: 4px 0;">Website: <a href="${url}" style="color: #7cb9e8;">${url}</a></p>
-                    <p style="margin: 4px 0;">Username: <strong style="font-size: 18px;">${username}</strong></p>
-                    <p style="margin: 4px 0;">Password: <strong style="font-size: 18px;">${password}</strong></p>
+                <div style="background: #003366; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin: 0 0 12px; font-size: 20px;">Your Login Credentials</h3>
+                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${url}" style="color: #7cb9e8; font-size: 16px;">${url}</a></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 22px;">${username}</strong></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 22px;">${password}</strong></p>
                 </div>
 
-                <p><strong>Important:</strong></p>
-                <ul>
-                    <li>Your credentials are one-time use only</li>
+                <h3 style="color: #003366; font-size: 18px;">Important:</h3>
+                <ul style="font-size: 16px; line-height: 1.8;">
+                    <li>Your credentials are <strong>one-time use only</strong></li>
                     <li>Do not share your credentials with anyone</li>
                     ${startTime ? `<li>Login will not be available until the exam start time</li>` : ''}
                     <li>Once logged in, you will see your question stem(s) and any clinical images</li>
                 </ul>
 
-                <p style="color: #888; font-size: 13px; margin-top: 20px;">
+                <p style="color: #888; font-size: 14px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
                     This is an automated message from the ECU Mock Oral Platform.<br>
                     Questions? Contact the exam coordinator.
                 </p>
