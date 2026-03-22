@@ -73,8 +73,9 @@ async function initializeDatabase() {
             file_url TEXT,
             public_id TEXT,
             file_type TEXT NOT NULL,
-            category TEXT NOT NULL CHECK(category IN ('stem', 'clinical_image', 'scenario')),
+            category TEXT NOT NULL,
             related_stem_id INTEGER,
+            specialty TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (related_stem_id) REFERENCES repository(id) ON DELETE SET NULL
         )
