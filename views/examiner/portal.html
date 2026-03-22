@@ -6,56 +6,50 @@
     <title>Examiner Portal - ECU Mock Oral</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        .portal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .portal-header h2 { margin: 0; }
-        .examiner-info { font-size: 14px; color: #666; }
-        .examiner-info strong { color: #003366; }
-        .tabs { display: flex; gap: 0; border-bottom: 2px solid #003366; margin-bottom: 20px; }
-        .tab { padding: 10px 24px; cursor: pointer; font-weight: 500; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; font-size: 15px; }
-        .tab.active { color: #003366; border-bottom-color: #003366; }
-        .tab:hover { color: #003366; }
-
-        /* Credentials tab */
-        .cred-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .cred-card .name { font-weight: 600; color: #003366; }
-        .cred-card .cred-info { font-family: monospace; font-size: 14px; background: white; padding: 4px 10px; border-radius: 4px; border: 1px solid #ddd; }
-        .pgy-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+        .portal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .examiner-info{font-size:14px;color:#666}.examiner-info strong{color:#003366}
+        .tabs{display:flex;gap:0;border-bottom:2px solid #003366;margin-bottom:20px}
+        .tab{padding:10px 24px;cursor:pointer;font-weight:500;color:#666;border-bottom:3px solid transparent;margin-bottom:-2px;font-size:15px}
+        .tab.active{color:#003366;border-bottom-color:#003366}.tab:hover{color:#003366}
+        .case-card{border:2px solid #e0e0e0;border-radius:10px;margin-bottom:20px;overflow:hidden}
+        .case-header{background:#003366;color:white;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+        .case-header h3{color:white;margin:0;font-size:16px}
+        .case-header .specialty{font-size:13px;opacity:0.8}
+        .case-body{padding:18px}
+        .case-section{margin-bottom:15px}
+        .case-section-title{font-size:12px;font-weight:600;color:#003366;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+        .stem-image{max-width:100%;border:1px solid #ddd;border-radius:6px;margin-bottom:8px}
+        .clinical-images{display:flex;gap:10px;flex-wrap:wrap}
+        .clinical-images img{max-width:300px;max-height:250px;border:1px solid #ddd;border-radius:6px;cursor:pointer}
+        .clinical-images img:hover{border-color:#003366;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+        .scenario-link{display:inline-block;padding:10px 20px;background:#003366;color:white;text-decoration:none;border-radius:6px;font-size:14px;margin-top:5px}
+        .scenario-link:hover{background:#004080}
+        .cred-card{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .cred-card .name{font-weight:600;color:#003366}.cred-info{font-family:monospace;font-size:14px;background:white;padding:4px 10px;border-radius:4px;border:1px solid #ddd}
+        .pgy-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:8px}
         .pgy-1{background:#e3f2fd;color:#1565c0}.pgy-2{background:#e8f5e9;color:#2e7d32}
-        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}
-        .pgy-5{background:#f3e5f5;color:#6a1b9a}
-
-        /* Questions tab */
-        .question-card { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
-        .question-header { background: #003366; color: white; padding: 10px 15px; font-weight: 600; display: flex; justify-content: space-between; }
-        .question-body { padding: 15px; }
-        .question-body .specialty-tag { font-size: 12px; background: #e9ecef; padding: 2px 10px; border-radius: 10px; color: #555; }
-        .file-link { display: inline-block; margin-top: 10px; padding: 8px 16px; background: #003366; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; }
-        .file-link:hover { background: #004080; }
-        .file-link-img { margin-top: 10px; }
-        .file-link-img img { max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px; }
-
-        /* Scoring tab */
-        .score-section { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #eee; }
-        .score-section h3 { color: #003366; margin-bottom: 12px; }
-        .score-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 15px; margin-bottom: 10px; background: #fafafa; }
-        .score-card h4 { margin: 0 0 8px 0; font-size: 14px; color: #333; }
-        .score-row { display: flex; gap: 10px; align-items: start; flex-wrap: wrap; }
-        .score-select { display: flex; gap: 0; flex-shrink: 0; }
-        .score-btn { padding: 8px 16px; border: 1px solid #ddd; cursor: pointer; font-size: 13px; font-weight: 600; background: white; transition: all 0.15s; }
-        .score-btn:first-child { border-radius: 4px 0 0 4px; }
-        .score-btn:last-child { border-radius: 0 4px 4px 0; }
-        .score-btn.pass.selected { background: #28a745; color: white; border-color: #28a745; }
-        .score-btn.marginal.selected { background: #ffc107; color: #333; border-color: #ffc107; }
-        .score-btn.fail.selected { background: #dc3545; color: white; border-color: #dc3545; }
-        .score-btn:hover { opacity: 0.85; }
-        .feedback-area { flex: 1; min-width: 250px; }
-        .feedback-area textarea { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; height: 60px; resize: vertical; font-family: Calibri, sans-serif; }
-        .feedback-area label { font-size: 12px; color: #555; font-weight: 600; display: block; margin-bottom: 4px; }
-        .save-bar { position: sticky; bottom: 0; background: white; padding: 15px 0; border-top: 2px solid #003366; text-align: center; }
-        .existing-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
-        .existing-badge.pass { background: #d4edda; color: #155724; }
-        .existing-badge.marginal { background: #fff3cd; color: #856404; }
-        .existing-badge.fail { background: #f8d7da; color: #721c24; }
+        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}.pgy-5{background:#f3e5f5;color:#6a1b9a}
+        .score-section{margin-bottom:25px;padding-bottom:20px;border-bottom:2px solid #eee}
+        .score-section h3{color:#003366;margin-bottom:12px}
+        .score-card-simple{border:1px solid #e0e0e0;border-radius:6px;padding:12px 15px;margin-bottom:10px;background:#fafafa}
+        .score-card-simple h4{margin:0 0 8px;font-size:14px;color:#333}
+        .score-row{display:flex;gap:10px;align-items:start;flex-wrap:wrap}
+        .score-select{display:flex;gap:0;flex-shrink:0}
+        .score-btn{padding:8px 16px;border:1px solid #ddd;cursor:pointer;font-size:13px;font-weight:600;background:white;transition:all 0.15s}
+        .score-btn:first-child{border-radius:4px 0 0 4px}.score-btn:last-child{border-radius:0 4px 4px 0}
+        .score-btn.pass.selected{background:#28a745;color:white;border-color:#28a745}
+        .score-btn.marginal.selected{background:#ffc107;color:#333;border-color:#ffc107}
+        .score-btn.fail.selected{background:#dc3545;color:white;border-color:#dc3545}
+        .score-btn:hover{opacity:0.85}
+        .feedback-area{flex:1;min-width:250px}
+        .feedback-area textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;height:60px;resize:vertical;font-family:Calibri,sans-serif}
+        .feedback-area label{font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px}
+        .save-bar{position:sticky;bottom:0;background:white;padding:15px 0;border-top:2px solid #003366;text-align:center}
+        .existing-badge{font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px}
+        .existing-badge.pass{background:#d4edda;color:#155724}.existing-badge.marginal{background:#fff3cd;color:#856404}.existing-badge.fail{background:#f8d7da;color:#721c24}
+        .standalone-files{margin-top:15px;padding:15px;background:#f8f9fa;border-radius:6px}
+        .standalone-files h4{color:#003366;margin:0 0 10px;font-size:14px}
+        .standalone-file-item{padding:6px 0;border-bottom:1px solid #eee;font-size:14px}
     </style>
 </head>
 <body>
@@ -63,233 +57,217 @@
         <h1>ECU Mock Oral Platform</h1>
         <p class="subtitle">Examiner Portal</p>
     </header>
-
     <div class="container">
         <div class="portal-header">
             <div>
                 <h2 id="exam-title">Loading...</h2>
-                <div class="examiner-info">
-                    Examiner: <strong id="examiner-name"></strong>
-                    <span id="room-info"></span>
-                </div>
+                <div class="examiner-info">Examiner: <strong id="examiner-name"></strong><span id="room-info"></span></div>
             </div>
-            <form action="/examiner/logout" method="POST">
-                <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
-            </form>
+            <form action="/examiner/logout" method="POST"><button type="submit" class="btn btn-secondary btn-sm">Logout</button></form>
         </div>
-
         <div class="tabs">
             <div class="tab active" onclick="showTab('questions')">Questions & Scenarios</div>
             <div class="tab" onclick="showTab('credentials')">Examinee Credentials</div>
             <div class="tab" onclick="showTab('scoring')">Score & Feedback</div>
         </div>
-
-        <!-- Questions Tab -->
         <div id="tab-questions"></div>
-
-        <!-- Credentials Tab -->
-        <div id="tab-credentials" style="display: none;"></div>
-
-        <!-- Scoring Tab -->
-        <div id="tab-scoring" style="display: none;">
+        <div id="tab-credentials" style="display:none"></div>
+        <div id="tab-scoring" style="display:none">
             <div id="scoring-forms"></div>
-            <div class="save-bar" id="save-bar" style="display: none;">
-                <button class="btn btn-primary" onclick="submitScores()" style="padding: 10px 40px; font-size: 16px;">Save All Scores & Feedback</button>
+            <div class="save-bar" id="save-bar" style="display:none">
+                <button class="btn btn-primary" onclick="submitScores()" style="padding:10px 40px;font-size:16px">Save All Scores & Feedback</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let portalData = null;
-        let pendingScores = {};
+<script>
+let portalData=null,pendingScores={},cases=[];
 
-        function showTab(name) {
-            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-            document.getElementById('tab-' + name).style.display = 'block';
-            event.target.classList.add('active');
-            if (name === 'scoring') document.getElementById('save-bar').style.display = 'block';
-            else document.getElementById('save-bar').style.display = 'none';
+function showTab(name){
+    document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+    document.getElementById('tab-'+name).style.display='block';
+    event.target.classList.add('active');
+    document.getElementById('save-bar').style.display=name==='scoring'?'block':'none';
+}
+
+// Group files into cases by repo stem linkage
+function buildCases(files){
+    const stemMap={};  // repo_id -> case object
+    const standalone=[];
+
+    for(const f of files){
+        const repoCat=f.repo_category||f.item_type||'';
+        const repoId=f.repo_id;
+        const relatedStem=f.repo_related_stem_id;
+
+        if(repoCat==='stem'){
+            // This IS a stem - create or get case
+            if(!stemMap[repoId]) stemMap[repoId]={stem:null,images:[],scenario:null,specialty:f.specialty,repoStemId:repoId};
+            stemMap[repoId].stem=f;
+        } else if(relatedStem && (repoCat==='clinical_image'||repoCat==='scenario')){
+            // Linked to a stem
+            if(!stemMap[relatedStem]) stemMap[relatedStem]={stem:null,images:[],scenario:null,specialty:f.specialty,repoStemId:relatedStem};
+            if(repoCat==='clinical_image') stemMap[relatedStem].images.push(f);
+            else if(repoCat==='scenario') stemMap[relatedStem].scenario=f;
+        } else {
+            standalone.push(f);
         }
+    }
 
-        async function loadData() {
-            const res = await fetch('/examiner/data');
-            portalData = await res.json();
+    const result=Object.values(stemMap).filter(c=>c.stem); // only cases with a stem
+    // Sort by stem display name
+    result.sort((a,b)=>a.stem.display_name.localeCompare(b.stem.display_name));
+    return {cases:result, standalone};
+}
 
-            document.getElementById('exam-title').textContent = portalData.exam.name;
-            document.getElementById('examiner-name').textContent = portalData.examinerName;
-            document.getElementById('room-info').textContent = portalData.roomNumber ? ` | Room ${portalData.roomNumber}` : '';
+function getCaseName(c){
+    let name=c.stem.display_name;
+    // Strip Stem_ prefix and number prefix for cleaner display
+    name=name.replace(/^Stem_/,'').replace(/^\d+_/,'').replace(/_/g,' ');
+    return name;
+}
 
-            // Pre-populate existing scores
-            for (const s of portalData.scores) {
-                const key = `${s.resident_id}_${s.file_id}`;
-                pendingScores[key] = { score: s.score, comments: s.comments || '' };
-            }
+async function loadData(){
+    const res=await fetch('/examiner/data');
+    portalData=await res.json();
+    document.getElementById('exam-title').textContent=portalData.exam.name;
+    document.getElementById('examiner-name').textContent=portalData.examinerName;
+    document.getElementById('room-info').textContent=portalData.roomNumber?' | Room '+portalData.roomNumber:'';
 
-            renderQuestions();
-            renderCredentials();
-            renderScoring();
-        }
+    const grouped=buildCases(portalData.files);
+    cases=grouped.cases;
 
-        function renderQuestions() {
-            const stemFiles = portalData.files.filter(f => f.category === 'stem' || f.file_type === 'image');
-            const container = document.getElementById('tab-questions');
+    // Pre-populate existing scores
+    for(const s of portalData.scores){
+        const key=`${s.resident_id}_${s.repository_stem_id||s.file_id}`;
+        pendingScores[key]={score:s.score,comments:s.comments||''};
+    }
 
-            if (stemFiles.length === 0) {
-                container.innerHTML = '<div class="card"><p style="color:#999;">No question files assigned to this exam yet.</p></div>';
-                return;
-            }
+    renderQuestions(grouped);
+    renderCredentials();
+    renderScoring();
+}
 
-            container.innerHTML = stemFiles.map((f, i) => `
-                <div class="question-card">
-                    <div class="question-header">
-                        <span>Question ${i + 1}: ${f.display_name}</span>
-                        ${f.room_number ? `<span>Room ${f.room_number}</span>` : ''}
+function renderQuestions(grouped){
+    const container=document.getElementById('tab-questions');
+    if(!cases.length && !grouped.standalone.length){
+        container.innerHTML='<div class="card"><p style="color:#999">No question files assigned to this exam yet.</p></div>';
+        return;
+    }
+
+    let html=cases.map((c,i)=>{
+        const name=getCaseName(c);
+        return `<div class="case-card">
+            <div class="case-header">
+                <h3>Question ${i+1}: ${name}</h3>
+                ${c.specialty?`<span class="specialty">${c.specialty}</span>`:''}
+            </div>
+            <div class="case-body">
+                ${c.stem?`<div class="case-section">
+                    <div class="case-section-title">Patient Stem</div>
+                    <img src="${c.stem.file_url}" alt="${name}" class="stem-image" onerror="this.style.display='none'">
+                </div>`:''}
+
+                ${c.images.length?`<div class="case-section">
+                    <div class="case-section-title">Clinical Images</div>
+                    <div class="clinical-images">
+                        ${c.images.map(img=>`<img src="${img.file_url}" alt="${img.display_name}" onclick="window.open('${img.file_url}','_blank')">`).join('')}
                     </div>
-                    <div class="question-body">
-                        ${f.specialty ? `<span class="specialty-tag">${f.specialty}</span>` : ''}
-                        ${f.file_url && f.file_type === 'image' ? `
-                            <div class="file-link-img">
-                                <img src="${f.file_url}" alt="${f.display_name}" loading="lazy">
-                            </div>
-                        ` : ''}
-                        ${f.file_url && f.file_type === 'pdf' ? `
-                            <a href="${f.file_url}" target="_blank" class="file-link">Open Document</a>
-                        ` : ''}
-                        ${f.file_url && f.file_type !== 'image' && f.file_type !== 'pdf' ? `
-                            <a href="${f.file_url}" target="_blank" class="file-link">View File</a>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
+                </div>`:''}
 
-        function renderCredentials() {
-            const container = document.getElementById('tab-credentials');
+                ${c.scenario?`<div class="case-section">
+                    <div class="case-section-title">Scenario Document</div>
+                    <a href="${c.scenario.file_url}" target="_blank" class="scenario-link">Open Scenario Document</a>
+                </div>`:''}
+            </div>
+        </div>`;
+    }).join('');
 
-            if (portalData.residents.length === 0) {
-                container.innerHTML = '<div class="card"><p style="color:#999;">No examinees assigned to this exam.</p></div>';
-                return;
-            }
+    // Standalone files (scoring rubric, etc.)
+    if(grouped.standalone.length){
+        html+=`<div class="standalone-files"><h4>Additional Files</h4>
+            ${grouped.standalone.map(f=>`<div class="standalone-file-item">
+                <a href="${f.file_url}" target="_blank">${f.display_name}</a> <small style="color:#888">[${f.file_type}]</small>
+            </div>`).join('')}</div>`;
+    }
 
-            container.innerHTML = `
-                <div class="card">
-                    <h3 class="card-title">Examinee Login Credentials</h3>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Give each examinee their username and password. If they close the page accidentally, click Reset to let them log in again.</p>
-                    ${portalData.residents.map(r => `
-                        <div class="cred-card">
-                            <div style="flex: 1;">
-                                <span class="name">${r.name}</span>
-                                <span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="cred-info">${r.username || 'N/A'}</span>
-                                <span class="cred-info">${r.password || 'N/A'}</span>
-                                <button class="btn btn-sm ${r.is_used ? 'btn-danger' : 'btn-secondary'}"
-                                        onclick="resetCredential(${r.credential_id}, '${r.name.replace(/'/g, "\\'")}')"
-                                        ${!r.is_used ? 'disabled' : ''}
-                                        style="font-size: 11px; padding: 3px 10px;">
-                                    ${r.is_used ? 'Reset' : 'Available'}
-                                </button>
-                            </div>
+    container.innerHTML=html;
+}
+
+function renderCredentials(){
+    const container=document.getElementById('tab-credentials');
+    if(!portalData.residents.length){container.innerHTML='<div class="card"><p style="color:#999">No examinees assigned.</p></div>';return}
+    container.innerHTML=`<div class="card">
+        <h3 class="card-title">Examinee Login Credentials</h3>
+        <p style="font-size:13px;color:#666;margin-bottom:15px">Give each examinee their username and password. Click Reset if they accidentally close their browser.</p>
+        ${portalData.residents.map(r=>`<div class="cred-card">
+            <div style="flex:1"><span class="name">${r.name}</span><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <span class="cred-info">${r.username||'N/A'}</span>
+                <span class="cred-info">${r.password||'N/A'}</span>
+                <button class="btn btn-sm ${r.is_used?'btn-danger':'btn-secondary'}" onclick="resetCredential(${r.credential_id},'${r.name.replace(/'/g,"\\'")}')" ${!r.is_used?'disabled':''} style="font-size:11px;padding:3px 10px">
+                    ${r.is_used?'Reset':'Available'}</button>
+            </div>
+        </div>`).join('')}</div>`;
+}
+
+async function resetCredential(credId,name){
+    if(!confirm('Reset credentials for '+name+'?'))return;
+    const res=await fetch('/examiner/reset-credential/'+credId,{method:'POST'});
+    const d=await res.json();
+    if(d.success){alert(d.name+"'s credentials reset.");loadData()}else alert(d.error||'Failed')
+}
+
+function renderScoring(){
+    const container=document.getElementById('scoring-forms');
+    if(!cases.length){container.innerHTML='<p style="color:#999">No questions to score.</p>';return}
+
+    container.innerHTML=portalData.residents.map(r=>`
+        <div class="score-section">
+            <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></h3>
+            ${cases.map((c,i)=>{
+                const name=getCaseName(c);
+                const key=`${r.id}_${c.repoStemId}`;
+                const existing=pendingScores[key];
+                return `<div class="score-card-simple">
+                    <h4>Q${i+1}: ${name} ${existing?`<span class="existing-badge ${existing.score}">${existing.score.toUpperCase()}</span>`:''}
+                        ${c.specialty?`<small style="color:#888;margin-left:8px">${c.specialty}</small>`:''}</h4>
+                    <div class="score-row">
+                        <div class="score-select">
+                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Pass</button>
+                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Marginal</button>
+                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Fail</button>
                         </div>
-                    `).join('')}
-                </div>
-            `;
-        }
+                        <div class="feedback-area">
+                            <label>Feedback</label>
+                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Specific feedback for this case...">${existing?.comments||''}</textarea>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+    `).join('');
+}
 
-        async function resetCredential(credentialId, name) {
-            if (!confirm('Reset credentials for ' + name + '? This will allow them to log in again.')) return;
-            try {
-                const res = await fetch('/examiner/reset-credential/' + credentialId, { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    alert(data.name + "'s credentials have been reset. They can log in again.");
-                    loadData();
-                } else {
-                    alert(data.error || 'Failed to reset');
-                }
-            } catch (err) {
-                alert('Failed to reset credentials');
-            }
-        }
+function setScore(key,score,residentId,fileId,repoStemId,questionName,roomNumber,btn){
+    if(pendingScores[key]?.score===score){delete pendingScores[key]}
+    else{pendingScores[key]={...pendingScores[key],score,residentId,fileId,repoStemId,questionName,roomNumber,comments:document.getElementById('comment-'+key)?.value||''}}
+    btn.parentElement.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('selected'));
+    if(pendingScores[key])btn.classList.add('selected');
+}
 
-        function renderScoring() {
-            const container = document.getElementById('scoring-forms');
-            const stemFiles = portalData.files.filter(f => f.category === 'stem' || f.file_type === 'image');
+function updateComment(key){if(pendingScores[key])pendingScores[key].comments=document.getElementById('comment-'+key).value}
 
-            container.innerHTML = portalData.residents.map(r => `
-                <div class="score-section">
-                    <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span></h3>
-                    ${stemFiles.map(f => {
-                        const key = `${r.id}_${f.id}`;
-                        const existing = pendingScores[key];
-                        return `
-                            <div class="score-card">
-                                <h4>${f.display_name}
-                                    ${existing ? `<span class="existing-badge ${existing.score}">${existing.score.toUpperCase()}</span>` : ''}
-                                </h4>
-                                <div class="score-row">
-                                    <div class="score-select">
-                                        <button class="score-btn pass ${existing?.score === 'pass' ? 'selected' : ''}"
-                                                onclick="setScore('${key}', 'pass', ${r.id}, ${f.id}, '${f.repo_stem_id || ''}', '${f.display_name.replace(/'/g, "\\'")}', ${f.room_number || 'null'}, this)">Pass</button>
-                                        <button class="score-btn marginal ${existing?.score === 'marginal' ? 'selected' : ''}"
-                                                onclick="setScore('${key}', 'marginal', ${r.id}, ${f.id}, '${f.repo_stem_id || ''}', '${f.display_name.replace(/'/g, "\\'")}', ${f.room_number || 'null'}, this)">Marginal</button>
-                                        <button class="score-btn fail ${existing?.score === 'fail' ? 'selected' : ''}"
-                                                onclick="setScore('${key}', 'fail', ${r.id}, ${f.id}, '${f.repo_stem_id || ''}', '${f.display_name.replace(/'/g, "\\'")}', ${f.room_number || 'null'}, this)">Fail</button>
-                                    </div>
-                                    <div class="feedback-area">
-                                        <label>Feedback / Comments</label>
-                                        <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Specific feedback for the resident on this question...">${existing?.comments || ''}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `).join('');
-        }
+async function submitScores(){
+    const scores=Object.values(pendingScores).filter(s=>s.score);
+    if(!scores.length)return alert('No scores to submit');
+    const res=await fetch('/examiner/score',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scores})});
+    const d=await res.json();
+    if(d.success){alert('Saved '+d.saved+' scores!');loadData()}else alert(d.error)
+}
 
-        function setScore(key, score, residentId, fileId, repoStemId, questionName, roomNumber, btn) {
-            if (pendingScores[key]?.score === score) {
-                delete pendingScores[key];
-            } else {
-                pendingScores[key] = {
-                    ...pendingScores[key],
-                    score, residentId, fileId,
-                    repoStemId: repoStemId || null,
-                    questionName, roomNumber,
-                    comments: document.getElementById(`comment-${key}`)?.value || ''
-                };
-            }
-            const parent = btn.parentElement;
-            parent.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
-            if (pendingScores[key]) btn.classList.add('selected');
-        }
-
-        function updateComment(key) {
-            if (pendingScores[key]) {
-                pendingScores[key].comments = document.getElementById(`comment-${key}`).value;
-            }
-        }
-
-        async function submitScores() {
-            const scores = Object.values(pendingScores).filter(s => s.score);
-            if (!scores.length) return alert('No scores to submit');
-
-            const res = await fetch('/examiner/score', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scores })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(`Saved ${data.saved} scores successfully!`);
-                loadData();
-            } else { alert(data.error); }
-        }
-
-        loadData();
-    </script>
+loadData();
+</script>
 </body>
 </html>
