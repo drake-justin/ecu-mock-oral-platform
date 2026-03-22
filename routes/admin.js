@@ -61,14 +61,14 @@ router.get('/exams/list', requireAdmin, async (req, res) => {
 });
 
 router.post('/exams', requireAdmin, async (req, res) => {
-    const { name, date } = req.body;
+    const { name, date, startTime } = req.body;
     if (!name) {
         return res.status(400).json({ error: 'Exam name is required' });
     }
     try {
         const result = await db.execute({
-            sql: 'INSERT INTO exams (name, date, is_active) VALUES (?, ?, 0)',
-            args: [name, date || null]
+            sql: 'INSERT INTO exams (name, date, start_time, is_active) VALUES (?, ?, ?, 0)',
+            args: [name, date || null, startTime || null]
         });
         res.json({ success: true, id: Number(result.lastInsertRowid) });
     } catch (err) {
@@ -77,7 +77,7 @@ router.post('/exams', requireAdmin, async (req, res) => {
 });
 
 router.put('/exams/:id', requireAdmin, async (req, res) => {
-    const { name, date, is_active } = req.body;
+    const { name, date, startTime, is_active } = req.body;
     const examId = parseInt(req.params.id);
 
     try {
@@ -85,8 +85,8 @@ router.put('/exams/:id', requireAdmin, async (req, res) => {
             await db.execute('UPDATE exams SET is_active = 0');
         }
         await db.execute({
-            sql: 'UPDATE exams SET name = ?, date = ?, is_active = ? WHERE id = ?',
-            args: [name, date || null, is_active ? 1 : 0, examId]
+            sql: 'UPDATE exams SET name = ?, date = ?, start_time = ?, is_active = ? WHERE id = ?',
+            args: [name, date || null, startTime || null, is_active ? 1 : 0, examId]
         });
         res.json({ success: true });
     } catch (err) {
@@ -115,6 +115,104 @@ router.delete('/exams/:id', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to delete exam' });
+    }
+});
+
+// === EXAM ROOMS ===
+
+// Get all rooms for an exam with their examiners, files, and assigned residents
+router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    try {
+        const rooms = await db.execute({
+            sql: 'SELECT * FROM exam_rooms WHERE exam_id = ? ORDER BY room_number',
+            args: [examId]
+        });
+
+        const examiners = await db.execute({
+            sql: 'SELECT * FROM examiners WHERE exam_id = ? ORDER BY room_number',
+            args: [examId]
+        });
+
+        const files = await db.execute({
+            sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY room_number, sort_order',
+            args: [examId]
+        });
+
+        const assignments = await db.execute({
+            sql: `SELECT era.*, r.name, r.pgy_level
+                  FROM exam_room_assignments era
+                  JOIN residents r ON era.resident_id = r.id
+                  WHERE era.exam_id = ?
+                  ORDER BY era.room_number, r.name`,
+            args: [examId]
+        });
+
+        // Group by room
+        const roomData = rooms.rows.map(room => ({
+            ...room,
+            examiners: examiners.rows.filter(e => e.room_number === room.room_number),
+            files: files.rows.filter(f => f.room_number === room.room_number),
+            residents: assignments.rows.filter(a => a.room_number === room.room_number)
+        }));
+
+        res.json({ rooms: roomData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load rooms' });
+    }
+});
+
+// Create a new room
+router.post('/exams/:id/rooms', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    const { roomName } = req.body;
+    try {
+        // Get next room number
+        const maxResult = await db.execute({
+            sql: 'SELECT MAX(room_number) as max_num FROM exam_rooms WHERE exam_id = ?',
+            args: [examId]
+        });
+        const nextNum = (maxResult.rows[0]?.max_num || 0) + 1;
+
+        await db.execute({
+            sql: 'INSERT INTO exam_rooms (exam_id, room_number, room_name) VALUES (?, ?, ?)',
+            args: [examId, nextNum, roomName || `Room ${nextNum}`]
+        });
+        res.json({ success: true, roomNumber: nextNum });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to create room' });
+    }
+});
+
+// Delete a room and its associations
+router.delete('/exams/:examId/rooms/:roomNumber', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const roomNum = parseInt(req.params.roomNumber);
+    try {
+        // Remove files from this room (set room_number to null, or delete)
+        await db.execute({
+            sql: 'DELETE FROM files WHERE exam_id = ? AND room_number = ?',
+            args: [examId, roomNum]
+        });
+        // Remove examiners for this room
+        await db.execute({
+            sql: 'DELETE FROM examiners WHERE exam_id = ? AND room_number = ?',
+            args: [examId, roomNum]
+        });
+        // Remove room assignments
+        await db.execute({
+            sql: 'DELETE FROM exam_room_assignments WHERE exam_id = ? AND room_number = ?',
+            args: [examId, roomNum]
+        });
+        // Delete the room
+        await db.execute({
+            sql: 'DELETE FROM exam_rooms WHERE exam_id = ? AND room_number = ?',
+            args: [examId, roomNum]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete room' });
     }
 });
 

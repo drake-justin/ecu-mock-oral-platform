@@ -118,6 +118,19 @@ async function initializeDatabase() {
         )
     `);
 
+    // Exam rooms - explicit room entity within each exam
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            room_number INTEGER NOT NULL,
+            room_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            UNIQUE(exam_id, room_number)
+        )
+    `);
+
     // Faculty directory - all attending surgeons
     await db.execute(`
         CREATE TABLE IF NOT EXISTS faculty (

@@ -6,29 +6,31 @@
     <title>Manage Exams - ECU Mock Oral</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        .pgy-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pgy-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
         .pgy-1{background:#e3f2fd;color:#1565c0}.pgy-2{background:#e8f5e9;color:#2e7d32}
-        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}
-        .pgy-5{background:#f3e5f5;color:#6a1b9a}
-        .section-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .section-card h3 { color: #003366; margin: 0 0 5px; font-size: 16px; }
-        .section-card .desc { font-size: 13px; color: #666; margin-bottom: 12px; }
-        .pgy-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
-        .pgy-buttons button { font-size: 12px; padding: 4px 12px; }
-        .small-table { width: 100%; font-size: 13px; }
-        .small-table td, .small-table th { padding: 5px 8px; }
-        .cred-info { font-family: monospace; font-size: 12px; color: #555; }
-        .btn-xs { font-size: 11px; padding: 2px 8px; }
-        .room-group { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px; background: #fafafa; }
-        .room-group h4 { margin: 0 0 8px; color: #003366; font-size: 14px; }
-        .room-file { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-        .room-resident { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 12px; font-size: 12px; background: #e9ecef; }
-        .add-files-row { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-bottom: 12px; }
-        .add-files-row .form-group { margin: 0; }
-        .repo-select { width: 100%; max-height: 200px; }
-        .checkbox-list { max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 6px; }
-        .checkbox-list label { display: block; padding: 3px 6px; font-size: 13px; cursor: pointer; }
-        .checkbox-list label:hover { background: #f0f4f8; }
+        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}.pgy-5{background:#f3e5f5;color:#6a1b9a}
+        .btn-xs{font-size:11px;padding:2px 8px}.cred-info{font-family:monospace;font-size:12px;color:#555}
+        .small-table{width:100%;font-size:13px}.small-table td,.small-table th{padding:5px 8px}
+        .section-card{border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:20px}
+        .section-card h3{color:#003366;margin:0 0 5px;font-size:16px}
+        .section-card .desc{font-size:13px;color:#666;margin-bottom:12px}
+        .pgy-buttons{display:flex;gap:6px;flex-wrap:wrap}.pgy-buttons button{font-size:12px;padding:4px 12px}
+        .checkbox-list{max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:6px}
+        .checkbox-list label{display:block;padding:3px 6px;font-size:13px;cursor:pointer}
+        .checkbox-list label:hover{background:#f0f4f8}
+        .room-card{border:2px solid #003366;border-radius:10px;margin-bottom:20px;overflow:hidden}
+        .room-card-header{background:#003366;color:white;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+        .room-card-header h3{color:white;margin:0;font-size:16px}
+        .room-card-body{padding:18px}
+        .room-section{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #eee}
+        .room-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+        .room-section-title{font-size:13px;font-weight:600;color:#003366;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+        .room-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
+        .room-resident-tag{display:inline-block;padding:3px 10px;margin:2px;border-radius:12px;font-size:12px;background:#e9ecef}
+        .add-row{display:flex;gap:6px;align-items:end;flex-wrap:wrap;margin-bottom:8px}
+        .add-row select,.add-row input{padding:5px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px}
+        .create-form{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+        .create-form .form-group{margin:0}
     </style>
 </head>
 <body>
@@ -36,7 +38,6 @@
         <h1>ECU Mock Oral Platform</h1>
         <p class="subtitle">Exam Management</p>
     </header>
-
     <nav class="admin-nav">
         <a href="/admin">Dashboard</a>
         <a href="/admin/repository">Repository</a>
@@ -45,7 +46,7 @@
         <a href="/admin/scoring">Scoring</a>
         <a href="/admin/question-tracker">Question Tracker</a>
         <a href="/admin/settings">Settings</a>
-        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
+        <form action="/admin/logout" method="POST" style="margin-left:auto;display:inline;">
             <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
         </form>
     </nav>
@@ -54,142 +55,86 @@
         <!-- Create Exam -->
         <div class="card">
             <h2 class="card-title">Create New Exam</h2>
-            <form id="create-exam-form" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
-                <div class="form-group" style="flex: 2; min-width: 200px; margin: 0;">
+            <div class="create-form">
+                <div class="form-group" style="flex:2;min-width:200px">
                     <label>Exam Name</label>
                     <input type="text" id="exam-name" class="form-control" placeholder="e.g., Spring 2026 Mock Oral" required>
                 </div>
-                <div class="form-group" style="flex: 1; min-width: 150px; margin: 0;">
+                <div class="form-group" style="flex:1;min-width:140px">
                     <label>Date</label>
                     <input type="date" id="exam-date" class="form-control">
                 </div>
-                <button type="submit" class="btn btn-primary">Create Exam</button>
-            </form>
+                <div class="form-group" style="flex:1;min-width:130px">
+                    <label>Start Time (credential unlock)</label>
+                    <input type="time" id="exam-time" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="createExam()">Create Exam</button>
+            </div>
         </div>
 
-        <div id="message" class="alert" style="display: none;"></div>
+        <div id="message" class="alert" style="display:none"></div>
 
         <!-- Exam List -->
         <div class="card">
             <h2 class="card-title">All Exams</h2>
             <table class="table" id="exams-table">
-                <thead>
-                    <tr><th>Name</th><th>Date</th><th>Status</th><th></th><th>Actions</th></tr>
-                </thead>
-                <tbody><tr><td colspan="5" style="text-align: center; color: #888;">Loading...</td></tr></tbody>
+                <thead><tr><th>Name</th><th>Date</th><th>Start Time</th><th>Status</th><th></th><th>Actions</th></tr></thead>
+                <tbody><tr><td colspan="6" style="text-align:center;color:#888">Loading...</td></tr></tbody>
             </table>
         </div>
 
-        <!-- ============ EXAM DETAIL (shown when managing) ============ -->
-        <div id="exam-detail" style="display: none;">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h2 class="card-title" id="detail-exam-name" style="margin: 0;"></h2>
-                    <button class="btn btn-secondary btn-sm" onclick="closeDetail()">Close</button>
-                </div>
+        <!-- ===== EXAM DETAIL ===== -->
+        <div id="exam-detail" style="display:none">
 
-                <!-- 1. EXAM FILES & ROOMS -->
-                <div class="section-card">
-                    <h3>Exam Files & Room Assignment</h3>
-                    <p class="desc">Add question stems and images from the repository and assign them to rooms.</p>
-
-                    <div class="add-files-row">
-                        <div class="form-group" style="flex: 1; min-width: 100px;">
-                            <label style="font-size: 12px;">Room #</label>
-                            <input type="number" id="add-file-room" class="form-control" value="1" min="1">
-                        </div>
-                        <div class="form-group" style="flex: 2; min-width: 200px;">
-                            <label style="font-size: 12px;">Filter by Topic</label>
-                            <select id="add-file-topic" class="form-control" onchange="filterRepoFiles()">
-                                <option value="">All Topics</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 4; min-width: 250px;">
-                            <label style="font-size: 12px;">Select Files from Repository</label>
-                            <select id="add-file-select" class="form-control repo-select" multiple size="5"></select>
-                        </div>
-                        <button class="btn btn-primary btn-sm" onclick="addFilesToRoom()">Add to Room</button>
-                    </div>
-
-                    <!-- Current files grouped by room -->
-                    <div id="room-files-list">
-                        <p style="color: #999; font-size: 13px;">No files added yet.</p>
+            <div class="card" style="margin-bottom:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <h2 class="card-title" id="detail-exam-name" style="margin:0"></h2>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-secondary btn-sm" onclick="editExam(currentExamId)">Edit Exam</button>
+                        <button class="btn btn-secondary btn-sm" onclick="closeDetail()">Close</button>
                     </div>
                 </div>
+            </div>
 
-                <!-- 2. RESIDENTS -->
-                <div class="section-card">
-                    <h3>Residents</h3>
-                    <p class="desc">Add residents by PGY class or individually. Credentials auto-generate.</p>
-                    <div class="pgy-buttons" style="margin-bottom: 10px;">
-                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(5)">Add PGY-5</button>
-                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(4)">Add PGY-4</button>
-                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(3)">Add PGY-3</button>
-                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(2)">Add PGY-2</button>
-                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(1)">Add PGY-1</button>
-                        <button class="btn btn-sm btn-secondary" onclick="toggleIndividualAdd()">Individual...</button>
-                    </div>
-                    <div id="individual-add" style="display: none; margin-bottom: 10px;">
-                        <div class="checkbox-list" id="available-residents"></div>
-                        <button class="btn btn-primary btn-sm" style="margin-top: 6px;" onclick="addSelectedResidents()">Add Selected</button>
-                    </div>
-                    <table class="table small-table" id="exam-residents-table">
-                        <thead><tr><th>Resident</th><th>PGY</th><th>Username</th><th>Password</th><th>Status</th><th></th></tr></thead>
-                        <tbody><tr><td colspan="6" style="text-align: center; color: #999;">No residents added.</td></tr></tbody>
-                    </table>
+            <!-- 1. RESIDENTS -->
+            <div class="section-card">
+                <h3>Residents</h3>
+                <p class="desc">Add residents first — they'll be available for room assignment below. Credentials auto-generate.</p>
+                <div class="pgy-buttons" style="margin-bottom:10px">
+                    <button class="btn btn-sm btn-primary" onclick="addPgy(5)">PGY-5</button>
+                    <button class="btn btn-sm btn-primary" onclick="addPgy(4)">PGY-4</button>
+                    <button class="btn btn-sm btn-primary" onclick="addPgy(3)">PGY-3</button>
+                    <button class="btn btn-sm btn-primary" onclick="addPgy(2)">PGY-2</button>
+                    <button class="btn btn-sm btn-primary" onclick="addPgy(1)">PGY-1</button>
+                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('indiv-add').style.display=document.getElementById('indiv-add').style.display==='none'?'block':'none'">Individual...</button>
                 </div>
-
-                <!-- 3. ROOM ASSIGNMENTS -->
-                <div class="section-card">
-                    <h3>Assign Residents to Rooms</h3>
-                    <p class="desc">Select a room and check which residents will rotate through it. Questions auto-log to the tracker.</p>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: end;">
-                        <div class="form-group" style="margin: 0; min-width: 100px;">
-                            <label style="font-size: 12px;">Room</label>
-                            <select id="assign-room" class="form-control"></select>
-                        </div>
-                        <div class="pgy-buttons">
-                            <button class="btn btn-xs btn-secondary" onclick="selectAllAssign()">All</button>
-                        </div>
-                    </div>
-                    <div class="checkbox-list" id="assign-residents-list" style="margin-bottom: 8px;">No residents in this exam.</div>
-                    <button class="btn btn-primary btn-sm" onclick="assignRoom()">Assign to Room</button>
-
-                    <h4 style="margin-top: 15px; font-size: 14px; color: #003366;">Current Room Assignments</h4>
-                    <div id="room-assignments-list"><p style="color: #999; font-size: 13px;">No assignments yet.</p></div>
+                <div id="indiv-add" style="display:none;margin-bottom:10px">
+                    <div class="checkbox-list" id="available-residents"></div>
+                    <button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="addSelected()">Add Selected</button>
                 </div>
+                <table class="table small-table" id="residents-table">
+                    <thead><tr><th>Resident</th><th>PGY</th><th>Username</th><th>Password</th><th>Status</th><th></th></tr></thead>
+                    <tbody><tr><td colspan="6" style="text-align:center;color:#999">No residents added.</td></tr></tbody>
+                </table>
+            </div>
 
-                <!-- 4. EXAMINERS -->
-                <div class="section-card">
-                    <h3>Examiners</h3>
-                    <p class="desc">Assign faculty examiners to rooms. They log in at <strong>/examiner/login</strong></p>
-                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: end;">
-                        <div class="form-group" style="margin: 0; flex: 3; min-width: 220px;">
-                            <label style="font-size: 12px;">Faculty</label>
-                            <select id="new-examiner-faculty" class="form-control"><option value="">Loading...</option></select>
-                        </div>
-                        <div class="form-group" style="margin: 0; flex: 1; min-width: 80px;">
-                            <label style="font-size: 12px;">Room #</label>
-                            <input type="number" id="new-examiner-room" class="form-control" placeholder="1">
-                        </div>
-                        <button class="btn btn-primary btn-sm" onclick="addExaminer()">Add</button>
-                    </div>
-                    <table class="table small-table" id="examiners-table">
-                        <thead><tr><th>Name</th><th>Email</th><th>Room</th><th>Username</th><th>Password</th><th></th></tr></thead>
-                        <tbody><tr><td colspan="6" style="text-align: center; color: #999;">No examiners.</td></tr></tbody>
-                    </table>
-                </div>
+            <!-- 2. ROOMS -->
+            <div class="section-card">
+                <h3>Rooms</h3>
+                <p class="desc">Create rooms, then add examiners, content, and assign residents to each room.</p>
+                <button class="btn btn-primary btn-sm" onclick="addRoom()" style="margin-bottom:15px">+ Add Room</button>
+                <div id="rooms-container"></div>
+            </div>
 
-                <!-- 5. EMAIL NOTIFICATIONS -->
-                <div class="section-card">
-                    <h3>Send Email Notifications</h3>
-                    <p class="desc">Send login credentials and exam details via email.</p>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-primary btn-sm" onclick="emailExaminers()">Email All Examiners</button>
-                        <button class="btn btn-primary btn-sm" onclick="emailResidents()">Email All Residents</button>
-                    </div>
-                    <div id="email-status" style="margin-top: 8px; font-size: 13px;"></div>
+            <!-- 3. EMAIL -->
+            <div class="section-card">
+                <h3>Email Notifications</h3>
+                <p class="desc">Send login credentials and exam details via email.</p>
+                <div style="display:flex;gap:10px">
+                    <button class="btn btn-primary btn-sm" onclick="emailExaminers()">Email All Examiners</button>
+                    <button class="btn btn-primary btn-sm" onclick="emailResidents()">Email All Residents</button>
                 </div>
+                <div id="email-status" style="margin-top:8px;font-size:13px"></div>
             </div>
         </div>
     </div>
@@ -197,306 +142,264 @@
     <!-- Edit Modal -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Exam</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
+            <div class="modal-header"><h3>Edit Exam</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
             <form id="edit-exam-form">
-                <input type="hidden" id="edit-exam-id">
-                <div class="form-group">
-                    <label>Exam Name</label>
-                    <input type="text" id="edit-exam-name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Exam Date</label>
-                    <input type="date" id="edit-exam-date" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label><input type="checkbox" id="edit-exam-active"> Set as Active Exam</label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Only one exam can be active at a time.</p>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary">Save</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                </div>
+                <input type="hidden" id="edit-id">
+                <div class="form-group"><label>Name</label><input type="text" id="edit-name" class="form-control" required></div>
+                <div class="form-group"><label>Date</label><input type="date" id="edit-date" class="form-control"></div>
+                <div class="form-group"><label>Start Time</label><input type="time" id="edit-time" class="form-control"></div>
+                <div class="form-group"><label><input type="checkbox" id="edit-active"> Set as Active</label></div>
+                <div style="display:flex;gap:10px"><button type="submit" class="btn btn-primary">Save</button><button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button></div>
             </form>
         </div>
     </div>
 
-    <script>
-        let currentExamId = null;
-        let allResidents = [];
-        let allRepoFiles = [];
+<script>
+let currentExamId = null;
+let examResidents = [];
+let allRepoFiles = [];
+let allFaculty = [];
+let allResidents = [];
 
-        function showMessage(text, type) {
-            const msg = document.getElementById('message');
-            msg.textContent = text; msg.className = `alert alert-${type}`; msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 4000);
-        }
+function msg(text, type) {
+    const m = document.getElementById('message');
+    m.textContent = text; m.className = `alert alert-${type}`; m.style.display = 'block';
+    setTimeout(() => m.style.display = 'none', 4000);
+}
 
-        // ===== EXAM LIST =====
-        async function loadExams() {
-            const exams = await (await fetch('/admin/exams/list')).json();
-            const tbody = document.querySelector('#exams-table tbody');
-            if (!exams.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;">No exams yet.</td></tr>'; return; }
-            tbody.innerHTML = exams.map(e => `<tr>
-                <td>${e.name}</td><td>${e.date || '-'}</td>
-                <td>${e.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>'}</td>
-                <td><button class="btn btn-sm btn-primary" onclick="manageExam(${e.id},'${e.name.replace(/'/g,"\\'")}')">Manage</button></td>
-                <td><button class="btn btn-sm btn-secondary" onclick="editExam(${e.id})">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteExam(${e.id},'${e.name.replace(/'/g,"\\'")}')">Delete</button></td>
-            </tr>`).join('');
-        }
+// ===== EXAM CRUD =====
+async function loadExams() {
+    const exams = await (await fetch('/admin/exams/list')).json();
+    const tb = document.querySelector('#exams-table tbody');
+    if (!exams.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888">No exams.</td></tr>'; return; }
+    tb.innerHTML = exams.map(e => {
+        const st = e.start_time ? new Date(e.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '-';
+        return `<tr><td>${e.name}</td><td>${e.date||'-'}</td><td>${st}</td>
+            <td>${e.is_active?'<span class="badge badge-success">Active</span>':'<span class="badge badge-warning">Inactive</span>'}</td>
+            <td><button class="btn btn-sm btn-primary" onclick="manage(${e.id},'${e.name.replace(/'/g,"\\'")}')">Manage</button></td>
+            <td><button class="btn btn-sm btn-secondary" onclick="editExam(${e.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="delExam(${e.id},'${e.name.replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
+    }).join('');
+}
 
-        // ===== CREATE / EDIT / DELETE =====
-        document.getElementById('create-exam-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            await fetch('/admin/exams', { method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ name: document.getElementById('exam-name').value, date: document.getElementById('exam-date').value }) });
-            showMessage('Exam created!','success'); document.getElementById('create-exam-form').reset(); loadExams();
-        });
-        async function editExam(id) {
-            const exams = await (await fetch('/admin/exams/list')).json();
-            const e = exams.find(x => x.id === id); if (!e) return;
-            document.getElementById('edit-exam-id').value = e.id;
-            document.getElementById('edit-exam-name').value = e.name;
-            document.getElementById('edit-exam-date').value = e.date || '';
-            document.getElementById('edit-exam-active').checked = e.is_active;
-            document.getElementById('edit-modal').classList.add('active');
-        }
-        function closeModal() { document.getElementById('edit-modal').classList.remove('active'); }
-        document.getElementById('edit-exam-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const id = document.getElementById('edit-exam-id').value;
-            await fetch(`/admin/exams/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ name:document.getElementById('edit-exam-name').value, date:document.getElementById('edit-exam-date').value, is_active:document.getElementById('edit-exam-active').checked }) });
-            showMessage('Updated!','success'); closeModal(); loadExams();
-        });
-        async function deleteExam(id, name) {
-            if (!confirm(`Delete "${name}"?`)) return;
-            await fetch(`/admin/exams/${id}`, { method:'DELETE' });
-            showMessage('Deleted.','success'); if (currentExamId===id) closeDetail(); loadExams();
-        }
-        document.getElementById('edit-modal').addEventListener('click', e => { if (e.target.classList.contains('modal')) closeModal(); });
+async function createExam() {
+    const name = document.getElementById('exam-name').value;
+    const date = document.getElementById('exam-date').value;
+    const time = document.getElementById('exam-time').value;
+    if (!name) return alert('Enter exam name');
+    const startTime = date && time ? `${date}T${time}` : null;
+    await fetch('/admin/exams', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, date, startTime }) });
+    msg('Exam created!','success'); document.getElementById('exam-name').value='';
+    document.getElementById('exam-date').value=''; document.getElementById('exam-time').value=''; loadExams();
+}
 
-        // ===== MANAGE EXAM =====
-        async function manageExam(id, name) {
-            currentExamId = id;
-            document.getElementById('detail-exam-name').textContent = name;
-            document.getElementById('exam-detail').style.display = 'block';
-            document.getElementById('individual-add').style.display = 'none';
-            await Promise.all([loadAllResidents(), loadRepoFiles(), loadFaculty()]);
-            await Promise.all([loadExamResidents(), loadExamFiles(), loadExaminers(), loadRoomData()]);
-            document.getElementById('exam-detail').scrollIntoView({ behavior:'smooth' });
-        }
-        function closeDetail() { currentExamId = null; document.getElementById('exam-detail').style.display = 'none'; }
+async function editExam(id) {
+    const exams = await (await fetch('/admin/exams/list')).json();
+    const e = exams.find(x=>x.id===id); if(!e) return;
+    document.getElementById('edit-id').value=e.id;
+    document.getElementById('edit-name').value=e.name;
+    document.getElementById('edit-date').value=e.date||'';
+    document.getElementById('edit-time').value=e.start_time?e.start_time.split('T')[1]?.substring(0,5)||'':'';
+    document.getElementById('edit-active').checked=e.is_active;
+    document.getElementById('edit-modal').classList.add('active');
+}
+function closeModal(){document.getElementById('edit-modal').classList.remove('active')}
+document.getElementById('edit-exam-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id=document.getElementById('edit-id').value, name=document.getElementById('edit-name').value;
+    const date=document.getElementById('edit-date').value, time=document.getElementById('edit-time').value;
+    const startTime = date && time ? `${date}T${time}` : null;
+    await fetch(`/admin/exams/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, date, startTime, is_active:document.getElementById('edit-active').checked }) });
+    msg('Updated!','success'); closeModal(); loadExams();
+});
+async function delExam(id,name) {
+    if(!confirm(`Delete "${name}"?`)) return;
+    await fetch(`/admin/exams/${id}`,{method:'DELETE'}); msg('Deleted.','success');
+    if(currentExamId===id) closeDetail(); loadExams();
+}
+document.getElementById('edit-modal').addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModal()});
 
-        // ===== EXAM FILES & ROOMS =====
-        async function loadRepoFiles() {
-            const data = await (await fetch('/admin/repository/list')).json();
-            allRepoFiles = (data.files || data).filter(f => f.category === 'stem');
-            const topics = [...new Set(allRepoFiles.map(f => f.specialty).filter(Boolean))].sort();
-            document.getElementById('add-file-topic').innerHTML = '<option value="">All Topics</option>' +
-                topics.map(t => `<option value="${t}">${t}</option>`).join('');
-            filterRepoFiles();
-        }
-        function filterRepoFiles() {
-            const topic = document.getElementById('add-file-topic').value;
-            const filtered = topic ? allRepoFiles.filter(f => f.specialty === topic) : allRepoFiles;
-            document.getElementById('add-file-select').innerHTML = filtered.map(f =>
-                `<option value="${f.id}">${f.display_name}${f.specialty ? ` [${f.specialty}]` : ''}</option>`
-            ).join('');
-        }
-        async function addFilesToRoom() {
-            const room = document.getElementById('add-file-room').value;
-            const selected = [...document.getElementById('add-file-select').selectedOptions].map(o => parseInt(o.value));
-            if (!selected.length) return alert('Select files from the repository');
-            if (!room) return alert('Enter a room number');
+// ===== MANAGE =====
+async function manage(id,name) {
+    currentExamId = id;
+    document.getElementById('detail-exam-name').textContent = name;
+    document.getElementById('exam-detail').style.display = 'block';
+    document.getElementById('indiv-add').style.display = 'none';
+    await Promise.all([loadAllRes(), loadRepo(), loadFac()]);
+    await Promise.all([loadExamRes(), loadRooms()]);
+    document.getElementById('exam-detail').scrollIntoView({behavior:'smooth'});
+}
+function closeDetail(){currentExamId=null;document.getElementById('exam-detail').style.display='none'}
 
-            const res = await fetch('/admin/files/from-repository', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ examId: currentExamId, repositoryIds: selected, roomNumber: parseInt(room) })
-            });
-            const data = await res.json();
-            if (data.success) { showMessage(`Added ${data.added} file(s) to Room ${room}.`,'success'); loadExamFiles(); loadRoomData(); }
-            else showMessage(data.error || 'Failed','error');
-        }
-        async function loadExamFiles() {
-            const files = await (await fetch(`/admin/files/list/${currentExamId}`)).json();
-            const div = document.getElementById('room-files-list');
-            if (!files.length) { div.innerHTML = '<p style="color:#999;font-size:13px;">No files added yet.</p>'; return; }
+// ===== RESIDENTS =====
+async function loadAllRes() {
+    allResidents = (await (await fetch('/admin/question-tracker/residents')).json()).residents;
+}
+async function loadExamRes() {
+    const data = await (await fetch(`/admin/exams/${currentExamId}/residents`)).json();
+    examResidents = data.residents;
+    const tb = document.querySelector('#residents-table tbody');
+    const linked = new Set(examResidents.map(r=>r.resident_id));
+    if(!examResidents.length) tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#999">No residents.</td></tr>';
+    else tb.innerHTML = examResidents.map(r=>`<tr><td>${r.name}</td>
+        <td><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></td>
+        <td class="cred-info">${r.username||'-'}</td><td class="cred-info">${r.password||'-'}</td>
+        <td>${r.is_used?'<span class="badge badge-success">Used</span>':'<span class="badge badge-warning">Avail</span>'}</td>
+        <td><button class="btn btn-xs btn-danger" onclick="removeRes(${r.resident_id})">Remove</button></td></tr>`).join('');
+    // Available list
+    const avail = allResidents.filter(r=>!linked.has(r.id)&&r.status!=='graduated');
+    document.getElementById('available-residents').innerHTML = !avail.length ? '<div style="padding:10px;color:#999">All added.</div>'
+        : avail.map(r=>`<div style="padding:3px 6px"><input type="checkbox" value="${r.id}" id="ar${r.id}"><label for="ar${r.id}" style="cursor:pointer;margin-left:4px">${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></label></div>`).join('');
+}
+async function addPgy(level) {
+    const res = await fetch(`/admin/exams/${currentExamId}/residents/by-pgy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pgyLevel:level})});
+    const d=await res.json(); if(d.success){msg(`Added ${d.added} PGY-${level}.`,'success');loadExamRes();loadRooms()}else msg(d.error,'error');
+}
+async function addSelected() {
+    const ids=[...document.querySelectorAll('#available-residents input:checked')].map(c=>parseInt(c.value));
+    if(!ids.length)return alert('Select residents');
+    await fetch(`/admin/exams/${currentExamId}/residents`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({residentIds:ids})});
+    msg('Added.','success');document.getElementById('indiv-add').style.display='none';loadExamRes();loadRooms();
+}
+async function removeRes(id){if(!confirm('Remove?'))return;await fetch(`/admin/exams/${currentExamId}/residents/${id}`,{method:'DELETE'});loadExamRes();loadRooms()}
 
-            // Group by room
-            const byRoom = {};
-            for (const f of files) {
-                const r = f.room_number || 'Unassigned';
-                if (!byRoom[r]) byRoom[r] = [];
-                byRoom[r].push(f);
-            }
+// ===== REPO & FACULTY =====
+async function loadRepo() {
+    const data = await (await fetch('/admin/repository/list')).json();
+    allRepoFiles = (data.files||data).filter(f=>f.category==='stem'||f.category==='clinical_image');
+}
+async function loadFac() {
+    allFaculty = (await (await fetch('/admin/faculty')).json()).faculty;
+}
 
-            div.innerHTML = Object.entries(byRoom).sort((a,b) => {
-                if (a[0]==='Unassigned') return 1; if (b[0]==='Unassigned') return -1;
-                return a[0]-b[0];
-            }).map(([room, files]) => `
-                <div class="room-group">
-                    <h4>${room === 'Unassigned' ? 'Unassigned' : 'Room ' + room}</h4>
-                    ${files.map(f => `
-                        <div class="room-file">
-                            <span>${f.display_name} <small style="color:#888">[${f.file_type}]</small></span>
-                            <button class="btn btn-xs btn-danger" onclick="removeExamFile(${f.id})">&times;</button>
-                        </div>
-                    `).join('')}
+// ===== ROOMS =====
+async function loadRooms() {
+    const data = await (await fetch(`/admin/exams/${currentExamId}/rooms`)).json();
+    const container = document.getElementById('rooms-container');
+    if(!data.rooms.length){container.innerHTML='<p style="color:#999">No rooms created yet. Click "+ Add Room" to start.</p>';return}
+    container.innerHTML = data.rooms.map(room => renderRoomCard(room)).join('');
+}
+
+function renderRoomCard(room) {
+    const rn = room.room_number;
+    const topics = [...new Set(allRepoFiles.map(f=>f.specialty).filter(Boolean))].sort();
+
+    return `<div class="room-card">
+        <div class="room-card-header">
+            <h3>${room.room_name||'Room '+rn}</h3>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" onclick="deleteRoom(${rn})">Delete Room</button>
+        </div>
+        <div class="room-card-body">
+            <!-- Examiner -->
+            <div class="room-section">
+                <div class="room-section-title">Examiner(s)</div>
+                <div class="add-row">
+                    <select id="fac-${rn}" style="flex:1;min-width:200px">
+                        <option value="">-- Select Faculty --</option>
+                        ${allFaculty.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary btn-xs" onclick="addExaminerToRoom(${rn})">Add</button>
                 </div>
-            `).join('');
-        }
-        async function removeExamFile(fileId) {
-            await fetch(`/admin/files/${fileId}`, { method:'DELETE' });
-            loadExamFiles(); loadRoomData();
-        }
+                ${room.examiners.length ? room.examiners.map(ex=>`
+                    <div class="room-item">
+                        <span>${ex.name} ${ex.email?`<small style="color:#888">(${ex.email})</small>`:''}</span>
+                        <span><span class="cred-info">${ex.username} / ${ex.password}</span>
+                        <button class="btn btn-xs btn-danger" onclick="removeExaminer(${ex.id})" style="margin-left:6px">&times;</button></span>
+                    </div>`).join('') : '<div style="color:#999;font-size:13px">No examiner assigned.</div>'}
+            </div>
 
-        // ===== RESIDENTS =====
-        async function loadAllResidents() {
-            const data = await (await fetch('/admin/question-tracker/residents')).json();
-            allResidents = data.residents;
-        }
-        async function loadExamResidents() {
-            const data = await (await fetch(`/admin/exams/${currentExamId}/residents`)).json();
-            const tbody = document.querySelector('#exam-residents-table tbody');
-            const linkedIds = new Set(data.residents.map(r => r.resident_id));
-
-            if (!data.residents.length) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No residents added.</td></tr>';
-            } else {
-                tbody.innerHTML = data.residents.map(r => `<tr>
-                    <td>${r.name}</td>
-                    <td><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></td>
-                    <td class="cred-info">${r.username||'-'}</td><td class="cred-info">${r.password||'-'}</td>
-                    <td>${r.is_used ? '<span class="badge badge-success">Used</span>' : '<span class="badge badge-warning">Available</span>'}</td>
-                    <td><button class="btn btn-xs btn-danger" onclick="removeResident(${r.resident_id})">Remove</button></td>
-                </tr>`).join('');
-            }
-
-            // Update room assignment resident list
-            const assignList = document.getElementById('assign-residents-list');
-            if (!data.residents.length) { assignList.innerHTML = 'Add residents first.'; }
-            else {
-                assignList.innerHTML = data.residents.map(r =>
-                    `<label><input type="checkbox" value="${r.resident_id}"> ${r.name} (PGY-${r.pgy_level})</label>`
-                ).join('');
-            }
-
-            // Update available list for individual add
-            const available = allResidents.filter(r => !linkedIds.has(r.id) && r.status !== 'graduated');
-            document.getElementById('available-residents').innerHTML = !available.length
-                ? '<div style="padding:10px;color:#999;">All residents added.</div>'
-                : available.map(r => `<div style="padding:3px 6px;"><input type="checkbox" id="ar-${r.id}" value="${r.id}"><label for="ar-${r.id}" style="cursor:pointer;margin-left:4px;">${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></label></div>`).join('');
-        }
-        async function addPgyClass(level) {
-            const res = await fetch(`/admin/exams/${currentExamId}/residents/by-pgy`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pgyLevel: level }) });
-            const data = await res.json();
-            if (data.success) { showMessage(`Added ${data.added} PGY-${level} residents.`,'success'); loadExamResidents(); }
-            else showMessage(data.error,'error');
-        }
-        function toggleIndividualAdd() { const el = document.getElementById('individual-add'); el.style.display = el.style.display==='none' ? 'block' : 'none'; }
-        async function addSelectedResidents() {
-            const ids = [...document.querySelectorAll('#available-residents input:checked')].map(cb => parseInt(cb.value));
-            if (!ids.length) return alert('Select residents');
-            const res = await fetch(`/admin/exams/${currentExamId}/residents`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ residentIds: ids }) });
-            if ((await res.json()).success) { showMessage('Residents added.','success'); document.getElementById('individual-add').style.display='none'; loadExamResidents(); }
-        }
-        async function removeResident(id) {
-            if (!confirm('Remove resident and their credential?')) return;
-            await fetch(`/admin/exams/${currentExamId}/residents/${id}`, { method:'DELETE' });
-            loadExamResidents(); loadRoomData();
-        }
-
-        // ===== ROOM ASSIGNMENTS =====
-        async function loadRoomData() {
-            const data = await (await fetch(`/admin/exams/${currentExamId}/room-assignments`)).json();
-            const roomSelect = document.getElementById('assign-room');
-            roomSelect.innerHTML = !data.rooms.length
-                ? '<option value="">No rooms — add files to rooms first</option>'
-                : data.rooms.map(r => `<option value="${r}">Room ${r}</option>`).join('');
-
-            const div = document.getElementById('room-assignments-list');
-            if (!data.assignments?.length) { div.innerHTML = '<p style="color:#999;font-size:13px;">No assignments yet.</p>'; return; }
-            const byRoom = {};
-            for (const a of data.assignments) { if (!byRoom[a.room_number]) byRoom[a.room_number] = []; byRoom[a.room_number].push(a); }
-            div.innerHTML = Object.entries(byRoom).sort((a,b)=>a[0]-b[0]).map(([room, residents]) => `
-                <div style="margin-bottom:8px;">
-                    <strong style="color:#003366;">Room ${room}:</strong>
-                    ${residents.map(a => `<span class="room-resident">${a.resident_name} <span class="pgy-badge pgy-${Math.min(a.pgy_level,5)}">PGY-${a.pgy_level}</span>
-                        <span style="cursor:pointer;color:#dc3545;margin-left:4px;" onclick="removeRoomAssignment(${a.id})">&times;</span></span>`).join('')}
+            <!-- Content -->
+            <div class="room-section">
+                <div class="room-section-title">Exam Content</div>
+                <div class="add-row">
+                    <select id="topic-${rn}" onchange="filterRepo(${rn})" style="min-width:120px">
+                        <option value="">All Topics</option>
+                        ${topics.map(t=>`<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                    <select id="repo-${rn}" multiple size="3" style="flex:1;min-width:200px">
+                        ${allRepoFiles.map(f=>`<option value="${f.id}">${f.display_name}${f.specialty?' ['+f.specialty+']':''}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary btn-xs" onclick="addContentToRoom(${rn})">Add</button>
                 </div>
-            `).join('');
-        }
-        function selectAllAssign() { document.querySelectorAll('#assign-residents-list input').forEach(cb => cb.checked = true); }
-        async function assignRoom() {
-            const room = document.getElementById('assign-room').value;
-            const ids = [...document.querySelectorAll('#assign-residents-list input:checked')].map(cb => parseInt(cb.value));
-            if (!room) return alert('Select a room'); if (!ids.length) return alert('Select residents');
-            const res = await fetch(`/admin/exams/${currentExamId}/room-assignments`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ residentIds: ids, roomNumber: room }) });
-            if ((await res.json()).success) { showMessage(`Assigned to Room ${room}.`,'success'); loadRoomData(); }
-        }
-        async function removeRoomAssignment(id) {
-            await fetch(`/admin/exams/${currentExamId}/room-assignments/${id}`, { method:'DELETE' }); loadRoomData();
-        }
+                ${room.files.length ? room.files.map(f=>`
+                    <div class="room-item">
+                        <span>${f.display_name} <small style="color:#888">[${f.file_type}]</small></span>
+                        <button class="btn btn-xs btn-danger" onclick="removeFile(${f.id})">&times;</button>
+                    </div>`).join('') : '<div style="color:#999;font-size:13px">No content added.</div>'}
+            </div>
 
-        // ===== EXAMINERS =====
-        async function loadFaculty() {
-            const data = await (await fetch('/admin/faculty')).json();
-            document.getElementById('new-examiner-faculty').innerHTML = '<option value="">-- Select Faculty --</option>' +
-                data.faculty.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
-        }
-        async function loadExaminers() {
-            const data = await (await fetch(`/admin/exams/${currentExamId}/examiners`)).json();
-            const tbody = document.querySelector('#examiners-table tbody');
-            if (!data.examiners.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No examiners.</td></tr>'; return; }
-            tbody.innerHTML = data.examiners.map(ex => `<tr>
-                <td>${ex.name}</td><td style="font-size:12px;">${ex.email||'—'}</td><td>${ex.room_number||'-'}</td>
-                <td class="cred-info">${ex.username}</td><td class="cred-info">${ex.password}</td>
-                <td><button class="btn btn-xs btn-danger" onclick="deleteExaminer(${ex.id})">Remove</button></td>
-            </tr>`).join('');
-        }
-        async function addExaminer() {
-            const facultyId = document.getElementById('new-examiner-faculty').value;
-            const room = document.getElementById('new-examiner-room').value;
-            if (!facultyId) return alert('Select faculty');
-            const res = await fetch(`/admin/exams/${currentExamId}/examiners`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ facultyId, roomNumber: room }) });
-            const data = await res.json();
-            if (data.success) { showMessage(`Examiner: ${data.username} / ${data.password}`,'success'); loadExaminers(); }
-            else showMessage(data.error,'error');
-        }
-        async function deleteExaminer(id) {
-            if (!confirm('Remove examiner?')) return;
-            await fetch(`/admin/exams/${currentExamId}/examiners/${id}`, { method:'DELETE' }); loadExaminers();
-        }
+            <!-- Residents -->
+            <div class="room-section">
+                <div class="room-section-title">Assigned Residents</div>
+                <div class="add-row">
+                    <select id="res-${rn}" multiple size="3" style="flex:1;min-width:200px">
+                        ${examResidents.map(r=>`<option value="${r.resident_id}">${r.name} (PGY-${r.pgy_level})</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary btn-xs" onclick="assignResToRoom(${rn})">Assign</button>
+                </div>
+                ${room.residents.length ? room.residents.map(a=>`
+                    <span class="room-resident-tag">${a.name} <span class="pgy-badge pgy-${Math.min(a.pgy_level,5)}">PGY-${a.pgy_level}</span>
+                    <span style="cursor:pointer;color:#dc3545;margin-left:4px" onclick="removeRoomAssign(${a.id})">&times;</span></span>`).join('')
+                : '<div style="color:#999;font-size:13px">No residents assigned.</div>'}
+            </div>
+        </div>
+    </div>`;
+}
 
-        // ===== EMAIL =====
-        async function emailExaminers() {
-            if (!confirm('Email credentials to all examiners?')) return;
-            document.getElementById('email-status').innerHTML = 'Sending...';
-            const res = await fetch(`/admin/exams/${currentExamId}/email-examiners`, { method:'POST', headers:{'Content-Type':'application/json'} });
-            const data = await res.json();
-            document.getElementById('email-status').innerHTML = data.success
-                ? `<span style="color:green;">Sent to ${data.sent} examiner(s).${data.errors?.length ? ' Errors: '+data.errors.join(', ') : ''}</span>`
-                : `<span style="color:red;">${data.error}</span>`;
-        }
-        async function emailResidents() {
-            if (!confirm('Email credentials to all residents?')) return;
-            document.getElementById('email-status').innerHTML = 'Sending...';
-            const res = await fetch(`/admin/exams/${currentExamId}/email-residents`, { method:'POST', headers:{'Content-Type':'application/json'} });
-            const data = await res.json();
-            document.getElementById('email-status').innerHTML = data.success
-                ? `<span style="color:green;">Sent to ${data.sent} resident(s).${data.errors?.length ? ' Errors: '+data.errors.join(', ') : ''}</span>`
-                : `<span style="color:red;">${data.error}</span>`;
-        }
+function filterRepo(rn) {
+    const topic = document.getElementById('topic-'+rn).value;
+    const filtered = topic ? allRepoFiles.filter(f=>f.specialty===topic) : allRepoFiles;
+    document.getElementById('repo-'+rn).innerHTML = filtered.map(f=>
+        `<option value="${f.id}">${f.display_name}${f.specialty?' ['+f.specialty+']':''}</option>`).join('');
+}
 
-        loadExams();
-    </script>
+async function addRoom() {
+    const res = await fetch(`/admin/exams/${currentExamId}/rooms`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+    const d=await res.json(); if(d.success){msg(`Room ${d.roomNumber} created.`,'success');loadRooms()}
+}
+async function deleteRoom(rn) {
+    if(!confirm(`Delete Room ${rn} and all its content, examiners, and assignments?`)) return;
+    await fetch(`/admin/exams/${currentExamId}/rooms/${rn}`,{method:'DELETE'}); loadRooms();
+}
+
+async function addExaminerToRoom(rn) {
+    const facId = document.getElementById('fac-'+rn).value;
+    if(!facId)return alert('Select a faculty member');
+    const res = await fetch(`/admin/exams/${currentExamId}/examiners`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({facultyId:facId,roomNumber:rn})});
+    const d=await res.json(); if(d.success){msg(`Examiner added: ${d.username}`,'success');loadRooms()}else msg(d.error,'error');
+}
+async function removeExaminer(id){await fetch(`/admin/exams/${currentExamId}/examiners/${id}`,{method:'DELETE'});loadRooms()}
+
+async function addContentToRoom(rn) {
+    const ids=[...document.getElementById('repo-'+rn).selectedOptions].map(o=>parseInt(o.value));
+    if(!ids.length)return alert('Select files');
+    const res = await fetch('/admin/files/from-repository',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({examId:currentExamId,repositoryIds:ids,roomNumber:rn})});
+    const d=await res.json(); if(d.success){msg(`Added ${d.added} file(s) to Room ${rn}.`,'success');loadRooms()}else msg(d.error,'error');
+}
+async function removeFile(id){await fetch(`/admin/files/${id}`,{method:'DELETE'});loadRooms()}
+
+async function assignResToRoom(rn) {
+    const ids=[...document.getElementById('res-'+rn).selectedOptions].map(o=>parseInt(o.value));
+    if(!ids.length)return alert('Select residents');
+    const res = await fetch(`/admin/exams/${currentExamId}/room-assignments`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({residentIds:ids,roomNumber:rn})});
+    const d=await res.json(); if(d.success){msg(`Assigned to Room ${rn}.`,'success');loadRooms()}
+}
+async function removeRoomAssign(id){await fetch(`/admin/exams/${currentExamId}/room-assignments/${id}`,{method:'DELETE'});loadRooms()}
+
+// ===== EMAIL =====
+async function emailExaminers(){if(!confirm('Email all examiners?'))return;document.getElementById('email-status').innerHTML='Sending...';
+    const r=await fetch(`/admin/exams/${currentExamId}/email-examiners`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json();document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent}.</span>`:`<span style="color:red">${d.error}</span>`}
+async function emailResidents(){if(!confirm('Email all residents?'))return;document.getElementById('email-status').innerHTML='Sending...';
+    const r=await fetch(`/admin/exams/${currentExamId}/email-residents`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json();document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${d.sent}.</span>`:`<span style="color:red">${d.error}</span>`}
+
+loadExams();
+</script>
 </body>
 </html>
