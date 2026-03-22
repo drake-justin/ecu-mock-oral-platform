@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Exams - ECU Mock Oral</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .pgy-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pgy-1 { background: #e3f2fd; color: #1565c0; } .pgy-2 { background: #e8f5e9; color: #2e7d32; }
+        .pgy-3 { background: #fff3e0; color: #e65100; } .pgy-4 { background: #fce4ec; color: #c62828; }
+        .pgy-5 { background: #f3e5f5; color: #6a1b9a; }
+        .pgy-buttons { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .pgy-buttons button { font-size: 12px; padding: 4px 12px; }
+        .resident-checkbox-list { max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 8px; }
+        .resident-checkbox-item { padding: 4px 8px; display: flex; align-items: center; gap: 8px; }
+        .resident-checkbox-item:hover { background: #f8f9fa; }
+        .resident-checkbox-item label { cursor: pointer; flex: 1; font-size: 13px; }
+        .exam-detail-section { margin-top: 20px; }
+        .exam-residents-table { width: 100%; }
+        .exam-residents-table td { padding: 6px 8px; font-size: 13px; }
+        .exam-residents-table .cred-info { font-family: monospace; font-size: 12px; color: #555; }
+        .assign-panel { display: flex; gap: 15px; margin-top: 10px; }
+        .assign-panel .panel { flex: 1; }
+        .assign-panel .panel h5 { margin-bottom: 8px; font-size: 13px; color: #555; }
+        .assign-list { max-height: 250px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 6px; }
+        .assign-list label { display: block; padding: 3px 6px; font-size: 13px; cursor: pointer; }
+        .assign-list label:hover { background: #f0f4f8; }
+        .assignment-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+        .btn-xs { font-size: 11px; padding: 2px 8px; }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -26,40 +50,92 @@
     </nav>
 
     <div class="container">
+        <!-- Create Exam -->
         <div class="card">
             <h2 class="card-title">Create New Exam</h2>
-            <form id="create-exam-form">
-                <div class="form-group">
+            <form id="create-exam-form" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 2; min-width: 200px; margin: 0;">
                     <label for="exam-name">Exam Name</label>
-                    <input type="text" id="exam-name" class="form-control"
-                           placeholder="e.g., Spring 2026 Mock Oral" required>
+                    <input type="text" id="exam-name" class="form-control" placeholder="e.g., Spring 2026 Mock Oral" required>
                 </div>
-                <div class="form-group">
-                    <label for="exam-date">Exam Date (optional)</label>
+                <div class="form-group" style="flex: 1; min-width: 150px; margin: 0;">
+                    <label for="exam-date">Date</label>
                     <input type="date" id="exam-date" class="form-control">
                 </div>
                 <button type="submit" class="btn btn-primary">Create Exam</button>
             </form>
         </div>
 
+        <div id="message" class="alert" style="display: none;"></div>
+
+        <!-- Exam List -->
         <div class="card">
             <h2 class="card-title">All Exams</h2>
-            <div id="message" class="alert" style="display: none;"></div>
             <table class="table" id="exams-table">
                 <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
+                    <tr><th>Name</th><th>Date</th><th>Status</th><th>Residents</th><th>Actions</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #888;">Loading...</td>
-                    </tr>
-                </tbody>
+                <tbody><tr><td colspan="5" style="text-align: center; color: #888;">Loading...</td></tr></tbody>
             </table>
+        </div>
+
+        <!-- Exam Detail (shown when managing an exam) -->
+        <div id="exam-detail" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="card-title" id="detail-exam-name" style="margin: 0;"></h2>
+                    <button class="btn btn-secondary btn-sm" onclick="closeDetail()">Close</button>
+                </div>
+
+                <!-- Add Residents -->
+                <div class="exam-detail-section">
+                    <h3>Residents</h3>
+                    <p style="font-size: 13px; color: #666;">Add residents by PGY class or individually. Credentials auto-generate.</p>
+                    <div class="pgy-buttons">
+                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(5)">Add PGY-5 (Chiefs)</button>
+                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(4)">Add PGY-4</button>
+                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(3)">Add PGY-3</button>
+                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(2)">Add PGY-2</button>
+                        <button class="btn btn-sm btn-primary" onclick="addPgyClass(1)">Add PGY-1</button>
+                        <button class="btn btn-sm btn-secondary" onclick="showIndividualAdd()">Add Individual...</button>
+                    </div>
+
+                    <!-- Individual add (hidden by default) -->
+                    <div id="individual-add" style="display: none; margin-bottom: 15px;">
+                        <div class="resident-checkbox-list" id="available-residents"></div>
+                        <button class="btn btn-primary btn-sm" style="margin-top: 8px;" onclick="addSelectedResidents()">Add Selected</button>
+                    </div>
+
+                    <!-- Current exam residents -->
+                    <table class="table exam-residents-table" id="exam-residents-table">
+                        <thead><tr><th>Resident</th><th>PGY</th><th>Username</th><th>Password</th><th>Status</th><th></th></tr></thead>
+                        <tbody><tr><td colspan="6" style="text-align: center; color: #999;">No residents added yet.</td></tr></tbody>
+                    </table>
+                </div>
+
+                <!-- Assign Files -->
+                <div class="exam-detail-section">
+                    <h3>Assign Files to Residents</h3>
+                    <p style="font-size: 13px; color: #666;">Select files and residents, then click Assign. Questions auto-log to the tracker.</p>
+                    <div class="assign-panel">
+                        <div class="panel">
+                            <h5>Exam Files</h5>
+                            <div class="assign-list" id="assign-files-list">No files added to this exam yet.</div>
+                        </div>
+                        <div class="panel">
+                            <h5>Assign To</h5>
+                            <div class="pgy-buttons" id="assign-pgy-buttons"></div>
+                            <div class="assign-list" id="assign-residents-list">No residents in this exam.</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" style="margin-top: 10px;" onclick="assignFiles()">Assign Selected</button>
+
+                    <h4 style="margin-top: 20px;">Current Assignments</h4>
+                    <div id="assignments-list" style="max-height: 300px; overflow-y: auto;">
+                        <p style="color: #999; font-size: 13px;">No assignments yet.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -81,13 +157,8 @@
                     <input type="date" id="edit-exam-date" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="edit-exam-active">
-                        Set as Active Exam
-                    </label>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">
-                        Only one exam can be active at a time. Examinees can only log in to the active exam.
-                    </p>
+                    <label><input type="checkbox" id="edit-exam-active"> Set as Active Exam</label>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Only one exam can be active at a time.</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -98,6 +169,9 @@
     </div>
 
     <script>
+        let currentExamId = null;
+        let allResidents = [];
+
         function showMessage(text, type) {
             const msg = document.getElementById('message');
             msg.textContent = text;
@@ -106,69 +180,51 @@
             setTimeout(() => msg.style.display = 'none', 3000);
         }
 
+        // === EXAM LIST ===
         async function loadExams() {
-            try {
-                const response = await fetch('/admin/exams/list');
-                const exams = await response.json();
+            const response = await fetch('/admin/exams/list');
+            const exams = await response.json();
+            const tbody = document.querySelector('#exams-table tbody');
 
-                const tbody = document.querySelector('#exams-table tbody');
-
-                if (exams.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">No exams created yet.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = exams.map(exam => `
-                    <tr>
-                        <td>${exam.name}</td>
-                        <td>${exam.date || '-'}</td>
-                        <td>
-                            ${exam.is_active
-                                ? '<span class="badge badge-success">Active</span>'
-                                : '<span class="badge badge-warning">Inactive</span>'}
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="editExam(${exam.id})">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteExam(${exam.id}, '${exam.name.replace(/'/g, "\\'")}')">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                console.error('Error loading exams:', err);
+            if (exams.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888;">No exams yet.</td></tr>';
+                return;
             }
+
+            tbody.innerHTML = exams.map(exam => `
+                <tr>
+                    <td>${exam.name}</td>
+                    <td>${exam.date || '-'}</td>
+                    <td>${exam.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>'}</td>
+                    <td><button class="btn btn-xs btn-primary" onclick="manageExam(${exam.id}, '${exam.name.replace(/'/g, "\\'")}')">Manage</button></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editExam(${exam.id})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteExam(${exam.id}, '${exam.name.replace(/'/g, "\\'")}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
+        // === CREATE EXAM ===
         document.getElementById('create-exam-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const name = document.getElementById('exam-name').value;
             const date = document.getElementById('exam-date').value;
-
-            try {
-                const response = await fetch('/admin/exams', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, date })
-                });
-
-                if (response.ok) {
-                    showMessage('Exam created successfully!', 'success');
-                    document.getElementById('create-exam-form').reset();
-                    loadExams();
-                } else {
-                    const data = await response.json();
-                    showMessage(data.error || 'Failed to create exam', 'error');
-                }
-            } catch (err) {
-                showMessage('An error occurred', 'error');
+            const response = await fetch('/admin/exams', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, date })
+            });
+            if (response.ok) {
+                showMessage('Exam created!', 'success');
+                document.getElementById('create-exam-form').reset();
+                loadExams();
             }
         });
 
+        // === EDIT/DELETE EXAM ===
         async function editExam(id) {
-            const response = await fetch('/admin/exams/list');
-            const exams = await response.json();
+            const exams = await (await fetch('/admin/exams/list')).json();
             const exam = exams.find(e => e.id === id);
-
             if (exam) {
                 document.getElementById('edit-exam-id').value = exam.id;
                 document.getElementById('edit-exam-name').value = exam.name;
@@ -177,64 +233,213 @@
                 document.getElementById('edit-modal').classList.add('active');
             }
         }
-
-        function closeModal() {
-            document.getElementById('edit-modal').classList.remove('active');
-        }
-
+        function closeModal() { document.getElementById('edit-modal').classList.remove('active'); }
         document.getElementById('edit-exam-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const id = document.getElementById('edit-exam-id').value;
-            const name = document.getElementById('edit-exam-name').value;
-            const date = document.getElementById('edit-exam-date').value;
-            const is_active = document.getElementById('edit-exam-active').checked;
-
-            try {
-                const response = await fetch(`/admin/exams/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, date, is_active })
-                });
-
-                if (response.ok) {
-                    showMessage('Exam updated successfully!', 'success');
-                    closeModal();
-                    loadExams();
-                } else {
-                    const data = await response.json();
-                    showMessage(data.error || 'Failed to update exam', 'error');
-                }
-            } catch (err) {
-                showMessage('An error occurred', 'error');
-            }
+            await fetch(`/admin/exams/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('edit-exam-name').value,
+                    date: document.getElementById('edit-exam-date').value,
+                    is_active: document.getElementById('edit-exam-active').checked
+                })
+            });
+            showMessage('Exam updated!', 'success');
+            closeModal(); loadExams();
         });
-
         async function deleteExam(id, name) {
-            if (!confirm(`Are you sure you want to delete "${name}"?\n\nThis will also delete all associated credentials and files.`)) {
+            if (!confirm(`Delete "${name}"? This removes all credentials, files, and assignments.`)) return;
+            await fetch(`/admin/exams/${id}`, { method: 'DELETE' });
+            showMessage('Exam deleted.', 'success');
+            if (currentExamId === id) closeDetail();
+            loadExams();
+        }
+        document.getElementById('edit-modal').addEventListener('click', e => { if (e.target.classList.contains('modal')) closeModal(); });
+
+        // === MANAGE EXAM (Detail View) ===
+        async function manageExam(examId, examName) {
+            currentExamId = examId;
+            document.getElementById('detail-exam-name').textContent = examName;
+            document.getElementById('exam-detail').style.display = 'block';
+            document.getElementById('individual-add').style.display = 'none';
+            await loadAllResidents();
+            await loadExamResidents();
+            await loadExamFiles();
+            await loadAssignments();
+            document.getElementById('exam-detail').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeDetail() {
+            currentExamId = null;
+            document.getElementById('exam-detail').style.display = 'none';
+        }
+
+        // === RESIDENTS ===
+        async function loadAllResidents() {
+            const data = await (await fetch('/admin/question-tracker/residents')).json();
+            allResidents = data.residents;
+        }
+
+        async function loadExamResidents() {
+            const data = await (await fetch(`/admin/exams/${currentExamId}/residents`)).json();
+            const tbody = document.querySelector('#exam-residents-table tbody');
+            const linkedIds = new Set(data.residents.map(r => r.resident_id));
+
+            if (data.residents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No residents added yet.</td></tr>';
+            } else {
+                tbody.innerHTML = data.residents.map(r => `
+                    <tr>
+                        <td>${r.name}</td>
+                        <td><span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span></td>
+                        <td class="cred-info">${r.username || '-'}</td>
+                        <td class="cred-info">${r.password || '-'}</td>
+                        <td>${r.is_used ? '<span class="badge badge-success">Used</span>' : '<span class="badge badge-warning">Available</span>'}</td>
+                        <td><button class="btn btn-xs btn-danger" onclick="removeResident(${r.resident_id})">Remove</button></td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update assignment resident checkboxes
+            const assignList = document.getElementById('assign-residents-list');
+            if (data.residents.length === 0) {
+                assignList.innerHTML = 'No residents in this exam.';
+            } else {
+                assignList.innerHTML = data.residents.map(r =>
+                    `<label><input type="checkbox" value="${r.resident_id}" checked> ${r.name} (PGY-${r.pgy_level})</label>`
+                ).join('');
+            }
+
+            // Update PGY quick-assign buttons
+            const pgyLevels = [...new Set(data.residents.map(r => r.pgy_level))].sort((a, b) => b - a);
+            document.getElementById('assign-pgy-buttons').innerHTML = pgyLevels.map(p =>
+                `<button class="btn btn-xs btn-secondary" onclick="selectAssignPgy(${p})">Select PGY-${p}</button>`
+            ).join('') + ' <button class="btn btn-xs btn-secondary" onclick="selectAllAssign()">All</button>';
+
+            // Update available residents list for individual add
+            const availList = document.getElementById('available-residents');
+            const available = allResidents.filter(r => !linkedIds.has(r.id) && r.status !== 'graduated');
+            if (available.length === 0) {
+                availList.innerHTML = '<div style="padding: 10px; color: #999;">All residents already added.</div>';
+            } else {
+                availList.innerHTML = available.map(r =>
+                    `<div class="resident-checkbox-item"><input type="checkbox" id="res-${r.id}" value="${r.id}"><label for="res-${r.id}">${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span></label></div>`
+                ).join('');
+            }
+        }
+
+        async function addPgyClass(level) {
+            const res = await fetch(`/admin/exams/${currentExamId}/residents/by-pgy`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pgyLevel: level })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMessage(`Added ${data.added} PGY-${level} residents with credentials.`, 'success');
+                loadExamResidents();
+            } else { showMessage(data.error, 'error'); }
+        }
+
+        function showIndividualAdd() {
+            const el = document.getElementById('individual-add');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function addSelectedResidents() {
+            const checked = [...document.querySelectorAll('#available-residents input:checked')].map(cb => parseInt(cb.value));
+            if (!checked.length) return alert('Select at least one resident');
+            const res = await fetch(`/admin/exams/${currentExamId}/residents`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ residentIds: checked })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMessage(`Added ${data.added} residents with credentials.`, 'success');
+                document.getElementById('individual-add').style.display = 'none';
+                loadExamResidents();
+            }
+        }
+
+        async function removeResident(residentId) {
+            if (!confirm('Remove this resident? Their credential will also be deleted.')) return;
+            await fetch(`/admin/exams/${currentExamId}/residents/${residentId}`, { method: 'DELETE' });
+            loadExamResidents();
+            loadAssignments();
+        }
+
+        // === FILE ASSIGNMENT ===
+        async function loadExamFiles() {
+            const data = await (await fetch(`/admin/files/list/${currentExamId}`)).json();
+            const list = document.getElementById('assign-files-list');
+            if (!data.length) {
+                list.innerHTML = 'No files added to this exam yet. Go to <a href="/admin/files">Exam Files</a> to add files.';
+                return;
+            }
+            list.innerHTML = data.map(f =>
+                `<label><input type="checkbox" value="${f.id}"> ${f.display_name} <small style="color:#888">[${f.file_type}]</small></label>`
+            ).join('');
+        }
+
+        function selectAssignPgy(level) {
+            document.querySelectorAll('#assign-residents-list input').forEach(cb => {
+                const label = cb.parentElement.textContent;
+                cb.checked = label.includes(`PGY-${level}`);
+            });
+        }
+        function selectAllAssign() {
+            document.querySelectorAll('#assign-residents-list input').forEach(cb => cb.checked = true);
+        }
+
+        async function assignFiles() {
+            const fileIds = [...document.querySelectorAll('#assign-files-list input:checked')].map(cb => parseInt(cb.value));
+            const residentIds = [...document.querySelectorAll('#assign-residents-list input:checked')].map(cb => parseInt(cb.value));
+            if (!fileIds.length || !residentIds.length) return alert('Select files and residents');
+
+            const res = await fetch(`/admin/exams/${currentExamId}/assignments`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileIds, residentIds })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMessage(`Assigned ${data.assigned} file-resident pairs. Questions auto-logged.`, 'success');
+                loadAssignments();
+            }
+        }
+
+        async function loadAssignments() {
+            const data = await (await fetch(`/admin/exams/${currentExamId}/assignments`)).json();
+            const div = document.getElementById('assignments-list');
+
+            if (!data.assignments?.length) {
+                div.innerHTML = '<p style="color: #999; font-size: 13px;">No assignments yet.</p>';
                 return;
             }
 
-            try {
-                const response = await fetch(`/admin/exams/${id}`, { method: 'DELETE' });
-
-                if (response.ok) {
-                    showMessage('Exam deleted successfully!', 'success');
-                    loadExams();
-                } else {
-                    showMessage('Failed to delete exam', 'error');
-                }
-            } catch (err) {
-                showMessage('An error occurred', 'error');
+            // Group by resident
+            const byResident = {};
+            for (const a of data.assignments) {
+                if (!byResident[a.resident_name]) byResident[a.resident_name] = { pgy: a.pgy_level, items: [] };
+                byResident[a.resident_name].items.push(a);
             }
+
+            div.innerHTML = Object.entries(byResident).map(([name, info]) => `
+                <div style="margin-bottom: 12px;">
+                    <strong>${name}</strong> <span class="pgy-badge pgy-${Math.min(info.pgy, 5)}">PGY-${info.pgy}</span>
+                    ${info.items.map(a => `
+                        <div class="assignment-item">
+                            <span>${a.file_name} <small style="color:#888">[${a.file_type}]</small></span>
+                            <button class="btn btn-xs btn-danger" onclick="removeAssignment(${a.id})">&times;</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
         }
 
-        // Close modal on outside click
-        document.getElementById('edit-modal').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                closeModal();
-            }
-        });
+        async function removeAssignment(id) {
+            await fetch(`/admin/exams/${currentExamId}/assignments/${id}`, { method: 'DELETE' });
+            loadAssignments();
+        }
 
         loadExams();
     </script>

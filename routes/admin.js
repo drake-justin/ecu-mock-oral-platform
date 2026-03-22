@@ -111,6 +111,287 @@ router.delete('/exams/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// === EXAM-RESIDENT MANAGEMENT ===
+
+// Get residents linked to an exam
+router.get('/exams/:id/residents', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute({
+            sql: `SELECT er.id as link_id, er.credential_id, r.id as resident_id, r.name, r.pgy_level, r.status,
+                         c.username, c.password, c.is_used
+                  FROM exam_residents er
+                  JOIN residents r ON er.resident_id = r.id
+                  LEFT JOIN credentials c ON er.credential_id = c.id
+                  WHERE er.exam_id = ?
+                  ORDER BY r.pgy_level DESC, r.name`,
+            args: [parseInt(req.params.id)]
+        });
+        res.json({ residents: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load exam residents' });
+    }
+});
+
+// Add residents to an exam (auto-generates credentials)
+router.post('/exams/:id/residents', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    const { residentIds } = req.body;
+
+    if (!residentIds || !residentIds.length) {
+        return res.status(400).json({ error: 'No residents selected' });
+    }
+
+    try {
+        // Get current max credential index for this exam
+        const countResult = await db.execute({
+            sql: 'SELECT COUNT(*) as cnt FROM credentials WHERE exam_id = ?',
+            args: [examId]
+        });
+        let credIndex = (countResult.rows[0]?.cnt || 0) + 1;
+
+        let added = 0;
+        for (const resId of residentIds) {
+            // Check if already linked
+            const existing = await db.execute({
+                sql: 'SELECT id FROM exam_residents WHERE exam_id = ? AND resident_id = ?',
+                args: [examId, parseInt(resId)]
+            });
+            if (existing.rows.length > 0) continue;
+
+            // Get resident name
+            const resident = await db.execute({
+                sql: 'SELECT name FROM residents WHERE id = ?',
+                args: [parseInt(resId)]
+            });
+            if (!resident.rows[0]) continue;
+            const residentName = resident.rows[0].name;
+
+            // Auto-create credential
+            const username = generateUsername(examId, credIndex);
+            const password = generatePassword();
+            const credResult = await db.execute({
+                sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name, resident_id) VALUES (?, ?, ?, ?, ?)',
+                args: [examId, username, password, residentName, parseInt(resId)]
+            });
+            const credentialId = credResult.lastInsertRowid;
+            credIndex++;
+
+            // Link resident to exam
+            await db.execute({
+                sql: 'INSERT INTO exam_residents (exam_id, resident_id, credential_id) VALUES (?, ?, ?)',
+                args: [examId, parseInt(resId), credentialId]
+            });
+            added++;
+        }
+
+        res.json({ success: true, added });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to add residents' });
+    }
+});
+
+// Add all residents of a PGY level to an exam
+router.post('/exams/:id/residents/by-pgy', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    const { pgyLevel } = req.body;
+
+    try {
+        const residents = await db.execute({
+            sql: "SELECT id FROM residents WHERE pgy_level = ? AND status IN ('active', 'research')",
+            args: [parseInt(pgyLevel)]
+        });
+        const residentIds = residents.rows.map(r => r.id);
+
+        if (residentIds.length === 0) {
+            return res.status(400).json({ error: 'No active residents at PGY-' + pgyLevel });
+        }
+
+        // Forward to the add residents handler
+        req.body.residentIds = residentIds;
+        // Reuse logic inline
+        const countResult = await db.execute({
+            sql: 'SELECT COUNT(*) as cnt FROM credentials WHERE exam_id = ?',
+            args: [examId]
+        });
+        let credIndex = (countResult.rows[0]?.cnt || 0) + 1;
+        let added = 0;
+
+        for (const resId of residentIds) {
+            const existing = await db.execute({
+                sql: 'SELECT id FROM exam_residents WHERE exam_id = ? AND resident_id = ?',
+                args: [examId, resId]
+            });
+            if (existing.rows.length > 0) continue;
+
+            const resident = await db.execute({
+                sql: 'SELECT name FROM residents WHERE id = ?',
+                args: [resId]
+            });
+            if (!resident.rows[0]) continue;
+
+            const username = generateUsername(examId, credIndex);
+            const password = generatePassword();
+            const credResult = await db.execute({
+                sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name, resident_id) VALUES (?, ?, ?, ?, ?)',
+                args: [examId, username, password, resident.rows[0].name, resId]
+            });
+
+            await db.execute({
+                sql: 'INSERT INTO exam_residents (exam_id, resident_id, credential_id) VALUES (?, ?, ?)',
+                args: [examId, resId, credResult.lastInsertRowid]
+            });
+            added++;
+            credIndex++;
+        }
+
+        res.json({ success: true, added });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to add PGY class' });
+    }
+});
+
+// Remove a resident from an exam
+router.delete('/exams/:examId/residents/:residentId', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const residentId = parseInt(req.params.residentId);
+
+    try {
+        // Get the credential ID before deleting
+        const link = await db.execute({
+            sql: 'SELECT credential_id FROM exam_residents WHERE exam_id = ? AND resident_id = ?',
+            args: [examId, residentId]
+        });
+
+        // Delete credential
+        if (link.rows[0]?.credential_id) {
+            await db.execute({
+                sql: 'DELETE FROM credentials WHERE id = ?',
+                args: [link.rows[0].credential_id]
+            });
+        }
+
+        // Delete assignments
+        await db.execute({
+            sql: 'DELETE FROM exam_assignments WHERE exam_id = ? AND resident_id = ?',
+            args: [examId, residentId]
+        });
+
+        // Delete the link
+        await db.execute({
+            sql: 'DELETE FROM exam_residents WHERE exam_id = ? AND resident_id = ?',
+            args: [examId, residentId]
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to remove resident' });
+    }
+});
+
+// === FILE ASSIGNMENT ===
+
+// Get file assignments for an exam
+router.get('/exams/:examId/assignments', requireAdmin, async (req, res) => {
+    try {
+        const result = await db.execute({
+            sql: `SELECT ea.id, ea.file_id, ea.resident_id, ea.repository_stem_id,
+                         f.display_name as file_name, f.file_type, f.room_number,
+                         r.name as resident_name, r.pgy_level
+                  FROM exam_assignments ea
+                  JOIN files f ON ea.file_id = f.id
+                  JOIN residents r ON ea.resident_id = r.id
+                  WHERE ea.exam_id = ?
+                  ORDER BY r.name, f.sort_order`,
+            args: [parseInt(req.params.examId)]
+        });
+        res.json({ assignments: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load assignments' });
+    }
+});
+
+// Assign files to residents (auto-logs question history)
+router.post('/exams/:examId/assignments', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const { fileIds, residentIds } = req.body;
+
+    if (!fileIds?.length || !residentIds?.length) {
+        return res.status(400).json({ error: 'Select files and residents' });
+    }
+
+    try {
+        let assigned = 0;
+        for (const fileId of fileIds) {
+            // Look up repository stem ID for this file
+            const fileInfo = await db.execute({
+                sql: `SELECT f.*, r.id as repo_stem_id, r.display_name as stem_name, r.specialty
+                      FROM files f
+                      LEFT JOIN repository r ON f.public_id = r.public_id AND r.category = 'stem'
+                      WHERE f.id = ?`,
+                args: [parseInt(fileId)]
+            });
+            const file = fileInfo.rows[0];
+            if (!file) continue;
+
+            for (const resId of residentIds) {
+                // Insert assignment (skip if exists)
+                try {
+                    await db.execute({
+                        sql: `INSERT OR IGNORE INTO exam_assignments (exam_id, resident_id, file_id, repository_stem_id) VALUES (?, ?, ?, ?)`,
+                        args: [examId, parseInt(resId), parseInt(fileId), file.repo_stem_id || null]
+                    });
+                } catch (e) { continue; } // duplicate
+
+                // Auto-log to question history if this is a stem
+                if (file.repo_stem_id) {
+                    const resident = await db.execute({
+                        sql: 'SELECT name FROM residents WHERE id = ?',
+                        args: [parseInt(resId)]
+                    });
+                    const resName = resident.rows[0]?.name || 'Unknown';
+
+                    // Check for duplicate
+                    const existing = await db.execute({
+                        sql: 'SELECT id FROM question_history WHERE resident_id = ? AND exam_id = ? AND repository_stem_id = ?',
+                        args: [parseInt(resId), examId, file.repo_stem_id]
+                    });
+
+                    if (existing.rows.length === 0) {
+                        await db.execute({
+                            sql: `INSERT INTO question_history
+                                  (resident_id, resident_name, exam_id, repository_stem_id, stem_display_name, specialty, recorded_by)
+                                  VALUES (?, ?, ?, ?, ?, ?, 'auto-assign')`,
+                            args: [parseInt(resId), resName, examId, file.repo_stem_id, file.stem_name, file.specialty]
+                        });
+                    }
+                }
+                assigned++;
+            }
+        }
+        res.json({ success: true, assigned });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to assign files' });
+    }
+});
+
+// Remove a file assignment
+router.delete('/exams/:examId/assignments/:id', requireAdmin, async (req, res) => {
+    try {
+        await db.execute({
+            sql: 'DELETE FROM exam_assignments WHERE id = ? AND exam_id = ?',
+            args: [parseInt(req.params.id), parseInt(req.params.examId)]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to remove assignment' });
+    }
+});
+
 // === CREDENTIAL MANAGEMENT ===
 
 router.get('/credentials', requireAdmin, (req, res) => {

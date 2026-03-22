@@ -19,13 +19,44 @@ router.get('/data', requireExaminee, async (req, res) => {
         });
         const exam = examResult.rows[0];
 
-        const filesResult = await db.execute({
-            sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
-            args: [examId]
+        // Check if this examinee has per-resident file assignments
+        const credId = req.session.examinee.id;
+        const credResult = await db.execute({
+            sql: 'SELECT resident_id FROM credentials WHERE id = ?',
+            args: [credId]
         });
+        const residentId = credResult.rows[0]?.resident_id;
 
-        // Debug: log raw file data to see what's in the database
-        console.log('Files from database:', JSON.stringify(filesResult.rows, null, 2));
+        let filesResult;
+        if (residentId) {
+            // Check if per-resident assignments exist
+            const assignCheck = await db.execute({
+                sql: 'SELECT COUNT(*) as cnt FROM exam_assignments WHERE exam_id = ? AND resident_id = ?',
+                args: [examId, residentId]
+            });
+            if (assignCheck.rows[0]?.cnt > 0) {
+                // Serve only assigned files
+                filesResult = await db.execute({
+                    sql: `SELECT f.* FROM files f
+                          JOIN exam_assignments ea ON ea.file_id = f.id
+                          WHERE ea.exam_id = ? AND ea.resident_id = ?
+                          ORDER BY f.sort_order, f.id`,
+                    args: [examId, residentId]
+                });
+            } else {
+                // No assignments - serve all exam files
+                filesResult = await db.execute({
+                    sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
+                    args: [examId]
+                });
+            }
+        } else {
+            // No resident link - serve all exam files (backwards compatible)
+            filesResult = await db.execute({
+                sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
+                args: [examId]
+            });
+        }
 
         res.json({
             examName: exam.name,

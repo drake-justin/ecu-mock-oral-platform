@@ -90,6 +90,38 @@ async function initializeDatabase() {
         )
     `);
 
+    // Links residents to exams with auto-generated credentials
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_residents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            resident_id INTEGER NOT NULL,
+            credential_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE,
+            FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE SET NULL,
+            UNIQUE(exam_id, resident_id)
+        )
+    `);
+
+    // Links specific files to specific residents within an exam
+    await db.execute(`
+        CREATE TABLE IF NOT EXISTS exam_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            resident_id INTEGER NOT NULL,
+            file_id INTEGER NOT NULL,
+            repository_stem_id INTEGER,
+            assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+            FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE,
+            FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+            FOREIGN KEY (repository_stem_id) REFERENCES repository(id) ON DELETE SET NULL,
+            UNIQUE(exam_id, resident_id, file_id)
+        )
+    `);
+
     // Question tracking table - tracks which stems each resident has been tested on
     await db.execute(`
         CREATE TABLE IF NOT EXISTS question_history (
