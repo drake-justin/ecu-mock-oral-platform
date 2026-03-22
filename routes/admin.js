@@ -865,6 +865,17 @@ router.get('/repository', requireAdmin, (req, res) => {
     res.sendFile('admin/repository.html', { root: './views' });
 });
 
+// Debug endpoint - temporary, remove after fixing
+router.get('/repository/debug', async (req, res) => {
+    try {
+        const count = await db.execute('SELECT COUNT(*) as cnt FROM repository');
+        const sample = await db.execute('SELECT id, display_name, category FROM repository LIMIT 3');
+        res.json({ count: count.rows[0]?.cnt, sample: sample.rows, ok: true });
+    } catch (err) {
+        res.json({ error: err.message, ok: false });
+    }
+});
+
 router.get('/repository/list', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute(
