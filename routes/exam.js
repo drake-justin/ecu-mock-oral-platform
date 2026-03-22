@@ -36,25 +36,26 @@ router.get('/data', requireExaminee, async (req, res) => {
             });
 
             if (rooms.rows.length > 0) {
-                // Serve files for assigned rooms only
+                // Serve files for assigned rooms only, exclude scenarios (examiner-only)
                 const roomNums = rooms.rows.map(r => r.room_number);
                 const placeholders = roomNums.map(() => '?').join(',');
                 filesResult = await db.execute({
                     sql: `SELECT * FROM files WHERE exam_id = ? AND room_number IN (${placeholders})
+                          AND (item_type IS NULL OR item_type != 'scenario')
                           ORDER BY room_number, sort_order, id`,
                     args: [examId, ...roomNums]
                 });
             } else {
-                // No room assignments - serve all exam files
+                // No room assignments - serve all exam files except scenarios
                 filesResult = await db.execute({
-                    sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
+                    sql: "SELECT * FROM files WHERE exam_id = ? AND (item_type IS NULL OR item_type != 'scenario') ORDER BY sort_order, id",
                     args: [examId]
                 });
             }
         } else {
-            // No resident link - serve all exam files (backwards compatible)
+            // No resident link - serve all exam files except scenarios
             filesResult = await db.execute({
-                sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY sort_order, id',
+                sql: "SELECT * FROM files WHERE exam_id = ? AND (item_type IS NULL OR item_type != 'scenario') ORDER BY sort_order, id",
                 args: [examId]
             });
         }

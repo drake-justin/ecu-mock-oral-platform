@@ -793,9 +793,10 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
             if (repoFile) {
                 // Add to exam files (reference the same Cloudinary file)
+                // Set item_type to the repository category so we can filter scenarios from residents
                 const result = await db.execute({
-                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null]
+                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, repoFile.category || null]
                 });
 
                 added.push({

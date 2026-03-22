@@ -70,6 +70,7 @@
         }
         .file-card-category.stem { background: #e8e0f3; color: #4B2E83; }
         .file-card-category.clinical_image { background: #d4edda; color: #155724; }
+        .file-card-category.scenario { background: #fff3cd; color: #856404; }
         .file-card-meta {
             font-size: 0.85rem;
             color: #666;
@@ -245,6 +246,7 @@
                     <select id="single-category" class="form-control" style="max-width: 300px;">
                         <option value="stem">Question Stem</option>
                         <option value="clinical_image">Clinical Image</option>
+                        <option value="scenario">Scenario (Examiner Only)</option>
                     </select>
                 </div>
                 <div class="form-group" id="relate-to-stem-group" style="display: none;">
@@ -281,6 +283,7 @@
                     <option value="">All Categories</option>
                     <option value="stem">Question Stems</option>
                     <option value="clinical_image">Clinical Images</option>
+                    <option value="scenario">Scenarios</option>
                 </select>
                 <select id="filter-specialty" class="form-control" style="width: auto;">
                     <option value="">All Core Topics</option>
