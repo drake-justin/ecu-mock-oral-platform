@@ -3,350 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Examiner Scoring - ECU Mock Oral</title>
+    <title>Scoring - ECU Mock Oral</title>
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        .score-select { display: flex; gap: 0; }
-        .score-btn { padding: 6px 14px; border: 1px solid #ddd; cursor: pointer; font-size: 13px; font-weight: 500; background: white; transition: all 0.15s; }
-        .score-btn:first-child { border-radius: 4px 0 0 4px; }
-        .score-btn:last-child { border-radius: 0 4px 4px 0; }
-        .score-btn.pass.selected { background: #28a745; color: white; border-color: #28a745; }
-        .score-btn.marginal.selected { background: #ffc107; color: #333; border-color: #ffc107; }
-        .score-btn.fail.selected { background: #dc3545; color: white; border-color: #dc3545; }
-        .score-btn:hover { opacity: 0.85; }
-        .score-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 12px; background: #fafafa; }
-        .score-card h4 { margin: 0 0 4px 0; color: #003366; font-size: 15px; }
-        .score-card .meta { font-size: 12px; color: #888; margin-bottom: 10px; }
-        .score-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .score-row .score-select { flex-shrink: 0; }
-        .score-row textarea { flex: 1; min-width: 200px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; height: 36px; resize: vertical; font-family: Calibri, sans-serif; }
-        .resident-section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #003366; }
-        .resident-section h3 { color: #003366; margin-bottom: 5px; }
-        .pgy-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pgy-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
         .pgy-1{background:#e3f2fd;color:#1565c0}.pgy-2{background:#e8f5e9;color:#2e7d32}
-        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}
-        .pgy-5{background:#f3e5f5;color:#6a1b9a}
-        .setup-form { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 20px; }
-        .setup-form .form-group { margin: 0; }
-        .setup-form label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
-        .submit-bar { position: sticky; bottom: 0; background: white; padding: 15px 0; border-top: 2px solid #003366; display: flex; gap: 15px; align-items: center; }
-        .score-summary { font-size: 14px; color: #555; }
-        .score-summary .pass { color: #28a745; font-weight: bold; }
-        .score-summary .marginal { color: #ffc107; font-weight: bold; }
-        .score-summary .fail { color: #dc3545; font-weight: bold; }
-        .existing-score { font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
-        .existing-score.pass { background: #d4edda; color: #155724; }
-        .existing-score.marginal { background: #fff3cd; color: #856404; }
-        .existing-score.fail { background: #f8d7da; color: #721c24; }
-
-        /* Print report styles */
-        .report { display: none; }
-        @media print {
-            body > *:not(.report) { display: none !important; }
-            .report { display: block !important; font-family: Calibri, sans-serif; font-size: 12pt; }
-            .report h1 { font-size: 18pt; color: #003366; margin-bottom: 5px; }
-            .report h2 { font-size: 14pt; color: #003366; border-bottom: 1px solid #003366; padding-bottom: 3px; }
-            .report table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-            .report th, .report td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 11pt; }
-            .report th { background: #003366; color: white; }
-            .report .pass-cell { background: #d4edda; } .report .marginal-cell { background: #fff3cd; } .report .fail-cell { background: #f8d7da; }
-            .report .stats-row { display: flex; gap: 30px; margin: 10px 0; }
-            .report .stat { text-align: center; }
-            .report .stat .num { font-size: 20pt; font-weight: bold; color: #003366; }
-            .no-print { display: none !important; }
-        }
+        .pgy-3{background:#fff3e0;color:#e65100}.pgy-4{background:#fce4ec;color:#c62828}.pgy-5{background:#f3e5f5;color:#6a1b9a}
+        .tabs{display:flex;gap:0;border-bottom:2px solid #003366;margin-bottom:20px}
+        .tab{padding:10px 24px;cursor:pointer;font-weight:500;color:#666;border-bottom:3px solid transparent;margin-bottom:-2px;font-size:15px}
+        .tab.active{color:#003366;border-bottom-color:#003366}.tab:hover{color:#003366}
+        .summary-card{border:1px solid #e0e0e0;border-radius:8px;padding:15px;margin-bottom:12px}
+        .summary-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+        .summary-header h3{margin:0;color:#003366;font-size:15px}
+        .score-pills{display:flex;gap:8px}
+        .score-pill{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
+        .score-pill.pass{background:#d4edda;color:#155724}.score-pill.marginal{background:#fff3cd;color:#856404}.score-pill.fail{background:#f8d7da;color:#721c24}
+        .score-detail{font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between}
+        .score-detail:last-child{border-bottom:none}
+        .score-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+        .score-badge.pass{background:#28a745;color:white}.score-badge.marginal{background:#ffc107;color:#333}.score-badge.fail{background:#dc3545;color:white}
+        .section-card{border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:20px}
+        .resident-section{margin-bottom:25px;padding-bottom:15px;border-bottom:2px solid #eee}
+        .score-card-simple{border:1px solid #e0e0e0;border-radius:6px;padding:12px 15px;margin-bottom:10px;background:#fafafa}
+        .score-card-simple h4{margin:0 0 8px;font-size:14px;color:#333}
+        .score-row{display:flex;gap:10px;align-items:start;flex-wrap:wrap}
+        .score-select{display:flex;gap:0;flex-shrink:0}
+        .score-btn{padding:8px 16px;border:1px solid #ddd;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s}
+        .score-btn:first-child{border-radius:4px 0 0 4px}.score-btn:last-child{border-radius:0 4px 4px 0}
+        .score-btn.pass{background:#d4edda;color:#155724;border-color:#c3e6cb}
+        .score-btn.marginal{background:#fff3cd;color:#856404;border-color:#ffeeba}
+        .score-btn.fail{background:#f8d7da;color:#721c24;border-color:#f5c6cb}
+        .score-btn.pass.selected{background:#28a745;color:white;border-color:#28a745}
+        .score-btn.marginal.selected{background:#ffc107;color:#333;border-color:#ffc107}
+        .score-btn.fail.selected{background:#dc3545;color:white;border-color:#dc3545}
+        .score-btn:hover{opacity:0.85}
+        .feedback-area{flex:1;min-width:250px}
+        .feedback-area textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;height:60px;resize:vertical;font-family:Calibri,sans-serif}
+        .feedback-area label{font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px}
+        .save-bar{position:sticky;bottom:0;background:white;padding:15px 0;border-top:2px solid #003366;text-align:center}
+        .existing-badge{font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px}
+        .existing-badge.pass{background:#d4edda;color:#155724}.existing-badge.marginal{background:#fff3cd;color:#856404}.existing-badge.fail{background:#f8d7da;color:#721c24}
+        .report{display:none}
+        @media print{body>*:not(.report){display:none!important}.report{display:block!important;font-family:Calibri;font-size:12pt}
+            .report h1{font-size:18pt;color:#003366}.report h2{font-size:14pt;color:#003366;border-bottom:1px solid #003366;padding-bottom:3px}
+            .report table{width:100%;border-collapse:collapse;margin:10px 0}.report th,.report td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11pt}
+            .report th{background:#003366;color:white}.report .pass-cell{background:#d4edda}.report .marginal-cell{background:#fff3cd}.report .fail-cell{background:#f8d7da}
+            .no-print{display:none!important}}
     </style>
 </head>
 <body>
-    <header class="header">
-        <h1>ECU Mock Oral Platform</h1>
-        <p class="subtitle">Examiner Scoring</p>
-    </header>
-
+    <header class="header"><h1>ECU Mock Oral Platform</h1><p class="subtitle">Scoring & Reports</p></header>
     <nav class="admin-nav">
-        <a href="/">Home</a>
-        <a href="/admin">Dashboard</a>
-        <a href="/admin/repository">Repository</a>
-        <a href="/admin/exams">Exams</a>
-        <a href="/admin/credentials">Credentials</a>
-        <a href="/admin/scoring" class="active">Scoring</a>
-        <a href="/admin/question-tracker">Question Tracker</a>
+        <a href="/">Home</a><a href="/admin">Dashboard</a><a href="/admin/repository">Repository</a>
+        <a href="/admin/exams">Exams</a><a href="/admin/credentials">Credentials</a>
+        <a href="/admin/scoring" class="active">Scoring</a><a href="/admin/question-tracker">Question Tracker</a>
         <a href="/admin/settings">Settings</a>
-        <form action="/admin/logout" method="POST" style="margin-left: auto; display: inline;">
-            <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
-        </form>
+        <form action="/admin/logout" method="POST" style="margin-left:auto;display:inline"><button type="submit" class="btn btn-secondary btn-sm">Logout</button></form>
     </nav>
 
     <div class="container">
-        <h2>Examiner Scoring</h2>
-
-        <!-- Setup -->
         <div class="card">
-            <div class="setup-form">
-                <div class="form-group">
-                    <label>Exam</label>
-                    <select id="exam-select" class="form-control" onchange="loadScoringData()">
-                        <option value="">-- Select Exam --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Your Name (Examiner)</label>
-                    <input type="text" id="examiner-name" class="form-control" placeholder="e.g., Dr. Smith">
-                </div>
-                <div class="form-group">
-                    <label>View</label>
-                    <select id="view-mode" class="form-control" onchange="renderScoring()">
-                        <option value="by-resident">By Resident</option>
-                        <option value="by-question">By Question</option>
-                    </select>
-                </div>
+            <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+                <div class="form-group" style="margin:0"><label style="font-size:12px;font-weight:600;color:#555">Exam</label>
+                    <select id="exam-select" class="form-control" onchange="loadData()"><option value="">-- Select Exam --</option></select></div>
+                <button class="btn btn-secondary btn-sm" onclick="printAllReports()" id="print-btn" style="display:none">Print All Reports</button>
             </div>
         </div>
 
-        <!-- Scoring Forms -->
-        <div id="scoring-area"></div>
+        <div class="tabs" id="tabs" style="display:none">
+            <div class="tab active" onclick="showTab('summary')">Score Summary</div>
+            <div class="tab" onclick="showTab('manual')">Manual Scoring</div>
+        </div>
 
-        <!-- Submit Bar -->
-        <div class="submit-bar" id="submit-bar" style="display: none;">
-            <button class="btn btn-primary" onclick="submitScores()">Save All Scores</button>
-            <div class="score-summary" id="score-summary"></div>
-            <button class="btn btn-secondary" onclick="printReport()" style="margin-left: auto;">Print Reports</button>
+        <!-- Score Summary Tab -->
+        <div id="tab-summary" style="display:none"></div>
+
+        <!-- Manual Scoring Tab -->
+        <div id="tab-manual" style="display:none">
+            <div class="section-card">
+                <div style="display:flex;gap:10px;align-items:end;margin-bottom:15px">
+                    <div class="form-group" style="margin:0"><label style="font-size:12px;font-weight:600;color:#555">Your Name</label>
+                        <input type="text" id="examiner-name" class="form-control" placeholder="e.g., Dr. Smith"></div>
+                </div>
+                <div id="manual-scoring-area"></div>
+                <div class="save-bar" id="save-bar" style="display:none">
+                    <button class="btn btn-primary" onclick="submitScores()" style="padding:10px 40px;font-size:16px">Save All Scores</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Print Report (hidden, shown only when printing) -->
     <div class="report" id="print-report"></div>
 
-    <script>
-        let examData = null;
-        let pendingScores = {};
+<script>
+let examData=null,pendingScores={},scenarios=[];
 
-        async function loadExams() {
-            const data = await (await fetch('/admin/question-tracker/exams')).json();
-            document.getElementById('exam-select').innerHTML = '<option value="">-- Select Exam --</option>' +
-                data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
-        }
+function showTab(name){
+    document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+    ['summary','manual'].forEach(n=>document.getElementById('tab-'+n).style.display='none');
+    document.getElementById('tab-'+name).style.display='block';
+    event.target.classList.add('active');
+    document.getElementById('save-bar').style.display=name==='manual'?'block':'none';
+}
 
-        async function loadScoringData() {
-            const examId = document.getElementById('exam-select').value;
-            if (!examId) { document.getElementById('scoring-area').innerHTML = ''; document.getElementById('submit-bar').style.display = 'none'; return; }
+async function loadExams(){
+    const data=await(await fetch('/admin/question-tracker/exams')).json();
+    document.getElementById('exam-select').innerHTML='<option value="">-- Select Exam --</option>'+
+        data.exams.map(e=>`<option value="${e.id}">${e.name} ${e.date?`(${e.date})`:''}</option>`).join('');
+}
 
-            const data = await (await fetch(`/admin/scoring/${examId}`)).json();
-            examData = data;
-            pendingScores = {};
+function getCleanName(name){return(name||'').replace(/^Scenario_/,'').replace(/^\d+_/,'').replace(/_/g,' ')}
 
-            // Pre-populate from existing scores
-            for (const s of data.scores) {
-                const key = `${s.resident_id}_${s.file_id || s.question_name}`;
-                pendingScores[key] = { score: s.score, comments: s.comments || '', existing: true };
-            }
+async function loadData(){
+    const examId=document.getElementById('exam-select').value;
+    if(!examId){document.getElementById('tabs').style.display='none';document.getElementById('tab-summary').style.display='none';document.getElementById('tab-manual').style.display='none';document.getElementById('print-btn').style.display='none';return}
 
-            renderScoring();
-            document.getElementById('submit-bar').style.display = 'flex';
-        }
+    const data=await(await fetch(`/admin/scoring/${examId}`)).json();
+    examData=data;
+    scenarios=data.files||[];
+    pendingScores={};
 
-        function renderScoring() {
-            if (!examData) return;
-            const mode = document.getElementById('view-mode').value;
-            const area = document.getElementById('scoring-area');
+    for(const s of data.scores){
+        const key=`${s.resident_id}_${s.file_id}`;
+        pendingScores[key]={score:s.score,comments:s.comments||'',examinerName:s.examiner_name||'',existing:true};
+    }
 
-            if (mode === 'by-resident') {
-                area.innerHTML = examData.residents.map(r => `
-                    <div class="resident-section">
-                        <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level, 5)}">PGY-${r.pgy_level}</span>
-                            <button class="btn btn-sm btn-secondary no-print" style="margin-left: 10px; font-size: 11px;" onclick="printResidentReport(${r.id})">Print Report</button>
-                        </h3>
-                        ${examData.files.map(f => renderScoreCard(r, f)).join('')}
-                    </div>
-                `).join('');
-            } else {
-                area.innerHTML = examData.files.map(f => `
-                    <div class="resident-section">
-                        <h3>${f.display_name} ${f.room_number ? `<small style="color:#888">Room ${f.room_number}</small>` : ''}</h3>
-                        ${f.specialty ? `<div style="font-size:12px;color:#888;margin-bottom:10px;">${f.specialty}</div>` : ''}
-                        ${examData.residents.map(r => renderScoreCard(r, f)).join('')}
-                    </div>
-                `).join('');
-            }
-            updateSummary();
-        }
+    document.getElementById('tabs').style.display='flex';
+    document.getElementById('tab-summary').style.display='block';
+    document.getElementById('print-btn').style.display='inline-block';
 
-        function renderScoreCard(resident, file) {
-            const key = `${resident.id}_${file.id}`;
-            const existing = pendingScores[key];
-            const currentScore = existing?.score || '';
-            const currentComments = existing?.comments || '';
+    renderSummary();
+    renderManualScoring();
+}
 
-            return `
-                <div class="score-card">
-                    <h4>${document.getElementById('view-mode').value === 'by-resident' ? file.display_name : resident.name}
-                        ${existing?.existing ? `<span class="existing-score ${currentScore}">${currentScore.toUpperCase()}</span>` : ''}
-                    </h4>
-                    <div class="meta">${file.specialty || ''} ${file.room_number ? '| Room ' + file.room_number : ''}</div>
+function renderSummary(){
+    const container=document.getElementById('tab-summary');
+    if(!examData.residents.length){container.innerHTML='<p style="color:#999">No residents in this exam.</p>';return}
+
+    container.innerHTML=examData.residents.map(r=>{
+        // Get this resident's scores
+        const resScores=examData.scores.filter(s=>s.resident_id===r.id);
+        const pass=resScores.filter(s=>s.score==='pass').length;
+        const marginal=resScores.filter(s=>s.score==='marginal').length;
+        const fail=resScores.filter(s=>s.score==='fail').length;
+        const total=resScores.length;
+        const scored=total>0;
+
+        return `<div class="summary-card">
+            <div class="summary-header">
+                <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span>
+                    <button class="btn btn-sm btn-secondary no-print" style="margin-left:10px;font-size:11px" onclick="printResidentReport(${r.id})">Print Report</button></h3>
+                ${scored?`<div class="score-pills">
+                    <span class="score-pill pass">${pass} Pass</span>
+                    <span class="score-pill marginal">${marginal} Marginal</span>
+                    <span class="score-pill fail">${fail} Fail</span>
+                    <span style="font-size:12px;color:#666;padding:4px 0">${total}/${scenarios.length} scored</span>
+                </div>`:`<span style="color:#999;font-size:13px">Not yet scored</span>`}
+            </div>
+            ${scored?`<div style="margin-top:8px">
+                ${resScores.map(s=>`<div class="score-detail">
+                    <span>${getCleanName(s.question_name)} ${s.room_number?`<small style="color:#888">Room ${s.room_number}</small>`:''}</span>
+                    <span style="display:flex;align-items:center;gap:8px">
+                        ${s.examiner_name?`<small style="color:#888">by ${s.examiner_name}</small>`:''}
+                        <span class="score-badge ${s.score}">${s.score.toUpperCase()}</span>
+                    </span>
+                </div>`).join('')}
+                ${resScores.some(s=>s.comments)?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #eee">
+                    ${resScores.filter(s=>s.comments).map(s=>`<div style="font-size:12px;margin-bottom:4px"><strong>${getCleanName(s.question_name)}:</strong> <em style="color:#555">${s.comments}</em></div>`).join('')}
+                </div>`:''}
+            </div>`:''}</div>`;
+    }).join('');
+}
+
+function renderManualScoring(){
+    const container=document.getElementById('manual-scoring-area');
+    if(!scenarios.length){container.innerHTML='<p style="color:#999">No scenarios to score. Add scenario files to the exam first.</p>';return}
+
+    container.innerHTML=examData.residents.map(r=>`
+        <div class="resident-section">
+            <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></h3>
+            ${scenarios.map((f,i)=>{
+                const key=`${r.id}_${f.id}`;
+                const existing=pendingScores[key];
+                const name=getCleanName(f.display_name);
+                return `<div class="score-card-simple">
+                    <h4>Q${i+1}: ${name} ${existing?`<span class="existing-badge ${existing.score}">${existing.score.toUpperCase()}${existing.examinerName?' by '+existing.examinerName:''}</span>`:''}
+                        ${f.specialty?`<small style="color:#888;margin-left:8px">${f.specialty}</small>`:''}</h4>
                     <div class="score-row">
                         <div class="score-select">
-                            <button class="score-btn pass ${currentScore === 'pass' ? 'selected' : ''}"
-                                    onclick="setScore('${key}', 'pass', ${resident.id}, ${file.id}, '${file.repo_stem_id || ''}', '${file.display_name.replace(/'/g, "\\'")}', ${file.room_number || 'null'}, this)">Pass</button>
-                            <button class="score-btn marginal ${currentScore === 'marginal' ? 'selected' : ''}"
-                                    onclick="setScore('${key}', 'marginal', ${resident.id}, ${file.id}, '${file.repo_stem_id || ''}', '${file.display_name.replace(/'/g, "\\'")}', ${file.room_number || 'null'}, this)">Marginal</button>
-                            <button class="score-btn fail ${currentScore === 'fail' ? 'selected' : ''}"
-                                    onclick="setScore('${key}', 'fail', ${resident.id}, ${file.id}, '${file.repo_stem_id || ''}', '${file.display_name.replace(/'/g, "\\'")}', ${file.room_number || 'null'}, this)">Fail</button>
+                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Pass</button>
+                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Marginal</button>
+                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Fail</button>
                         </div>
-                        <textarea placeholder="Comments..." id="comment-${key}" onchange="updateComment('${key}')">${currentComments}</textarea>
+                        <div class="feedback-area">
+                            <label>Feedback</label>
+                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Comments...">${existing?.comments||''}</textarea>
+                        </div>
                     </div>
-                </div>
-            `;
-        }
+                </div>`;
+            }).join('')}
+        </div>
+    `).join('');
+}
 
-        function setScore(key, score, residentId, fileId, repoStemId, questionName, roomNumber, btn) {
-            // Toggle: clicking same score deselects
-            if (pendingScores[key]?.score === score) {
-                delete pendingScores[key];
-            } else {
-                pendingScores[key] = {
-                    ...pendingScores[key],
-                    score, residentId, fileId,
-                    repoStemId: repoStemId || null,
-                    questionName, roomNumber,
-                    comments: document.getElementById(`comment-${key}`)?.value || ''
-                };
-            }
+function setScore(key,score,residentId,fileId,repoStemId,questionName,roomNumber,btn){
+    if(pendingScores[key]?.score===score){delete pendingScores[key]}
+    else{pendingScores[key]={...pendingScores[key],score,residentId,fileId,repoStemId:repoStemId||null,questionName,roomNumber,comments:document.getElementById('comment-'+key)?.value||''}}
+    btn.parentElement.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('selected'));
+    if(pendingScores[key])btn.classList.add('selected');
+}
+function updateComment(key){if(pendingScores[key])pendingScores[key].comments=document.getElementById('comment-'+key).value}
 
-            // Update button UI
-            const parent = btn.parentElement;
-            parent.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
-            if (pendingScores[key]) btn.classList.add('selected');
+async function submitScores(){
+    const examId=document.getElementById('exam-select').value;
+    const examinerName=document.getElementById('examiner-name').value;
+    const scores=Object.values(pendingScores).filter(s=>s.score);
+    if(!scores.length)return alert('No scores to submit');
+    const res=await fetch('/admin/scoring/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({examId,examinerName,scores})});
+    const d=await res.json();
+    if(d.success){alert('Saved '+d.saved+' scores.');loadData()}else alert(d.error);
+}
 
-            updateSummary();
-        }
+async function printResidentReport(residentId){
+    const examId=document.getElementById('exam-select').value;
+    const data=await(await fetch(`/admin/scoring/report/${examId}/${residentId}`)).json();
+    document.getElementById('print-report').innerHTML=generateReportHTML(data);
+    window.print();
+}
+async function printAllReports(){
+    const examId=document.getElementById('exam-select').value;
+    if(!examId||!examData)return;
+    const reports=await Promise.all(examData.residents.map(r=>fetch(`/admin/scoring/report/${examId}/${r.id}`).then(r=>r.json())));
+    document.getElementById('print-report').innerHTML=reports.map(d=>generateReportHTML(d)+'<div style="page-break-after:always"></div>').join('');
+    window.print();
+}
 
-        function updateComment(key) {
-            if (pendingScores[key]) {
-                pendingScores[key].comments = document.getElementById(`comment-${key}`).value;
-            }
-        }
+function generateReportHTML(data){
+    const r=data.resident,e=data.exam,scores=data.scores,stats={};
+    for(const s of data.allTimeStats)stats[s.score]=s.cnt;
+    const p=scores.filter(s=>s.score==='pass').length,m=scores.filter(s=>s.score==='marginal').length,f=scores.filter(s=>s.score==='fail').length;
+    return `<div style="border:2px solid #003366;padding:20px;margin:20px 0">
+        <h1 style="font-size:18pt;color:#003366">ECU Department of Surgery — Mock Oral Exam Report</h1>
+        <table style="width:100%;margin:10px 0;border:none"><tr style="border:none"><td style="border:none"><strong>Resident:</strong> ${r.name}</td><td style="border:none"><strong>PGY:</strong> PGY-${r.pgy_level}</td></tr>
+        <tr style="border:none"><td style="border:none"><strong>Exam:</strong> ${e.name}</td><td style="border:none"><strong>Date:</strong> ${e.date||'N/A'}</td></tr></table>
+        <h2 style="font-size:14pt;color:#003366;border-bottom:1px solid #003366">Exam Results — ${p} Pass, ${m} Marginal, ${f} Fail (${scores.length} questions)</h2>
+        <table style="width:100%;border-collapse:collapse"><thead><tr><th style="background:#003366;color:white;padding:6px 8px">#</th><th style="background:#003366;color:white;padding:6px 8px">Question</th><th style="background:#003366;color:white;padding:6px 8px">Score</th><th style="background:#003366;color:white;padding:6px 8px">Examiner</th><th style="background:#003366;color:white;padding:6px 8px">Comments</th></tr></thead><tbody>
+        ${scores.map((s,i)=>`<tr><td style="border:1px solid #ccc;padding:6px">${i+1}</td><td style="border:1px solid #ccc;padding:6px">${getCleanName(s.question_name)}</td><td class="${s.score}-cell" style="border:1px solid #ccc;padding:6px;font-weight:bold;text-transform:uppercase">${s.score}</td><td style="border:1px solid #ccc;padding:6px">${s.examiner_name||''}</td><td style="border:1px solid #ccc;padding:6px">${s.comments||''}</td></tr>`).join('')}
+        </tbody></table>
+        <h2 style="font-size:14pt;color:#003366;border-bottom:1px solid #003366;margin-top:20px">Longitudinal Summary</h2>
+        <p>Pass: ${stats.pass||0} | Marginal: ${stats.marginal||0} | Fail: ${stats.fail||0} | Total: ${(stats.pass||0)+(stats.marginal||0)+(stats.fail||0)} questions across all exams</p>
+        <div style="margin-top:30px;display:flex;gap:40px"><div><strong>Program Director:</strong> ________________________</div><div><strong>Date:</strong> ____________</div></div></div>`;
+}
 
-        function updateSummary() {
-            const scores = Object.values(pendingScores).filter(s => s.score);
-            const pass = scores.filter(s => s.score === 'pass').length;
-            const marginal = scores.filter(s => s.score === 'marginal').length;
-            const fail = scores.filter(s => s.score === 'fail').length;
-            document.getElementById('score-summary').innerHTML =
-                `<span class="pass">${pass} Pass</span> | <span class="marginal">${marginal} Marginal</span> | <span class="fail">${fail} Fail</span> | ${scores.length} total`;
-        }
-
-        async function submitScores() {
-            const examId = document.getElementById('exam-select').value;
-            const examinerName = document.getElementById('examiner-name').value;
-            const scores = Object.values(pendingScores).filter(s => s.score);
-
-            if (!scores.length) return alert('No scores to submit');
-
-            const res = await fetch('/admin/scoring/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ examId, examinerName, scores })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(`Saved ${data.saved} scores successfully.`);
-                loadScoringData(); // Refresh
-            } else { alert(data.error); }
-        }
-
-        async function printResidentReport(residentId) {
-            const examId = document.getElementById('exam-select').value;
-            const data = await (await fetch(`/admin/scoring/report/${examId}/${residentId}`)).json();
-            generateReport(data);
-            window.print();
-        }
-
-        function printReport() {
-            // Print all residents for this exam
-            const examId = document.getElementById('exam-select').value;
-            if (!examId || !examData) return;
-
-            // Generate combined report
-            let html = '';
-            const promises = examData.residents.map(r =>
-                fetch(`/admin/scoring/report/${examId}/${r.id}`).then(res => res.json())
-            );
-
-            Promise.all(promises).then(reports => {
-                for (const data of reports) {
-                    html += generateReportHTML(data);
-                    html += '<div style="page-break-after: always;"></div>';
-                }
-                document.getElementById('print-report').innerHTML = html;
-                window.print();
-            });
-        }
-
-        function generateReport(data) {
-            document.getElementById('print-report').innerHTML = generateReportHTML(data);
-        }
-
-        function generateReportHTML(data) {
-            const r = data.resident;
-            const e = data.exam;
-            const scores = data.scores;
-            const stats = {};
-            for (const s of data.allTimeStats) stats[s.score] = s.cnt;
-
-            const passCount = scores.filter(s => s.score === 'pass').length;
-            const marginalCount = scores.filter(s => s.score === 'marginal').length;
-            const failCount = scores.filter(s => s.score === 'fail').length;
-
-            return `
-                <div style="border: 2px solid #003366; padding: 20px; margin: 20px 0;">
-                    <h1>ECU Department of Surgery — Mock Oral Exam Report</h1>
-                    <table style="width: 100%; margin: 10px 0; border: none;">
-                        <tr style="border: none;">
-                            <td style="border: none;"><strong>Resident:</strong> ${r.name}</td>
-                            <td style="border: none;"><strong>PGY Level:</strong> PGY-${r.pgy_level}</td>
-                        </tr>
-                        <tr style="border: none;">
-                            <td style="border: none;"><strong>Exam:</strong> ${e.name}</td>
-                            <td style="border: none;"><strong>Date:</strong> ${e.date || 'N/A'}</td>
-                        </tr>
-                    </table>
-
-                    <h2>Exam Results</h2>
-                    <div class="stats-row">
-                        <div class="stat"><div class="num" style="color:#28a745">${passCount}</div>Pass</div>
-                        <div class="stat"><div class="num" style="color:#ffc107">${marginalCount}</div>Marginal</div>
-                        <div class="stat"><div class="num" style="color:#dc3545">${failCount}</div>Fail</div>
-                        <div class="stat"><div class="num">${scores.length}</div>Total Questions</div>
-                    </div>
-
-                    <table>
-                        <thead><tr><th>#</th><th>Question</th><th>Score</th><th>Examiner</th><th>Comments</th></tr></thead>
-                        <tbody>
-                            ${scores.map((s, i) => `
-                                <tr>
-                                    <td>${i + 1}</td>
-                                    <td>${s.question_name}${s.room_number ? ` (Room ${s.room_number})` : ''}</td>
-                                    <td class="${s.score}-cell" style="font-weight:bold; text-transform:uppercase;">${s.score}</td>
-                                    <td>${s.examiner_name || ''}</td>
-                                    <td>${s.comments || ''}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-
-                    <h2>Longitudinal Summary (All Exams)</h2>
-                    <p>Pass: ${stats.pass || 0} | Marginal: ${stats.marginal || 0} | Fail: ${stats.fail || 0} |
-                       Total: ${(stats.pass || 0) + (stats.marginal || 0) + (stats.fail || 0)} questions across all exams</p>
-
-                    <div style="margin-top: 30px; display: flex; gap: 40px;">
-                        <div><strong>Program Director Signature:</strong> ________________________</div>
-                        <div><strong>Date:</strong> ____________</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        loadExams();
-    </script>
+loadExams();
+</script>
 </body>
 </html>
