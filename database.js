@@ -229,6 +229,9 @@ async function initializeDatabase() {
         await db.execute('ALTER TABLE repo_files ADD COLUMN specialty TEXT');
     } catch (e) { /* column may already exist */ }
     try {
+        await db.execute('ALTER TABLE files ADD COLUMN assigned_examiner_id INTEGER REFERENCES examiners(id) ON DELETE SET NULL');
+    } catch (e) { /* column may already exist */ }
+    try {
         await db.execute('ALTER TABLE exams ADD COLUMN start_time DATETIME');
     } catch (e) { /* column may already exist */ }
     try {

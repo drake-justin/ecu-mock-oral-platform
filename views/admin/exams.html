@@ -241,8 +241,18 @@ function renderRoom(room){
                         ${allRepoFiles.map(f=>`<option value="${f.id}">${f.display_name} [${f.category}]${f.specialty?' - '+f.specialty:''}</option>`).join('')}</select>
                     <button class="btn btn-primary btn-xs" onclick="addContent(${rn})">Add</button>
                 </div>
-                ${room.files.length?room.files.map(f=>`<div class="room-item"><span>${catLabel(f.item_type)} ${f.display_name}</span>
-                    <button class="btn btn-xs btn-danger" onclick="removeFile(${f.id})">&times;</button></div>`).join('')
+                ${room.files.length?room.files.map(f=>{
+                    const isStm=f.item_type==='stem';
+                    return `<div class="room-item">
+                        <span>${catLabel(f.item_type)} ${f.display_name}</span>
+                        <span style="display:flex;align-items:center;gap:4px">
+                            ${isStm?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${f.id},this.value)">
+                                <option value="">Unassigned</option>
+                                ${room.examiners.map(ex=>`<option value="${ex.id}" ${f.assigned_examiner_id===ex.id||f.assigned_examiner_name===ex.name?'selected':''}>${ex.name}</option>`).join('')}
+                            </select>`:`${f.assigned_examiner_name?`<span style="font-size:11px;color:#888">${f.assigned_examiner_name}</span>`:''}`}
+                            <button class="btn btn-xs btn-danger" onclick="removeFile(${f.id})">&times;</button>
+                        </span>
+                    </div>`}).join('')
                 :'<div style="color:#999;font-size:13px">No content added.</div>'}
             </div>
 
@@ -296,6 +306,9 @@ async function addContent(rn){
     const r=await fetch('/admin/files/from-repository',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({examId:currentExamId,repositoryIds:ids,roomNumber:rn})});
     const d=await r.json();if(d.success){msg(`Added ${d.added} file(s) to Room ${rn}.`,'success');loadRooms()}else msg(d.error,'error')}
 async function removeFile(id){await fetch(`/admin/files/${id}`,{method:'DELETE'});loadRooms()}
+async function assignExaminerToQ(fileId,examinerId){
+    await fetch(`/admin/exams/${currentExamId}/assign-examiner-to-question`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileId,examinerId:examinerId||null})});
+    loadRooms()}
 
 async function assignRes(rn){
     const ids=[...document.getElementById('res-'+rn).selectedOptions].map(o=>parseInt(o.value));

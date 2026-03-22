@@ -83,24 +83,34 @@ router.get('/data', requireExaminer, async (req, res) => {
             args: [examId]
         });
 
-        // Get files for this exam with repo linkage for grouping
+        // Get files for this exam with repo linkage and examiner assignment
         let filesQuery, filesArgs;
         if (roomNumber) {
-            filesQuery = `SELECT f.*, r.id as repo_id, r.specialty, r.category as repo_category, r.related_stem_id as repo_related_stem_id
+            filesQuery = `SELECT f.*, r.id as repo_id, r.specialty, r.category as repo_category, r.related_stem_id as repo_related_stem_id,
+                                 ex.name as assigned_examiner_name, ex.id as assigned_examiner_id_val
                           FROM files f
                           LEFT JOIN repo_files r ON f.public_id = r.public_id
+                          LEFT JOIN examiners ex ON f.assigned_examiner_id = ex.id
                           WHERE f.exam_id = ? AND (f.room_number = ? OR f.room_number IS NULL)
                           ORDER BY f.sort_order, f.id`;
             filesArgs = [examId, roomNumber];
         } else {
-            filesQuery = `SELECT f.*, r.id as repo_id, r.specialty, r.category as repo_category, r.related_stem_id as repo_related_stem_id
+            filesQuery = `SELECT f.*, r.id as repo_id, r.specialty, r.category as repo_category, r.related_stem_id as repo_related_stem_id,
+                                 ex.name as assigned_examiner_name, ex.id as assigned_examiner_id_val
                           FROM files f
                           LEFT JOIN repo_files r ON f.public_id = r.public_id
+                          LEFT JOIN examiners ex ON f.assigned_examiner_id = ex.id
                           WHERE f.exam_id = ?
                           ORDER BY f.room_number, f.sort_order, f.id`;
             filesArgs = [examId];
         }
         const files = await db.execute({ sql: filesQuery, args: filesArgs });
+
+        // Get all examiners for this room (for the assignment dropdown)
+        const roomExaminers = await db.execute({
+            sql: 'SELECT id, name FROM examiners WHERE exam_id = ? AND (room_number = ? OR room_number IS NULL)',
+            args: [examId, roomNumber || 0]
+        });
 
         // Get residents assigned to this exam
         const residents = await db.execute({
@@ -121,11 +131,13 @@ router.get('/data', requireExaminer, async (req, res) => {
 
         res.json({
             exam: exam.rows[0],
+            examinerId: examinerId,
             examinerName,
             roomNumber,
             files: files.rows,
             residents: residents.rows,
-            scores: scores.rows
+            scores: scores.rows,
+            roomExaminers: roomExaminers.rows
         });
     } catch (err) {
         console.error(err);
@@ -171,6 +183,59 @@ router.post('/score', requireExaminer, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to save scores' });
+    }
+});
+
+// Claim/unclaim a question (examiner assigns themselves)
+router.post('/claim-question/:fileId', requireExaminer, async (req, res) => {
+    const fileId = parseInt(req.params.fileId);
+    const examId = req.session.examiner.examId;
+    const examinerId = req.session.examiner.id;
+
+    try {
+        const file = await db.execute({
+            sql: 'SELECT * FROM files WHERE id = ? AND exam_id = ?',
+            args: [fileId, examId]
+        });
+        if (!file.rows[0]) return res.status(404).json({ error: 'File not found' });
+
+        // Toggle: if already claimed by this examiner, unclaim; otherwise claim
+        const currentAssigned = file.rows[0].assigned_examiner_id;
+        const newAssigned = currentAssigned === examinerId ? null : examinerId;
+
+        // Find all linked files via repo
+        const pubId = file.rows[0].public_id;
+        const repo = await db.execute({ sql: 'SELECT id, related_stem_id, category FROM repo_files WHERE public_id = ?', args: [pubId] });
+        let stemRepoId = null;
+        if (repo.rows[0]) {
+            if (repo.rows[0].category === 'stem') stemRepoId = repo.rows[0].id;
+            else if (repo.rows[0].related_stem_id) stemRepoId = repo.rows[0].related_stem_id;
+        }
+
+        if (stemRepoId) {
+            const linked = await db.execute({
+                sql: 'SELECT public_id FROM repo_files WHERE id = ? OR related_stem_id = ?',
+                args: [stemRepoId, stemRepoId]
+            });
+            for (const r of linked.rows) {
+                if (r.public_id) {
+                    await db.execute({
+                        sql: 'UPDATE files SET assigned_examiner_id = ? WHERE exam_id = ? AND public_id = ?',
+                        args: [newAssigned, examId, r.public_id]
+                    });
+                }
+            }
+        } else {
+            await db.execute({
+                sql: 'UPDATE files SET assigned_examiner_id = ? WHERE id = ?',
+                args: [newAssigned, fileId]
+            });
+        }
+
+        res.json({ success: true, claimed: newAssigned !== null });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to claim question' });
     }
 });
 

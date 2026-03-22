@@ -151,7 +151,10 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
         });
 
         const files = await db.execute({
-            sql: 'SELECT * FROM files WHERE exam_id = ? ORDER BY room_number, sort_order',
+            sql: `SELECT f.*, ex.name as assigned_examiner_name
+                  FROM files f
+                  LEFT JOIN examiners ex ON f.assigned_examiner_id = ex.id
+                  WHERE f.exam_id = ? ORDER BY f.room_number, f.sort_order`,
             args: [examId]
         });
 
@@ -513,6 +516,53 @@ router.delete('/exams/:examId/room-assignments/:id', requireAdmin, async (req, r
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Failed to remove room assignment' });
+    }
+});
+
+// Assign an examiner to a question (stem + linked files)
+router.post('/exams/:examId/assign-examiner-to-question', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    const { fileId, examinerId } = req.body;
+    try {
+        // Get the file's repo stem ID to find all linked files
+        const file = await db.execute({ sql: 'SELECT * FROM files WHERE id = ? AND exam_id = ?', args: [parseInt(fileId), examId] });
+        if (!file.rows[0]) return res.status(404).json({ error: 'File not found' });
+
+        const pubId = file.rows[0].public_id;
+        // Find the repo stem ID
+        const repo = await db.execute({ sql: 'SELECT id, related_stem_id, category FROM repo_files WHERE public_id = ?', args: [pubId] });
+        let stemRepoId = null;
+        if (repo.rows[0]) {
+            if (repo.rows[0].category === 'stem') stemRepoId = repo.rows[0].id;
+            else if (repo.rows[0].related_stem_id) stemRepoId = repo.rows[0].related_stem_id;
+        }
+
+        const eid = examinerId ? parseInt(examinerId) : null;
+
+        if (stemRepoId) {
+            // Get all public_ids linked to this stem (stem itself + linked files)
+            const linked = await db.execute({
+                sql: 'SELECT public_id FROM repo_files WHERE id = ? OR related_stem_id = ?',
+                args: [stemRepoId, stemRepoId]
+            });
+            const pids = linked.rows.map(r => r.public_id).filter(Boolean);
+            for (const pid of pids) {
+                await db.execute({
+                    sql: 'UPDATE files SET assigned_examiner_id = ? WHERE exam_id = ? AND public_id = ?',
+                    args: [eid, examId, pid]
+                });
+            }
+        } else {
+            // Just assign the single file
+            await db.execute({
+                sql: 'UPDATE files SET assigned_examiner_id = ? WHERE id = ?',
+                args: [eid, parseInt(fileId)]
+            });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to assign examiner' });
     }
 });
 

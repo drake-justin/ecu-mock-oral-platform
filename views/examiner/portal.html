@@ -243,19 +243,29 @@ function renderQuestions(grouped){
         return;
     }
 
+    const myId=portalData.examinerId;
+    const examiners=portalData.roomExaminers||[];
+
     let imgLetter=65; // A
     let html=cases.map((c,i)=>{
         const name=getCaseName(c);
         const qNum=i+1;
-        // Generate masked image names for this case
         const imgLabels=c.images.map(()=>{const l=String.fromCharCode(imgLetter);imgLetter++;return 'Image '+l});
+        const assignedId=c.stem?.assigned_examiner_id_val||c.stem?.assigned_examiner_id||null;
+        const assignedName=c.stem?.assigned_examiner_name||null;
+        const isMyQuestion=assignedId===myId;
+        const isClaimed=assignedId!==null;
 
-        return `<div class="case-card">
+        return `<div class="case-card" style="${isClaimed&&!isMyQuestion?'opacity:0.6':''}">
             <div class="case-header">
                 <h3>Question ${qNum}: ${name}</h3>
-                <div>
-                    <span class="masked-name" style="background:rgba(255,255,255,0.2);color:white">Examinee sees: "Question ${qNum}"</span>
-                    ${c.specialty?`<span class="specialty" style="margin-left:8px">${c.specialty}</span>`:''}
+                <div style="display:flex;align-items:center;gap:8px">
+                    ${assignedName?`<span style="background:rgba(255,255,255,0.2);color:white;padding:3px 10px;border-radius:12px;font-size:12px">${assignedName}</span>`:''}
+                    <button onclick="claimQuestion(${c.stem?.id})" class="btn btn-sm" style="font-size:11px;padding:3px 10px;${isMyQuestion?'background:#28a745;color:white;border-color:#28a745':'background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4)'}">
+                        ${isMyQuestion?'My Question':isClaimed?'Reassign to Me':'Claim'}
+                    </button>
+                    <span class="masked-name" style="background:rgba(255,255,255,0.2);color:white">Examinee: "Q${qNum}"</span>
+                    ${c.specialty?`<span class="specialty" style="margin-left:4px">${c.specialty}</span>`:''}
                 </div>
             </div>
             <div class="case-body">
@@ -309,6 +319,14 @@ function renderCredentials(){
                     ${r.is_used?'Reset':'Available'}</button>
             </div>
         </div>`).join('')}</div>`;
+}
+
+async function claimQuestion(fileId){
+    try{
+        const res=await fetch('/examiner/claim-question/'+fileId,{method:'POST'});
+        const d=await res.json();
+        if(d.success){loadData()}else alert(d.error||'Failed')
+    }catch(e){alert('Failed to claim question')}
 }
 
 async function removeFile(fileId){
