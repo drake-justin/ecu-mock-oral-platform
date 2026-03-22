@@ -668,9 +668,9 @@ router.delete('/files/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// Add files from repository to exam
+// Add files from repository to exam (with optional room number)
 router.post('/files/from-repository', requireAdmin, async (req, res) => {
-    const { examId, repositoryIds } = req.body;
+    const { examId, repositoryIds, roomNumber } = req.body;
 
     if (!examId || !repositoryIds || !Array.isArray(repositoryIds) || repositoryIds.length === 0) {
         return res.status(400).json({ error: 'Exam ID and repository file IDs are required' });
@@ -696,8 +696,8 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
             if (repoFile) {
                 // Add to exam files (reference the same Cloudinary file)
                 const result = await db.execute({
-                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder]
+                    sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null]
                 });
 
                 added.push({
@@ -717,8 +717,8 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
                     for (const img of linkedImages.rows) {
                         const imgResult = await db.execute({
-                            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                            args: [parseInt(examId), img.display_name, img.filename, img.file_url, img.public_id, img.file_type, sortOrder]
+                            sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                            args: [parseInt(examId), img.display_name, img.filename, img.file_url, img.public_id, img.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null]
                         });
 
                         added.push({
@@ -733,7 +733,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
             }
         }
 
-        res.json({ success: true, added });
+        res.json({ success: true, added: added.length, files: added });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to add files to exam' });
