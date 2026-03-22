@@ -881,6 +881,39 @@ router.get('/repository', requireAdmin, (req, res) => {
     res.sendFile('admin/repository.html', { root: './views' });
 });
 
+// Debug email endpoint - temporary
+router.get('/email-test/:examId', async (req, res) => {
+    const examId = parseInt(req.params.examId);
+    try {
+        if (!emailModule) return res.json({ error: 'Email module not loaded', ok: false });
+
+        const verify = await emailModule.verifyEmailConfig();
+        if (!verify) return res.json({ error: 'Gmail config invalid', ok: false });
+
+        const examiners = await db.execute({
+            sql: "SELECT * FROM examiners WHERE exam_id = ? AND email IS NOT NULL AND email != ''",
+            args: [examId]
+        });
+
+        const residents = await db.execute({
+            sql: "SELECT r.email FROM exam_residents er JOIN residents r ON er.resident_id = r.id WHERE er.exam_id = ? AND r.email IS NOT NULL AND r.email != ''",
+            args: [examId]
+        });
+
+        res.json({
+            ok: true,
+            emailModuleLoaded: !!emailModule,
+            gmailVerified: verify,
+            examId,
+            examinersWithEmail: examiners.rows.length,
+            examinerEmails: examiners.rows.map(e => e.email),
+            residentsWithEmail: residents.rows.length,
+        });
+    } catch (err) {
+        res.json({ error: err.message, ok: false });
+    }
+});
+
 // Repository data endpoint (no auth required - used as fallback)
 router.get('/repository/debug', async (req, res) => {
     try {
