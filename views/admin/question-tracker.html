@@ -119,22 +119,30 @@
                 <!-- Manage Residents -->
                 <div class="manage-section">
                     <h4>Manage Residents</h4>
-                    <div class="add-resident-form">
-                        <input type="text" id="new-res-name" placeholder="Full Name, MD" style="flex: 2; min-width: 150px;">
-                        <select id="new-res-pgy" style="width: 80px;">
-                            <option value="1">PGY-1</option>
-                            <option value="2">PGY-2</option>
-                            <option value="3">PGY-3</option>
-                            <option value="4">PGY-4</option>
-                            <option value="5">PGY-5</option>
-                        </select>
-                        <input type="number" id="new-res-year" placeholder="Start Year" value="2026" style="width: 90px;">
-                        <button class="btn btn-primary btn-sm" onclick="addResident()">Add</button>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <button class="btn btn-secondary btn-sm" onclick="advanceYear()" style="font-size: 12px;">
-                            Advance All (July Rollover)
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Sync pulls current residents from the ECU Surgery website and adds any new ones automatically.</p>
+                    <button class="btn btn-primary btn-sm" onclick="syncResidents()" id="sync-btn" style="width: 100%; margin-bottom: 8px;">
+                        Sync from ECU Website
+                    </button>
+                    <details style="margin-top: 8px;">
+                        <summary style="font-size: 12px; color: #666; cursor: pointer;">Manual Add</summary>
+                        <div class="add-resident-form" style="margin-top: 8px;">
+                            <input type="text" id="new-res-name" placeholder="Full Name, MD" style="flex: 2; min-width: 150px;">
+                            <select id="new-res-pgy" style="width: 80px;">
+                                <option value="1">PGY-1</option>
+                                <option value="2">PGY-2</option>
+                                <option value="3">PGY-3</option>
+                                <option value="4">PGY-4</option>
+                                <option value="5">PGY-5</option>
+                            </select>
+                            <input type="number" id="new-res-year" placeholder="Start Year" value="2026" style="width: 90px;">
+                            <button class="btn btn-primary btn-sm" onclick="addResident()">Add</button>
+                        </div>
+                    </details>
+                    <div style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
+                        <button class="btn btn-secondary btn-sm" onclick="advanceYear()" style="font-size: 12px; width: 100%;">
+                            July Rollover (Advance All)
                         </button>
+                        <p style="font-size: 11px; color: #999; margin-top: 4px;">Graduates PGY-5s, advances everyone by 1 year.</p>
                     </div>
                 </div>
             </div>
@@ -428,6 +436,34 @@
                     if (selectedResidentId) selectResident(selectedResidentId);
                 } else { alert(data.error); }
             } catch (err) { alert('Failed to import'); }
+        }
+
+        async function syncResidents() {
+            const btn = document.getElementById('sync-btn');
+            btn.textContent = 'Syncing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/admin/question-tracker/sync-residents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    let msg = `Sync complete!\n\nFound ${data.scraped} residents on ECU website.\n`;
+                    msg += `Added: ${data.added} new\n`;
+                    msg += `Updated: ${data.updated} existing`;
+                    alert(msg);
+                    loadResidents();
+                } else {
+                    alert(data.error || 'Sync failed');
+                }
+            } catch (err) {
+                alert('Failed to sync: ' + err.message);
+            } finally {
+                btn.textContent = 'Sync from ECU Website';
+                btn.disabled = false;
+            }
         }
 
         async function addResident() {

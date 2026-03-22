@@ -4,6 +4,8 @@ const router = express.Router();
 const { db, generatePassword, generateUsername } = require('../database');
 const { upload, deleteFile } = require('../cloudinary');
 const { requireAdmin } = require('../middleware/auth');
+let cheerio;
+try { cheerio = require('cheerio'); } catch (e) { /* cheerio not installed */ }
 
 // Admin dashboard
 router.get('/', requireAdmin, (req, res) => {
@@ -752,6 +754,123 @@ router.post('/question-tracker/advance-year', requireAdmin, async (req, res) => 
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to advance year' });
+    }
+});
+
+// Sync residents from ECU surgery website
+router.post('/question-tracker/sync-residents', requireAdmin, async (req, res) => {
+    if (!cheerio) {
+        return res.status(500).json({ error: 'cheerio package not installed. Run: npm install cheerio' });
+    }
+
+    const ECU_URL = 'https://surgery.ecu.edu/residency/current-residents/meet-the-residents/';
+
+    try {
+        // Fetch the ECU residents page
+        const response = await fetch(ECU_URL);
+        if (!response.ok) throw new Error(`Failed to fetch page: ${response.status}`);
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Map heading text to PGY levels
+        const pgyMap = {
+            'chief residents': { pgy: 5, status: 'active' },
+            'chief': { pgy: 5, status: 'active' },
+            'fifth year': { pgy: 5, status: 'active' },
+            'fourth year': { pgy: 4, status: 'active' },
+            'research': { pgy: 4, status: 'research' },
+            'research year': { pgy: 4, status: 'research' },
+            'third year': { pgy: 3, status: 'active' },
+            'second year': { pgy: 2, status: 'active' },
+            'first year': { pgy: 1, status: 'active' },
+        };
+
+        // Parse residents from the page
+        const scrapedResidents = [];
+        let currentPgy = null;
+        let currentStatus = 'active';
+
+        // Walk through the content looking for h2 headings and strong/bold names
+        const content = $('.entry-content, .page-content, article, main, #content, .content-area').first();
+        const container = content.length ? content : $('body');
+
+        container.find('h2, strong, b').each(function() {
+            const el = $(this);
+            const text = el.text().trim();
+
+            // Check if this is a year heading
+            if (el.is('h2')) {
+                const lower = text.toLowerCase();
+                for (const [key, val] of Object.entries(pgyMap)) {
+                    if (lower.includes(key)) {
+                        currentPgy = val.pgy;
+                        currentStatus = val.status;
+                        break;
+                    }
+                }
+                return;
+            }
+
+            // Check if this is a resident name (contains MD or DO)
+            if (currentPgy && (text.includes(', MD') || text.includes(', DO'))) {
+                // Filter out school names - they typically contain words like University, School, College, Medical
+                const schoolWords = ['university', 'school', 'college', 'medical', 'institute'];
+                const isSchool = schoolWords.some(w => text.toLowerCase().includes(w));
+                if (!isSchool) {
+                    scrapedResidents.push({
+                        name: text.trim(),
+                        pgy: currentPgy,
+                        status: currentStatus
+                    });
+                }
+            }
+        });
+
+        if (scrapedResidents.length === 0) {
+            return res.status(400).json({ error: 'Could not find any residents on the page. The page structure may have changed.' });
+        }
+
+        // Get existing residents
+        const existing = await db.execute('SELECT name FROM residents');
+        const existingNames = new Set(existing.rows.map(r => r.name.toLowerCase()));
+
+        // Determine current academic year for start_year
+        const now = new Date();
+        const currentYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+
+        // Insert new residents, update PGY for existing ones
+        let added = 0;
+        let updated = 0;
+
+        for (const r of scrapedResidents) {
+            if (existingNames.has(r.name.toLowerCase())) {
+                // Update PGY level and status for existing residents
+                await db.execute({
+                    sql: 'UPDATE residents SET pgy_level = ?, status = ? WHERE LOWER(name) = LOWER(?)',
+                    args: [r.pgy, r.status, r.name]
+                });
+                updated++;
+            } else {
+                // Calculate start year from PGY level
+                const startYear = currentYear - r.pgy + 1;
+                await db.execute({
+                    sql: 'INSERT INTO residents (name, pgy_level, start_year, status) VALUES (?, ?, ?, ?)',
+                    args: [r.name, r.pgy, startYear, r.status]
+                });
+                added++;
+            }
+        }
+
+        res.json({
+            success: true,
+            scraped: scrapedResidents.length,
+            added,
+            updated,
+            residents: scrapedResidents
+        });
+    } catch (err) {
+        console.error('Sync residents error:', err);
+        res.status(500).json({ error: 'Failed to sync residents: ' + err.message });
     }
 });
 
