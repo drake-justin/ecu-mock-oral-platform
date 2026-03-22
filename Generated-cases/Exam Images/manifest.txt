@@ -1,0 +1,337 @@
+ECU Mock Oral Exam - Generated Cases Manifest
+============================================================
+
+Case: Volvulus
+  File: 01_Volvulus.docx
+  Stem: stems/01_Volvulus.jpg
+  Images: (none)
+
+Case: Pancreatic Pseudocyst
+  File: 02_Pancreatic_Pseudocyst.docx
+  Stem: stems/02_Pancreatic_Pseudocyst.jpg
+  Images: (none)
+
+Case: Pediatric Duodenal Hematoma
+  File: 03_Pediatric_Duodenal_Hematoma.docx
+  Stem: stems/03_Pediatric_Duodenal_Hematoma.jpg
+  Images: (none)
+
+Case: Pediatric Pyloric Stenosis
+  File: 04_Pediatric_Pyloric_Stenosis.docx
+  Stem: stems/04_Pediatric_Pyloric_Stenosis.jpg
+  Images: (none)
+
+Case: Pelvic Fracture
+  File: 05_Pelvic_Fracture.docx
+  Stem: stems/05_Pelvic_Fracture.jpg
+  Images: (none)
+
+Case: Penetrating Trauma — Zone II Neck
+  File: 06_Penetrating_Trauma_Zone_II_Neck.docx
+  Stem: stems/06_Penetrating_Trauma_Zone_II_Neck.jpg
+  Images: (none)
+
+Case: Perforated Appendicitis
+  File: 07_Perforated_Appendicitis.docx
+  Stem: stems/07_Perforated_Appendicitis.jpg
+  Images: (none)
+
+Case: Perforated Duodenal Ulcer
+  File: 08_Perforated_Duodenal_Ulcer.docx
+  Stem: stems/08_Perforated_Duodenal_Ulcer.jpg
+  Images: (none)
+
+Case: Pulsatile Abdominal Mass / AAA
+  File: 09_Pulsatile_Abdominal_Mass.docx
+  Stem: stems/09_Pulsatile_Abdominal_Mass.jpg
+  Images: (none)
+
+Case: Rectal Prolapse
+  File: 10_Rectal_Prolapse.docx
+  Stem: stems/10_Rectal_Prolapse.jpg
+  Images: (none)
+
+Case: Soft Tissue Sarcoma
+  File: 11_Sarcoma.docx
+  Stem: stems/11_Sarcoma.jpg
+  Images: (none)
+
+Case: Splenectomy for ITP
+  File: 12_Splenectomy_ITP.docx
+  Stem: stems/12_Splenectomy_ITP.jpg
+  Images: (none)
+
+Case: Spontaneous Pneumothorax
+  File: 13_Spontaneous_Pneumothorax.docx
+  Stem: stems/13_Spontaneous_Pneumothorax.jpg
+  Images: (none)
+
+Case: Tracheoesophageal Fistula
+  File: 14_TE_Fistula.docx
+  Stem: stems/14_TE_Fistula.jpg
+  Images: (none)
+
+Case: Thoracic Vascular Injury / ED Thoracotomy
+  File: 15_Thoracic_Vascular_Injury.docx
+  Stem: stems/15_Thoracic_Vascular_Injury.jpg
+  Images: (none)
+
+Case: Toxic Megacolon
+  File: 16_Toxic_Megacolon.docx
+  Stem: stems/16_Toxic_Megacolon.jpg
+  Images: (none)
+
+Case: UGI Bleed — GE Varices
+  File: 17_UGI_Bleed_Varices.docx
+  Stem: stems/17_UGI_Bleed_Varices.jpg
+  Images: (none)
+
+Case: Umbilical Hernia in a Cirrhotic
+  File: 18_Umbilical_Hernia_Cirrhotic.docx
+  Stem: stems/18_Umbilical_Hernia_Cirrhotic.jpg
+  Images: (none)
+
+Case: Ventilator-Associated Pneumonia
+  File: 19_VAP.docx
+  Stem: stems/19_VAP.jpg
+  Images: (none)
+
+Case: High-Voltage Electrical Injury
+  File: 20_Electric_Injury.docx
+  Stem: stems/20_Electric_Injury.jpg
+  Images: (none)
+
+Case: Abdominal Compartment Syndrome
+  File: 21_Abdominal_Compartment_Syndrome.docx
+  Stem: stems/21_Abdominal_Compartment_Syndrome.jpg
+  Images: (none)
+
+Case: Post-Colonoscopy Perforation
+  File: 22_Colonoscopy_Perforation.docx
+  Stem: stems/22_Colonoscopy_Perforation.jpg
+  Images: (none)
+
+Case: Complex Abdominal Wall Reconstruction
+  File: 23_Abdominal_Wall_Reconstruction.docx
+  Stem: stems/23_Abdominal_Wall_Reconstruction.jpg
+  Images: (none)
+
+Case: Locally Advanced / Inflammatory Breast Cancer
+  File: 24_Advanced_Breast_Cancer.docx
+  Stem: stems/24_Advanced_Breast_Cancer.jpg
+  Images: (none)
+
+Case: Airway Emergency / Failed Airway
+  File: 25_Airway_Emergency.docx
+  Stem: stems/25_Airway_Emergency.jpg
+  Images: (none)
+
+Case: Anal Canal Cancer — SCC
+  File: 26_Anal_Cancer.docx
+  Stem: stems/26_Anal_Cancer.jpg
+  Images: (none)
+
+Case: Anal Fissure
+  File: 27_Anal_Fissure.docx
+  Stem: stems/27_Anal_Fissure.jpg
+  Images: (none)
+
+Case: Appendiceal Carcinoid / NET
+  File: 28_Appendiceal_Carcinoid.docx
+  Stem: stems/28_Appendiceal_Carcinoid.jpg
+  Images: (none)
+
+Case: Critical Limb Ischemia / Infrainguinal Bypass
+  File: 29_Arterial_Insufficiency.docx
+  Stem: stems/29_Arterial_Insufficiency.jpg
+  Images: (none)
+
+Case: AV Fistula Outflow Stenosis
+  File: 30_AV_Fistula_Outflow_Stenosis.docx
+  Stem: stems/30_AV_Fistula_Outflow_Stenosis.jpg
+  Images: (none)
+
+Case: Boerhaave's Syndrome — Spontaneous Esophageal Perforation
+  File: 31_Boerhaave_Esophagus.docx
+  Stem: stems/31_Boerhaave_Esophagus.jpg
+  Images: (none)
+
+Case: Breast Cancer in Pregnancy
+  File: 32_Breast_Cancer_Pregnancy.docx
+  Stem: stems/32_Breast_Cancer_Pregnancy.jpg
+  Images: (none)
+
+Case: Ductal Carcinoma In Situ (DCIS)
+  File: 33_Breast_DCIS.docx
+  Stem: stems/33_Breast_DCIS.jpg
+  Images: (none)
+
+Case: Breast Ductal Papilloma / Nipple Discharge
+  File: 34_Breast_Ductal_Papilloma.docx
+  Stem: stems/34_Breast_Ductal_Papilloma.jpg
+  Images: (none)
+
+Case: Lobular Carcinoma In Situ (LCIS)
+  File: 35_Breast_LCIS.docx
+  Stem: stems/35_Breast_LCIS.jpg
+  Images: (none)
+
+Case: Thermal Burns and Inhalation Injury
+  File: 36_Burn.docx
+  Stem: stems/36_Burn.jpg
+  Images: (none)
+
+Case: Carotid Artery Stenosis / TIA
+  File: 37_Carotid_Artery_Stenosis.docx
+  Stem: stems/37_Carotid_Artery_Stenosis.jpg
+  Images: (none)
+
+Case: Cholecystectomy Complications — Bile Duct Injury
+  File: 38_Cholecystectomy_Complications.docx
+  Stem: stems/38_Cholecystectomy_Complications.jpg
+  Images: (none)
+
+Case: Enterocutaneous Fistula
+  File: 39_EC_Fistula.docx
+  Stem: stems/39_EC_Fistula.jpg
+  Images: (none)
+
+Case: Enterovesicular Fistula — Crohn's
+  File: 40_Enterovesicular_Fistula_Crohns.docx
+  Stem: stems/40_Enterovesicular_Fistula_Crohns.jpg
+  Images: (none)
+
+Case: Gallstone Ileus
+  File: 41_Gallstone_Ileus.docx
+  Stem: stems/41_Gallstone_Ileus.jpg
+  Images: (none)
+
+Case: Gastric Adenocarcinoma
+  File: 42_Gastric_Mass.docx
+  Stem: stems/42_Gastric_Mass.jpg
+  Images: (none)
+
+Case: Obscure GI Bleeding / Meckel's Diverticulum
+  File: 43_GI_Bleeding.docx
+  Stem: stems/43_GI_Bleeding.jpg
+  Images: (none)
+
+Case: Gastrointestinal Stromal Tumor (GIST)
+  File: 44_GIST.docx
+  Stem: stems/44_GIST.jpg
+  Images: (none)
+
+Case: Hepatic Abscess
+  File: 45_Hepatic_Abscess.docx
+  Stem: stems/45_Hepatic_Abscess.jpg
+  Images: (none)
+
+Case: Hirschsprung's Disease
+  File: 46_Hirschsprung_Disease.docx
+  Stem: stems/46_Hirschsprung_Disease.jpg
+  Images: (none)
+
+Case: Incarcerated Femoral Hernia
+  File: 47_Incarcerated_Femoral_Hernia.docx
+  Stem: stems/47_Incarcerated_Femoral_Hernia.jpg
+  Images: (none)
+
+Case: Incarcerated Inguinal Hernia
+  File: 48_Incarcerated_Inguinal_Hernia.docx
+  Stem: stems/48_Incarcerated_Inguinal_Hernia.jpg
+  Images: (none)
+
+Case: Infected Ventral Hernia Mesh
+  File: 49_Infected_Ventral_Hernia_Mesh.docx
+  Stem: stems/49_Infected_Ventral_Hernia_Mesh.jpg
+  Images: (none)
+
+Case: Intussusception
+  File: 50_Intussusception.docx
+  Stem: stems/50_Intussusception.jpg
+  Images: (none)
+
+Case: Ischemic Colitis — Post-Operative Leak
+  File: 51_Ischemic_Colitis.docx
+  Stem: stems/51_Ischemic_Colitis.jpg
+  Images: (none)
+
+Case: Acute Limb Ischemia After Bypass
+  File: 52_Ischemic_Lower_Extremity.docx
+  Stem: stems/52_Ischemic_Lower_Extremity.jpg
+  Images: (none)
+
+Case: Large AAA with Synchronous Colon Cancer
+  File: 53_AAA_with_Colon_Cancer.docx
+  Stem: stems/53_AAA_with_Colon_Cancer.jpg
+  Images: (none)
+
+Case: Anastomotic Leak After Bariatric Surgery
+  File: 54_Bariatric_Leak.docx
+  Stem: stems/54_Bariatric_Leak.jpg
+  Images: (none)
+
+Case: Colorectal Liver Metastasis
+  File: 55_Liver_Metastasis.docx
+  Stem: stems/55_Liver_Metastasis.jpg
+  Images: (none)
+
+Case: Low Rectal Cancer
+  File: 56_Low_Rectal_Cancer.docx
+  Stem: stems/56_Low_Rectal_Cancer.jpg
+  Images: (none)
+
+Case: Melanoma
+  File: 57_Melanoma.docx
+  Stem: stems/57_Melanoma.jpg
+  Images: (none)
+
+Case: MVC — Pelvic Fracture with Multi-System Trauma
+  File: 58_MVC_Pelvic_Fracture.docx
+  Stem: stems/58_MVC_Pelvic_Fracture.jpg
+  Images: (none)
+
+Case: Pediatric Caustic Esophageal Ingestion
+  File: 59_Pediatric_Esophageal_Burn.docx
+  Stem: stems/59_Pediatric_Esophageal_Burn.jpg
+  Images: (none)
+
+Case: Pancreatic Injury — Blunt Trauma
+  File: 60_Pancreatic_MVC.docx
+  Stem: stems/60_Pancreatic_MVC.jpg
+  Images: (none)
+
+Case: Thyroid Nodule / Differentiated Thyroid Cancer
+  File: G1_Thyroid_Nodule_Cancer.docx
+  Stem: stems/G1_Thyroid_Nodule_Cancer.jpg
+  Images: (none)
+
+Case: Primary Hyperparathyroidism / Parathyroidectomy
+  File: G2_Primary_Hyperparathyroidism.docx
+  Stem: stems/G2_Primary_Hyperparathyroidism.jpg
+  Images: (none)
+
+Case: Acute Pancreatitis
+  File: G3_Acute_Pancreatitis.docx
+  Stem: stems/G3_Acute_Pancreatitis.jpg
+  Images: (none)
+
+Case: Pancreatic Adenocarcinoma / Whipple Procedure
+  File: G4_Pancreatic_Cancer_Whipple.docx
+  Stem: stems/G4_Pancreatic_Cancer_Whipple.jpg
+  Images: (none)
+
+Case: Acute Diverticulitis
+  File: G5_Diverticulitis.docx
+  Stem: stems/G5_Diverticulitis.jpg
+  Images: (none)
+
+Case: Colon Adenocarcinoma
+  File: G6_Colon_Cancer.docx
+  Stem: stems/G6_Colon_Cancer.jpg
+  Images: (none)
+
+============================================================
+Total cases: 66
+Stem JPGs: 66
+Clinical images: 0
