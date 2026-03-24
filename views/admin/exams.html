@@ -129,7 +129,7 @@
 <script>
 let currentExamId=null, allRepoFiles=[], allFaculty=[], allResidents=[];
 
-function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function H(s){if(s==null)return'';var o={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return String(s).replace(/[&<>"']/g,function(c){return o[c]})}
 
 function msg(t,type){const m=document.getElementById('message');m.textContent=t;m.className=`alert alert-${type}`;m.style.display='block';setTimeout(()=>m.style.display='none',4000)}
 
