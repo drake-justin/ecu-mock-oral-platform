@@ -81,9 +81,10 @@ app.use((req, res, next) => {
     if (origin && hostMatches(origin)) return next();
     if (referer && hostMatches(referer)) return next();
 
-    // Allow requests with neither header (same-origin nav, curl, etc.)
+    // Allow requests with no usable origin/referer (same-origin nav, form POSTs, etc.)
+    // Browsers send Origin: "null" (literal string) in some same-site scenarios
     // sameSite: 'strict' cookie already blocks cross-origin cookie sending
-    if (!origin && !referer) return next();
+    if ((!origin || origin === 'null') && !referer) return next();
 
     // Log blocked requests for debugging
     console.warn('CSRF blocked:', { method: req.method, path: req.path, origin, referer, host: req.get('host'), hostname: req.hostname });
