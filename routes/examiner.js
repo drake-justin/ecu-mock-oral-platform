@@ -1,7 +1,6 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { db } = require('../database');
+const { db, verifyPassword } = require('../database');
 const { requireExaminer, rateLimiter, recordLoginAttempt, clearLoginAttempts } = require('../middleware/auth');
 
 // Examiner login page
@@ -28,7 +27,7 @@ router.post('/login', rateLimiter, async (req, res) => {
 
         const examiner = result.rows[0];
 
-        if (!examiner || !bcrypt.compareSync(password, examiner.password)) {
+        if (!examiner || !verifyPassword(password, examiner.password)) {
             recordLoginAttempt(req.ip);
             return res.status(401).json({ error: 'Invalid credentials' });
         }

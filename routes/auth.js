@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
-const { db } = require('../database');
+const { db, verifyPassword } = require('../database');
 const { rateLimiter, recordLoginAttempt, clearLoginAttempts } = require('../middleware/auth');
 
 // Examinee login page
@@ -35,7 +35,7 @@ router.post('/login', rateLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
-        if (!bcrypt.compareSync(password, credential.password)) {
+        if (!verifyPassword(password, credential.password)) {
             recordLoginAttempt(req.ip);
             return res.status(401).json({ error: 'Invalid username or password' });
         }

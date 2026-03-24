@@ -1,5 +1,6 @@
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Create Turso client - force HTTPS for reliable connections on hosted platforms
 const rawUrl = process.env.TURSO_DATABASE_URL || 'file:local.db';
@@ -276,6 +277,43 @@ async function initializeDatabase() {
     }
 }
 
+// AES-256-GCM encryption for credential passwords
+// Encrypted at rest in DB, decryptable by admin for display/email
+const CRYPTO_KEY = crypto.createHash('sha256').update(process.env.SESSION_SECRET || 'ecu-mock-oral-fallback-key').digest();
+
+function encryptPassword(plaintext) {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', CRYPTO_KEY, iv);
+    let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const tag = cipher.getAuthTag();
+    return iv.toString('hex') + ':' + tag.toString('hex') + ':' + encrypted;
+}
+
+function decryptPassword(encrypted) {
+    try {
+        const parts = encrypted.split(':');
+        if (parts.length !== 3) return encrypted; // fallback for legacy plaintext
+        const iv = Buffer.from(parts[0], 'hex');
+        const tag = Buffer.from(parts[1], 'hex');
+        const decipher = crypto.createDecipheriv('aes-256-gcm', CRYPTO_KEY, iv);
+        decipher.setAuthTag(tag);
+        let decrypted = decipher.update(parts[2], 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+    } catch (e) {
+        return encrypted; // fallback if decryption fails (legacy data)
+    }
+}
+
+function verifyPassword(input, stored) {
+    const decrypted = decryptPassword(stored);
+    const a = Buffer.from(String(input));
+    const b = Buffer.from(String(decrypted));
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+}
+
 // Helper function to generate random password
 function generatePassword() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -299,5 +337,8 @@ module.exports = {
     db,
     initializeDatabase,
     generatePassword,
-    generateUsername
+    generateUsername,
+    encryptPassword,
+    decryptPassword,
+    verifyPassword
 };
