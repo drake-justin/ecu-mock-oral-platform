@@ -64,13 +64,17 @@ setInterval(() => sessionStore.cleanup(), 60 * 60 * 1000);
 app.use((req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
 
-    const host = req.get('host');
     const origin = req.get('origin');
     const referer = req.get('referer');
+    // Use both req.hostname (respects X-Forwarded-Host behind proxy) and raw Host header
+    const allowedHosts = new Set([req.hostname, req.get('host')]);
 
-    // Helper: check if a URL's host matches the request host
+    // Helper: check if a URL's hostname matches any known host
     function hostMatches(url) {
-        try { return new URL(url).host === host; } catch { return false; }
+        try {
+            const u = new URL(url);
+            return allowedHosts.has(u.hostname) || allowedHosts.has(u.host);
+        } catch { return false; }
     }
 
     // Allow if origin or referer matches host
