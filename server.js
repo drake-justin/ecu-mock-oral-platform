@@ -64,26 +64,22 @@ setInterval(() => sessionStore.cleanup(), 60 * 60 * 1000);
 app.use((req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
 
+    const host = req.get('host');
     const origin = req.get('origin');
     const referer = req.get('referer');
-    const host = req.get('host');
 
-    // Allow requests with matching origin or referer
-    if (origin) {
-        try {
-            const originHost = new URL(origin).host;
-            if (originHost === host) return next();
-        } catch (e) { /* invalid origin */ }
-    } else if (referer) {
-        try {
-            const refererHost = new URL(referer).host;
-            if (refererHost === host) return next();
-        } catch (e) { /* invalid referer */ }
-    } else {
-        // Allow requests with no origin/referer (same-origin requests from some browsers)
-        // The sameSite: 'strict' cookie already blocks cross-origin cookie sending
-        return next();
+    // Helper: check if a URL's host matches the request host
+    function hostMatches(url) {
+        try { return new URL(url).host === host; } catch { return false; }
     }
+
+    // Allow if origin or referer matches host
+    if (origin && hostMatches(origin)) return next();
+    if (referer && hostMatches(referer)) return next();
+
+    // Allow requests with neither header (same-origin nav, curl, etc.)
+    // sameSite: 'strict' cookie already blocks cross-origin cookie sending
+    if (!origin && !referer) return next();
 
     return res.status(403).json({ error: 'Request blocked — origin mismatch' });
 });
