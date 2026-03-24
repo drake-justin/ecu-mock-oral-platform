@@ -314,15 +314,11 @@ function verifyPassword(input, stored) {
     return crypto.timingSafeEqual(a, b);
 }
 
-// Helper function to generate random password
+// Helper function to generate random password (6 chars, no ambiguous characters)
 function generatePassword() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let password = '';
-    for (let i = 0; i < 4; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    password += '-';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
         password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return password;

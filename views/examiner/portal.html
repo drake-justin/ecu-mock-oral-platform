@@ -291,6 +291,7 @@ function renderCredentials(){
             <div style="flex:1"><span class="name">${H(r.name)}</span><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></div>
             <div style="display:flex;align-items:center;gap:8px">
                 <span class="cred-info">${H(r.username)||'N/A'}</span>
+                <span class="cred-info"><span data-pw="${H(r.password||'')}" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" style="cursor:pointer" title="Click to show/hide">••••••</span></span>
                 <button class="btn btn-sm ${r.is_used?'btn-danger':'btn-secondary'}" onclick="resetCredential(${r.credential_id},'${J(r.name)}')" ${!r.is_used?'disabled':''} style="font-size:11px;padding:3px 10px">
                     ${r.is_used?'Reset':'Available'}</button>
             </div>

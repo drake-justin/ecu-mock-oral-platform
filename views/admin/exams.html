@@ -238,7 +238,7 @@ function renderRoom(room){
                     <button class="btn btn-primary btn-xs" onclick="addExaminer(${rn})">Add</button>
                 </div>
                 ${room.examiners.length?room.examiners.map(ex=>`<div class="room-item"><span>${H(ex.name)} ${ex.email?`<small style="color:#888">(${H(ex.email)})</small>`:''}</span>
-                    <span style="display:flex;align-items:center;gap:4px"><span class="cred-info">${H(ex.username)} / <span class="pw-mask" onclick="this.textContent=this.dataset.pw;this.onclick=null" data-pw="${H(ex.password)}" style="cursor:pointer" title="Click to reveal">••••••</span></span>
+                    <span style="display:flex;align-items:center;gap:4px"><span class="cred-info">${H(ex.username)} / <span class="pw-mask" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" data-pw="${H(ex.password)}" style="cursor:pointer" title="Click to reveal">••••••</span></span>
                     ${ex.email?`<button class="btn btn-xs btn-secondary" onclick="emailExaminerSingle(${parseInt(ex.id)})" title="Send email" style="font-size:10px">✉</button>`:''}
                     <button class="btn btn-xs btn-danger" onclick="removeExaminer(${parseInt(ex.id)})">&times;</button></span></div>`).join('')
                 :'<div style="color:#999;font-size:13px">No examiner assigned.</div>'}
@@ -294,7 +294,7 @@ function renderRoom(room){
                         <td>${H(a.name)}</td>
                         <td><span class="pgy-badge pgy-${Math.min(parseInt(a.pgy_level)||0,5)}">PGY-${parseInt(a.pgy_level)||0}</span></td>
                         <td class="cred-info">${H(a.username)||'-'}</td>
-                        <td class="cred-info"><span class="pw-mask" onclick="this.textContent=this.dataset.pw;this.onclick=null" data-pw="${H(a.password||'')}" style="cursor:pointer" title="Click to reveal">${a.password?'••••••':'-'}</span></td>
+                        <td class="cred-info"><span class="pw-mask" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" data-pw="${H(a.password||'')}" style="cursor:pointer" title="Click to reveal">${a.password?'••••••':'-'}</span></td>
                         <td>${a.is_used?'<span style="color:#28a745;font-size:11px">Used</span>':'<span style="color:#888;font-size:11px">Avail</span>'}</td>
                         <td style="white-space:nowrap">
                             ${a.is_used&&a.credential_id?`<button class="btn btn-xs btn-secondary" onclick="resetCred(${parseInt(a.credential_id)})" style="font-size:10px">Reset</button>`:''}

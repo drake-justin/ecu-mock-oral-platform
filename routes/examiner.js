@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, verifyPassword } = require('../database');
+const { db, verifyPassword, decryptPassword } = require('../database');
 const { requireExaminer, rateLimiter, recordLoginAttempt, clearLoginAttempts } = require('../middleware/auth');
 
 // Examiner login page
@@ -113,8 +113,8 @@ router.get('/data', requireExaminer, async (req, res) => {
         });
 
         // Get residents assigned to this exam
-        const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.id as credential_id, c.is_used
+        const residentsRaw = await db.execute({
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password, c.id as credential_id, c.is_used
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -122,6 +122,8 @@ router.get('/data', requireExaminer, async (req, res) => {
                   ORDER BY r.pgy_level DESC, r.name`,
             args: [examId]
         });
+        // Decrypt passwords for examiner display
+        const residents = { rows: residentsRaw.rows.map(r => ({ ...r, password: r.password ? decryptPassword(r.password) : null })) };
 
         // Get existing scores by this examiner for this exam
         const scores = await db.execute({

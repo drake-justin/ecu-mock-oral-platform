@@ -971,6 +971,11 @@ router.delete('/files/:id', requireAdmin, async (req, res) => {
 });
 
 // Add files from repository to exam (with optional room number)
+// Strip G# prefix from scenario display names (e.g., "G5 Diverticulitis" -> "Diverticulitis")
+function stripGroupPrefix(name) {
+    return name ? name.replace(/^G\d+\s+/i, '') : name;
+}
+
 router.post('/files/from-repository', requireAdmin, async (req, res) => {
     const { examId, repositoryIds, roomNumber } = req.body;
 
@@ -1000,7 +1005,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
                 // Set item_type to the repository category so we can filter scenarios from residents
                 const result = await db.execute({
                     sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    args: [parseInt(examId), repoFile.display_name, repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, repoFile.category || null]
+                    args: [parseInt(examId), stripGroupPrefix(repoFile.display_name), repoFile.filename, repoFile.file_url, repoFile.public_id, repoFile.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, repoFile.category || null]
                 });
 
                 added.push({
@@ -1037,7 +1042,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
                             if (existingCheck.rows.length === 0) {
                                 const sResult = await db.execute({
                                     sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                                    args: [parseInt(examId), stem.display_name, stem.filename, stem.file_url, stem.public_id, stem.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, 'stem']
+                                    args: [parseInt(examId), stripGroupPrefix(stem.display_name), stem.filename, stem.file_url, stem.public_id, stem.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, 'stem']
                                 });
                                 added.push({ id: Number(sResult.lastInsertRowid), display_name: stem.display_name, file_type: stem.file_type });
                                 sortOrder++;
@@ -1063,7 +1068,7 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
                         const imgResult = await db.execute({
                             sql: 'INSERT INTO files (exam_id, display_name, filename, file_url, public_id, file_type, sort_order, room_number, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            args: [parseInt(examId), linked.display_name, linked.filename, linked.file_url, linked.public_id, linked.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, linked.category]
+                            args: [parseInt(examId), stripGroupPrefix(linked.display_name), linked.filename, linked.file_url, linked.public_id, linked.file_type, sortOrder, roomNumber ? parseInt(roomNumber) : null, linked.category]
                         });
 
                         added.push({
