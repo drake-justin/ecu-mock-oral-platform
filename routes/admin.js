@@ -1738,8 +1738,10 @@ router.get('/question-tracker/residents', requireAdmin, async (req, res) => {
     try {
         const residents = await db.execute(`
             SELECT r.*,
-                   COUNT(qh.id) as question_count,
-                   COUNT(DISTINCT qh.specialty) as topic_count
+                   COUNT(DISTINCT qh.id) as question_count,
+                   COUNT(DISTINCT qh.specialty) as topic_count,
+                   (SELECT COUNT(*) FROM exam_scores es WHERE es.resident_id = r.id) as score_count,
+                   (SELECT COUNT(*) FROM exam_scores es WHERE es.resident_id = r.id AND es.score = 'pass') as pass_count
             FROM residents r
             LEFT JOIN question_history qh ON qh.resident_id = r.id
             GROUP BY r.id
@@ -1838,8 +1840,8 @@ router.post('/question-tracker/sync-residents', requireAdmin, async (req, res) =
             'chief': { pgy: 5, status: 'active' },
             'fifth year': { pgy: 5, status: 'active' },
             'fourth year': { pgy: 4, status: 'active' },
-            'research': { pgy: 4, status: 'research' },
-            'research year': { pgy: 4, status: 'research' },
+            'research': { pgy: 3, status: 'research' },
+            'research year': { pgy: 3, status: 'research' },
             'third year': { pgy: 3, status: 'active' },
             'second year': { pgy: 2, status: 'active' },
             'first year': { pgy: 1, status: 'active' },
@@ -1975,12 +1977,29 @@ router.get('/question-tracker/resident/:id', requireAdmin, async (req, res) => {
             args: [residentId, name]
         });
 
+        // Get score summary for this resident
+        const scores = await db.execute({
+            sql: `SELECT es.*, e.name as exam_name, e.date as exam_date
+                  FROM exam_scores es
+                  LEFT JOIN exams e ON es.exam_id = e.id
+                  WHERE es.resident_id = ?
+                  ORDER BY es.scored_at DESC`,
+            args: [residentId]
+        });
+        const scoreStats = { pass: 0, marginal: 0, fail: 0, total: 0 };
+        for (const s of scores.rows) {
+            scoreStats[s.score] = (scoreStats[s.score] || 0) + 1;
+            scoreStats.total++;
+        }
+
         // Get all exams
         const exams = await db.execute('SELECT id, name, date FROM exams ORDER BY date DESC');
 
         res.json({
             resident: resident.rows[0],
             history: history.rows,
+            scores: scores.rows,
+            scoreStats,
             allTopics: allTopics.rows.map(r => r.specialty),
             testedTopics: testedTopics.rows.map(r => r.specialty),
             exams: exams.rows

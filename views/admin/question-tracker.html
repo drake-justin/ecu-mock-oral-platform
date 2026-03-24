@@ -182,6 +182,19 @@
                             </div>
                         </div>
 
+                        <!-- Score Summary -->
+                        <div id="score-summary" style="margin-top:15px;display:none">
+                            <h4 style="font-size:14px;color:#003366;margin-bottom:8px">Score Summary</h4>
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                                <span id="score-pass" style="background:#d4edda;color:#155724;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600">0 Pass</span>
+                                <span id="score-marginal" style="background:#fff3cd;color:#856404;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600">0 Marginal</span>
+                                <span id="score-fail" style="background:#f8d7da;color:#721c24;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600">0 Fail</span>
+                                <span id="score-rate" style="font-size:13px;font-weight:600;margin-left:5px"></span>
+                            </div>
+                            <div id="score-bar" style="display:flex;height:16px;border-radius:4px;overflow:hidden;background:#eee;margin-top:8px"></div>
+                            <div id="score-detail-list" style="margin-top:10px;max-height:200px;overflow-y:auto"></div>
+                        </div>
+
                         <!-- Tabs -->
                         <div class="tabs">
                             <div class="tab active" onclick="showTab('coverage')">Topic Coverage</div>
@@ -281,16 +294,20 @@
                 return;
             }
 
-            list.innerHTML = filtered.map(r => `
+            list.innerHTML = filtered.map(r => {
+                const passRate = r.score_count > 0 ? Math.round((r.pass_count / r.score_count) * 100) : null;
+                return `
                 <div class="resident-item ${selectedResidentId === r.id ? 'active' : ''}"
                      onclick="selectResident(${r.id})">
                     <div class="res-name">${H(r.name)}</div>
                     <div class="res-meta">
                         <span class="pgy-badge ${getPgyClass(r.pgy_level, r.status)}">${getPgyLabel(r.pgy_level, r.status)}</span>
+                        ${r.status==='research'?'<span style="background:#fff3cd;color:#856404;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600">Research</span>':''}
                         <span>${r.question_count} Q / ${r.topic_count} topics</span>
+                        ${passRate !== null ? `<span style="font-size:11px;color:${passRate>=70?'#28a745':passRate>=50?'#e6a817':'#dc3545'}">${passRate}% pass</span>` : ''}
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         async function selectResident(id) {
@@ -353,6 +370,47 @@
                             `).join('')}
                         </div>
                     `).join('');
+                }
+
+                // Score summary
+                const ss = data.scoreStats;
+                const scoreSummary = document.getElementById('score-summary');
+                if (ss && ss.total > 0) {
+                    scoreSummary.style.display = 'block';
+                    document.getElementById('score-pass').textContent = ss.pass + ' Pass';
+                    document.getElementById('score-marginal').textContent = ss.marginal + ' Marginal';
+                    document.getElementById('score-fail').textContent = ss.fail + ' Fail';
+                    const rate = Math.round((ss.pass / ss.total) * 100);
+                    const rateEl = document.getElementById('score-rate');
+                    rateEl.textContent = rate + '% pass rate';
+                    rateEl.style.color = rate >= 70 ? '#28a745' : rate >= 50 ? '#e6a817' : '#dc3545';
+                    // Stacked bar
+                    const pPct = (ss.pass / ss.total * 100).toFixed(0);
+                    const mPct = (ss.marginal / ss.total * 100).toFixed(0);
+                    const fPct = (ss.fail / ss.total * 100).toFixed(0);
+                    document.getElementById('score-bar').innerHTML =
+                        (pPct > 0 ? '<div style="width:' + pPct + '%;background:#28a745" title="Pass"></div>' : '') +
+                        (mPct > 0 ? '<div style="width:' + mPct + '%;background:#ffc107" title="Marginal"></div>' : '') +
+                        (fPct > 0 ? '<div style="width:' + fPct + '%;background:#dc3545" title="Fail"></div>' : '');
+                    // Score list by exam
+                    const scoresByExam = {};
+                    for (const s of data.scores) {
+                        const eid = s.exam_id;
+                        if (!scoresByExam[eid]) scoresByExam[eid] = { name: s.exam_name || 'Unknown', date: s.exam_date, items: [] };
+                        scoresByExam[eid].items.push(s);
+                    }
+                    document.getElementById('score-detail-list').innerHTML = Object.values(scoresByExam).map(function(exam) {
+                        return '<div style="margin-bottom:8px"><strong style="font-size:12px">' + H(exam.name) + '</strong>' +
+                            (exam.date ? ' <span style="color:#888;font-size:11px">(' + H(exam.date) + ')</span>' : '') +
+                            exam.items.map(function(s) {
+                                var color = s.score === 'pass' ? '#28a745' : s.score === 'marginal' ? '#e6a817' : '#dc3545';
+                                return '<div style="font-size:12px;display:flex;justify-content:space-between;padding:2px 0">' +
+                                    '<span>' + H(s.question_name) + '</span>' +
+                                    '<span style="color:' + color + ';font-weight:600">' + H(s.score.toUpperCase()) + '</span></div>';
+                            }).join('') + '</div>';
+                    }).join('');
+                } else {
+                    scoreSummary.style.display = 'none';
                 }
 
                 // Exam dropdown for adding records
