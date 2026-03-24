@@ -157,8 +157,11 @@
                     </div>
 
                     <div id="resident-detail" style="display: none;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h3 id="detail-name" class="card-title" style="margin: 0;"></h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                            <div style="display:flex;align-items:center;gap:12px">
+                                <img id="detail-photo" style="width:60px;height:60px;border-radius:50%;object-fit:cover;display:none" onerror="this.style.display='none'">
+                                <h3 id="detail-name" class="card-title" style="margin: 0;"></h3>
+                            </div>
                             <span id="detail-pgy" class="pgy-badge"></span>
                         </div>
 
@@ -298,13 +301,16 @@
                 const passRate = r.score_count > 0 ? Math.round((r.pass_count / r.score_count) * 100) : null;
                 return `
                 <div class="resident-item ${selectedResidentId === r.id ? 'active' : ''}"
-                     onclick="selectResident(${r.id})">
-                    <div class="res-name">${H(r.name)}</div>
-                    <div class="res-meta">
-                        <span class="pgy-badge ${getPgyClass(r.pgy_level, r.status)}">${getPgyLabel(r.pgy_level, r.status)}</span>
-                        ${r.status==='research'?'<span style="background:#fff3cd;color:#856404;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600">Research</span>':''}
-                        <span>${r.question_count} Q / ${r.topic_count} topics</span>
-                        ${passRate !== null ? `<span style="font-size:11px;color:${passRate>=70?'#28a745':passRate>=50?'#e6a817':'#dc3545'}">${passRate}% pass</span>` : ''}
+                     onclick="selectResident(${r.id})" style="display:flex;align-items:center;gap:10px">
+                    ${r.photo_url ? '<img src="' + H(r.photo_url) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">' : '<div style="width:40px;height:40px;border-radius:50%;background:#e9ecef;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:16px;font-weight:600">' + H(r.name.charAt(0)) + '</div>'}
+                    <div style="flex:1;min-width:0">
+                        <div class="res-name">${H(r.name)}</div>
+                        <div class="res-meta">
+                            <span class="pgy-badge ${getPgyClass(r.pgy_level, r.status)}">${getPgyLabel(r.pgy_level, r.status)}</span>
+                            ${r.status==='research'?'<span style="background:#fff3cd;color:#856404;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600">Research</span>':''}
+                            <span>${r.question_count} Q / ${r.topic_count} topics</span>
+                            ${passRate !== null ? `<span style="font-size:11px;color:${passRate>=70?'#28a745':passRate>=50?'#e6a817':'#dc3545'}">${passRate}% pass</span>` : ''}
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -321,6 +327,11 @@
                 const res = await fetch(`/admin/question-tracker/resident/${id}`);
                 const data = await res.json();
                 const r = data.resident;
+
+                // Show resident photo
+                const photoEl = document.getElementById('detail-photo');
+                if (r.photo_url) { photoEl.src = r.photo_url; photoEl.style.display = 'block'; }
+                else { photoEl.style.display = 'none'; }
 
                 document.getElementById('detail-name').textContent = r.name;
                 const pgyBadge = document.getElementById('detail-pgy');

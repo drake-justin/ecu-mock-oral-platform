@@ -17,7 +17,7 @@ try {
 // Check if an exam is locked (used as guard on modifying endpoints)
 async function checkLocked(examId) {
     const result = await db.execute({ sql: 'SELECT is_locked FROM exams WHERE id = ?', args: [parseInt(examId)] });
-    return result.rows[0]?.is_locked === 1;
+    return result.rows[0]?.is_locked == 1; // Use == to handle string "1" from Turso
 }
 
 // Admin dashboard
@@ -1879,10 +1879,23 @@ router.post('/question-tracker/sync-residents', requireAdmin, async (req, res) =
                 const schoolWords = ['university', 'school', 'college', 'medical', 'institute'];
                 const isSchool = schoolWords.some(w => text.toLowerCase().includes(w));
                 if (!isSchool) {
+                    // Try to find a photo near this name element
+                    let photoUrl = null;
+                    const parent = el.closest('div, td, li, p');
+                    if (parent.length) {
+                        const img = parent.find('img').first();
+                        if (img.length) photoUrl = img.attr('src');
+                    }
+                    // Also check previous siblings for an img
+                    if (!photoUrl) {
+                        const prev = el.prevAll('img').first();
+                        if (prev.length) photoUrl = prev.attr('src');
+                    }
                     scrapedResidents.push({
                         name: text.trim(),
                         pgy: currentPgy,
-                        status: currentStatus
+                        status: currentStatus,
+                        photoUrl: photoUrl || null
                     });
                 }
             }
@@ -1906,18 +1919,18 @@ router.post('/question-tracker/sync-residents', requireAdmin, async (req, res) =
 
         for (const r of scrapedResidents) {
             if (existingNames.has(r.name.toLowerCase())) {
-                // Update PGY level and status for existing residents
+                // Update PGY level, status, and photo for existing residents
                 await db.execute({
-                    sql: 'UPDATE residents SET pgy_level = ?, status = ? WHERE LOWER(name) = LOWER(?)',
-                    args: [r.pgy, r.status, r.name]
+                    sql: 'UPDATE residents SET pgy_level = ?, status = ?, photo_url = COALESCE(?, photo_url) WHERE LOWER(name) = LOWER(?)',
+                    args: [r.pgy, r.status, r.photoUrl, r.name]
                 });
                 updated++;
             } else {
                 // Calculate start year from PGY level
                 const startYear = currentYear - r.pgy + 1;
                 await db.execute({
-                    sql: 'INSERT INTO residents (name, pgy_level, start_year, status) VALUES (?, ?, ?, ?)',
-                    args: [r.name, r.pgy, startYear, r.status]
+                    sql: 'INSERT INTO residents (name, pgy_level, start_year, status, photo_url) VALUES (?, ?, ?, ?, ?)',
+                    args: [r.name, r.pgy, startYear, r.status, r.photoUrl]
                 });
                 added++;
             }

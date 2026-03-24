@@ -143,14 +143,14 @@ async function loadExams(){
     tb.innerHTML=exams.map(e=>{
         const st=e.start_time?new Date(e.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'-';
         return `<tr><td>${H(e.name)}</td><td>${H(e.date)||'-'}</td><td>${H(st)}</td>
-            <td>${e.is_locked
-                ? (e.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>')
-                : `<span class="badge ${e.is_active ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="toggleActive(${parseInt(e.id)},${e.is_active?1:0},'${J(e.name)}')" title="Click to toggle">${e.is_active ? 'Active' : 'Inactive'}</span>`
+            <td>${e.is_locked==1
+                ? (e.is_active==1 ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>')
+                : `<span class="badge ${e.is_active==1 ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="toggleActive(${parseInt(e.id)},${e.is_active==1?1:0},'${J(e.name)}')" title="Click to toggle">${e.is_active==1 ? 'Active' : 'Inactive'}</span>`
             }</td>
             <td><button class="btn btn-sm btn-primary" onclick="manage(${parseInt(e.id)},'${J(e.name)}')">Manage</button></td>
             <td>
-                <button class="btn btn-xs ${e.is_locked?'btn-danger':'btn-secondary'}" onclick="toggleLock(${parseInt(e.id)},${e.is_locked?1:0})" title="${e.is_locked?'Unlock':'Lock'}">${e.is_locked?'Locked':'Lock'}</button>
-                ${e.is_locked?'':`<button class="btn btn-sm btn-secondary" onclick="editExam(${parseInt(e.id)})">Edit</button>
+                <button class="btn btn-sm ${e.is_locked==1?'btn-danger':'btn-secondary'}" onclick="toggleLock(${parseInt(e.id)},${e.is_locked==1?1:0})" title="${e.is_locked==1?'Unlock':'Lock'}">${e.is_locked==1?'Locked':'Lock'}</button>
+                ${e.is_locked==1?'':`<button class="btn btn-sm btn-secondary" onclick="editExam(${parseInt(e.id)})">Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="delExam(${parseInt(e.id)},'${J(e.name)}')">Delete</button>`}
             </td></tr>`}).join('')}
 
@@ -181,7 +181,7 @@ async function manage(id,name){
     currentExamId=id;currentExamLocked=false;document.getElementById('detail-exam-name').textContent=name;document.getElementById('exam-detail').style.display='block';
     const exams=await(await fetch('/admin/exams/list')).json();
     const thisExam=exams.find(x=>x.id===id);
-    currentExamLocked=thisExam?.is_locked===1;
+    currentExamLocked=thisExam?.is_locked==1;
     document.getElementById('detail-edit-btn').style.display=currentExamLocked?'none':'';
     document.getElementById('detail-addroom-btn').style.display=currentExamLocked?'none':'';
     await Promise.all([loadRepo(),loadFac(),loadAllRes()]);
@@ -302,15 +302,15 @@ function renderRoom(room){
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},2)">PGY-2</button>
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},1)">PGY-1</button>
                 </div>`:''}
-                ${room.residents.length?`<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:6px"><thead><tr style="text-align:left;border-bottom:1px solid #ddd"><th style="padding:4px 6px;width:25%">Resident</th><th style="padding:4px 6px;width:8%">PGY</th><th style="padding:4px 6px;width:16%">Username</th><th style="padding:4px 6px;width:16%">Password</th><th style="padding:4px 6px;width:10%">Status</th><th style="padding:4px 6px;width:25%"></th></tr></thead><tbody>
+                ${room.residents.length?`<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:6px;table-layout:fixed"><thead><tr style="text-align:left;border-bottom:1px solid #ddd"><th style="padding:4px 6px">Resident</th><th style="padding:4px 6px;width:50px">PGY</th><th style="padding:4px 6px;width:100px">Username</th><th style="padding:4px 6px;width:80px">Password</th><th style="padding:4px 6px;width:50px">Status</th><th style="padding:4px 6px;width:120px"></th></tr></thead><tbody>
                     ${room.residents.map(a=>`<tr>
-                        <td>${H(a.name)}</td>
-                        <td><span class="pgy-badge pgy-${Math.min(parseInt(a.pgy_level)||0,5)}">PGY-${parseInt(a.pgy_level)||0}</span></td>
-                        <td class="cred-info">${H(a.username)||'-'}</td>
-                        <td class="cred-info"><span class="pw-mask" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" data-pw="${H(a.password||'')}" style="cursor:pointer" title="Click to reveal">${a.password?'••••••':'-'}</span></td>
-                        <td>${a.is_used?'<span style="color:#28a745;font-size:11px">Used</span>':'<span style="color:#888;font-size:11px">Avail</span>'}</td>
-                        <td style="white-space:nowrap">
-                            ${a.is_used&&a.credential_id?`<button class="btn btn-xs btn-secondary" onclick="resetCred(${parseInt(a.credential_id)})" style="font-size:10px">Reset</button>`:''}
+                        <td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis">${H(a.name)}</td>
+                        <td style="padding:4px 6px"><span class="pgy-badge pgy-${Math.min(parseInt(a.pgy_level)||0,5)}">PGY-${parseInt(a.pgy_level)||0}</span></td>
+                        <td style="padding:4px 6px;font-family:monospace;font-size:11px">${H(a.username)||'-'}</td>
+                        <td style="padding:4px 6px;font-family:monospace;font-size:11px"><span class="pw-mask" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" data-pw="${H(a.password||'')}" style="cursor:pointer" title="Click to reveal">${a.password?'••••••':'-'}</span></td>
+                        <td style="padding:4px 6px">${a.is_used==1?'<span style="color:#28a745;font-size:11px">Used</span>':'<span style="color:#888;font-size:11px">Avail</span>'}</td>
+                        <td style="padding:4px 6px;white-space:nowrap">
+                            ${a.credential_id?`<button class="btn btn-xs btn-secondary" onclick="resetCred(${parseInt(a.credential_id)})" style="font-size:10px">${a.is_used==1?'Reset':'Reset'}</button>`:''}
                             ${a.resident_id?`<button class="btn btn-xs btn-secondary" onclick="emailResident(${parseInt(a.resident_id)})" style="font-size:10px" title="Send email">✉</button>`:''}
                             ${canEdit?`<button class="btn btn-xs btn-danger" onclick="removeRoomRes(${parseInt(a.id)})" style="font-size:10px">&times;</button>`:''}
                         </td>
