@@ -249,7 +249,7 @@ function renderQuestions(grouped){
             <div class="case-body">
                 ${c.stem?`<div class="case-section">
                     <div class="case-section-title">Patient Stem <span class="masked-name">Examinee sees: "Question ${qNum}"</span></div>
-                    <img src="${c.stem.file_url}" alt="${H(name)}" class="stem-image" onerror="this.parentElement.innerHTML+='<p style=color:red>Image failed to load. URL may be expired.</p>'">
+                    <img src="${c.stem.file_url}" alt="${H(name)}" class="stem-image" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<p style=color:red>Image failed to load. URL may be expired.</p>')">
                 </div>`:''}
 
                 ${c.images.length?`<div class="case-section">
