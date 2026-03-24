@@ -14,29 +14,67 @@ try {
     console.error('Email module failed to load:', e.message);
 }
 
+// Check if an exam is locked (used as guard on modifying endpoints)
+async function checkLocked(examId) {
+    const result = await db.execute({ sql: 'SELECT is_locked FROM exams WHERE id = ?', args: [parseInt(examId)] });
+    return result.rows[0]?.is_locked === 1;
+}
+
 // Admin dashboard
 router.get('/', requireAdmin, (req, res) => {
     res.sendFile('admin/dashboard.html', { root: './views' });
 });
 
-// Admin dashboard data
+// Admin dashboard data with analytics
 router.get('/dashboard-data', requireAdmin, async (req, res) => {
     try {
-        const statsResult = await db.execute(`
-            SELECT e.id, e.name, e.is_active,
-                   COUNT(c.id) as total_credentials,
-                   SUM(CASE WHEN c.is_used = 1 THEN 1 ELSE 0 END) as used_credentials
+        const totalExams = await db.execute('SELECT COUNT(*) as count FROM exams');
+        const activeResult = await db.execute('SELECT id, name, date FROM exams WHERE is_active = 1 LIMIT 1');
+
+        // Total distinct residents tested (who have scores)
+        const residentsTested = await db.execute('SELECT COUNT(DISTINCT resident_id) as count FROM exam_scores');
+
+        // Overall pass rate
+        const passRate = await db.execute(`
+            SELECT COUNT(*) as total,
+                   SUM(CASE WHEN score = 'pass' THEN 1 ELSE 0 END) as pass_count
+            FROM exam_scores
+        `);
+        const totalScores = passRate.rows[0].total || 0;
+        const passCount = passRate.rows[0].pass_count || 0;
+        const overallPassRate = totalScores > 0 ? Math.round((passCount / totalScores) * 100) : 0;
+
+        // Upcoming exams (date >= today)
+        const upcoming = await db.execute(`
+            SELECT e.id, e.name, e.date, e.is_active, e.is_locked,
+                   (SELECT COUNT(DISTINCT er.resident_id) FROM exam_residents er WHERE er.exam_id = e.id) as residentCount,
+                   (SELECT COUNT(*) FROM exam_rooms rm WHERE rm.exam_id = e.id) as roomCount
             FROM exams e
-            LEFT JOIN credentials c ON e.id = c.exam_id
-            GROUP BY e.id
-            ORDER BY e.created_at DESC
+            WHERE e.date >= date('now')
+            ORDER BY e.date ASC
         `);
 
-        const activeResult = await db.execute('SELECT * FROM exams WHERE is_active = 1 LIMIT 1');
+        // Recent exam results (last 5 exams with scores)
+        const recentResults = await db.execute(`
+            SELECT e.id, e.name, e.date,
+                   SUM(CASE WHEN es.score = 'pass' THEN 1 ELSE 0 END) as pass,
+                   SUM(CASE WHEN es.score = 'marginal' THEN 1 ELSE 0 END) as marginal,
+                   SUM(CASE WHEN es.score = 'fail' THEN 1 ELSE 0 END) as fail,
+                   COUNT(es.id) as total
+            FROM exams e
+            INNER JOIN exam_scores es ON e.id = es.exam_id
+            GROUP BY e.id
+            ORDER BY e.date DESC
+            LIMIT 5
+        `);
 
         res.json({
-            stats: statsResult.rows,
+            totalExams: totalExams.rows[0].count,
             activeExam: activeResult.rows[0] || null,
+            totalResidentsTested: residentsTested.rows[0].count,
+            overallPassRate,
+            upcomingExams: upcoming.rows,
+            recentResults: recentResults.rows,
             adminUsername: req.session.admin.username
         });
     } catch (err) {
@@ -80,6 +118,10 @@ router.put('/exams/:id', requireAdmin, async (req, res) => {
     const { name, date, startTime, is_active } = req.body;
     const examId = parseInt(req.params.id);
 
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         if (is_active) {
             await db.execute('UPDATE exams SET is_active = 0');
@@ -96,6 +138,11 @@ router.put('/exams/:id', requireAdmin, async (req, res) => {
 
 router.delete('/exams/:id', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         // Get files to delete from Cloudinary
         const filesResult = await db.execute({
@@ -115,6 +162,33 @@ router.delete('/exams/:id', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to delete exam' });
+    }
+});
+
+// Lock/unlock an exam (requires admin credentials)
+router.post('/exams/:id/lock', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.id);
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Admin credentials required' });
+    }
+
+    try {
+        const admin = await db.execute({ sql: 'SELECT * FROM admins WHERE username = ?', args: [username] });
+        if (!admin.rows[0] || !bcrypt.compareSync(password, admin.rows[0].password_hash)) {
+            return res.status(401).json({ error: 'Invalid admin credentials' });
+        }
+
+        const exam = await db.execute({ sql: 'SELECT is_locked FROM exams WHERE id = ?', args: [examId] });
+        if (!exam.rows[0]) return res.status(404).json({ error: 'Exam not found' });
+
+        const newLocked = exam.rows[0].is_locked === 1 ? 0 : 1;
+        await db.execute({ sql: 'UPDATE exams SET is_locked = ? WHERE id = ?', args: [newLocked, examId] });
+        res.json({ success: true, is_locked: newLocked });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to toggle lock' });
     }
 });
 
@@ -220,6 +294,11 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
 router.post('/exams/:id/rooms', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     const { roomName } = req.body;
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         // Get next room number
         const maxResult = await db.execute({
@@ -242,6 +321,11 @@ router.post('/exams/:id/rooms', requireAdmin, async (req, res) => {
 router.delete('/exams/:examId/rooms/:roomNumber', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     const roomNum = parseInt(req.params.roomNumber);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         // Remove files from this room (set room_number to null, or delete)
         await db.execute({
@@ -296,6 +380,10 @@ router.get('/exams/:id/residents', requireAdmin, async (req, res) => {
 router.post('/exams/:id/residents', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     const { residentIds } = req.body;
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
 
     if (!residentIds || !residentIds.length) {
         return res.status(400).json({ error: 'No residents selected' });
@@ -356,6 +444,10 @@ router.post('/exams/:id/residents', requireAdmin, async (req, res) => {
 router.post('/exams/:id/residents/by-pgy', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     const { pgyLevel } = req.body;
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
 
     try {
         const residents = await db.execute({
@@ -418,6 +510,10 @@ router.post('/exams/:id/residents/by-pgy', requireAdmin, async (req, res) => {
 router.delete('/exams/:examId/residents/:residentId', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     const residentId = parseInt(req.params.residentId);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
 
     try {
         // Get the credential ID before deleting
@@ -490,6 +586,10 @@ router.post('/exams/:examId/room-assignments', requireAdmin, async (req, res) =>
     const examId = parseInt(req.params.examId);
     const { residentIds, roomNumber } = req.body;
 
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     if (!residentIds?.length || !roomNumber) {
         return res.status(400).json({ error: 'Select residents and a room number' });
     }
@@ -545,10 +645,16 @@ router.post('/exams/:examId/room-assignments', requireAdmin, async (req, res) =>
 
 // Remove a room assignment
 router.delete('/exams/:examId/room-assignments/:id', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         await db.execute({
             sql: 'DELETE FROM exam_room_assignments WHERE id = ? AND exam_id = ?',
-            args: [parseInt(req.params.id), parseInt(req.params.examId)]
+            args: [parseInt(req.params.id), examId]
         });
         res.json({ success: true });
     } catch (err) {
@@ -560,6 +666,11 @@ router.delete('/exams/:examId/room-assignments/:id', requireAdmin, async (req, r
 router.delete('/exams/:examId/rooms/:roomNumber/content', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     const roomNum = parseInt(req.params.roomNumber);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         await db.execute({
             sql: 'DELETE FROM files WHERE exam_id = ? AND room_number = ?',
@@ -657,6 +768,11 @@ router.post('/exams/:id/email-resident/:residentId', requireAdmin, async (req, r
 router.post('/exams/:examId/assign-examiner-to-question', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     const { fileId, examinerId } = req.body;
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         // Get the file's repo stem ID to find all linked files
         const file = await db.execute({ sql: 'SELECT * FROM files WHERE id = ? AND exam_id = ?', args: [parseInt(fileId), examId] });
@@ -981,6 +1097,10 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
     if (!examId || !repositoryIds || !Array.isArray(repositoryIds) || repositoryIds.length === 0) {
         return res.status(400).json({ error: 'Exam ID and repository file IDs are required' });
+    }
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
     }
 
     try {
@@ -1387,6 +1507,10 @@ router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.id);
     let { name, roomNumber, email, facultyId } = req.body;
 
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     // If facultyId provided, look up name and email from faculty table
     if (facultyId) {
         const fac = await db.execute({ sql: 'SELECT * FROM faculty WHERE id = ?', args: [parseInt(facultyId)] });
@@ -1422,6 +1546,12 @@ router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
 
 // Delete examiner
 router.delete('/exams/:examId/examiners/:id', requireAdmin, async (req, res) => {
+    const examId = parseInt(req.params.examId);
+
+    if (await checkLocked(examId)) {
+        return res.status(403).json({ error: 'This exam is locked and cannot be modified' });
+    }
+
     try {
         await db.execute({ sql: 'DELETE FROM examiners WHERE id = ?', args: [parseInt(req.params.id)] });
         res.json({ success: true });

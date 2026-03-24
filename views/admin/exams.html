@@ -84,7 +84,7 @@
                 <div style="display:flex;justify-content:space-between;align-items:center">
                     <h2 class="card-title" id="detail-exam-name" style="margin:0"></h2>
                     <div style="display:flex;gap:8px">
-                        <button class="btn btn-secondary btn-sm" onclick="editExam(currentExamId)">Edit Exam</button>
+                        <button class="btn btn-secondary btn-sm" id="detail-edit-btn" onclick="editExam(currentExamId)">Edit Exam</button>
                         <button class="btn btn-secondary btn-sm" onclick="closeDetail()">Close</button>
                     </div>
                 </div>
@@ -94,7 +94,7 @@
             <div class="section-card">
                 <h3>Rooms</h3>
                 <p class="desc">Create rooms, then add examiners, exam content (stems, images, scenarios), and assign residents to each room.</p>
-                <button class="btn btn-primary btn-sm" onclick="addRoom()" style="margin-bottom:15px">+ Add Room</button>
+                <button class="btn btn-primary btn-sm" id="detail-addroom-btn" onclick="addRoom()" style="margin-bottom:15px">+ Add Room</button>
                 <div id="rooms-container"></div>
             </div>
 
@@ -128,6 +128,7 @@
 
 <script>
 let currentExamId=null, allRepoFiles=[], allFaculty=[], allResidents=[];
+let lockExamId=null, currentExamLocked=false;
 
 function H(s){if(s==null)return'';var o={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return String(s).replace(/[&<>"']/g,function(c){return o[c]})}
 function J(s){return H(JSON.stringify(String(s||'')).slice(1,-1))}
@@ -142,10 +143,16 @@ async function loadExams(){
     tb.innerHTML=exams.map(e=>{
         const st=e.start_time?new Date(e.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'-';
         return `<tr><td>${H(e.name)}</td><td>${H(e.date)||'-'}</td><td>${H(st)}</td>
-            <td>${e.is_active?'<span class="badge badge-success">Active</span>':'<span class="badge badge-warning">Inactive</span>'}</td>
+            <td>${e.is_locked
+                ? (e.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-warning">Inactive</span>')
+                : `<span class="badge ${e.is_active ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="toggleActive(${parseInt(e.id)},${e.is_active?1:0},'${J(e.name)}')" title="Click to toggle">${e.is_active ? 'Active' : 'Inactive'}</span>`
+            }</td>
             <td><button class="btn btn-sm btn-primary" onclick="manage(${parseInt(e.id)},'${J(e.name)}')">Manage</button></td>
-            <td><button class="btn btn-sm btn-secondary" onclick="editExam(${parseInt(e.id)})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="delExam(${parseInt(e.id)},'${J(e.name)}')">Delete</button></td></tr>`}).join('')}
+            <td>
+                <button class="btn btn-xs ${e.is_locked?'btn-danger':'btn-secondary'}" onclick="toggleLock(${parseInt(e.id)},${e.is_locked?1:0})" title="${e.is_locked?'Unlock':'Lock'}">${e.is_locked?'Locked':'Lock'}</button>
+                ${e.is_locked?'':`<button class="btn btn-sm btn-secondary" onclick="editExam(${parseInt(e.id)})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="delExam(${parseInt(e.id)},'${J(e.name)}')">Delete</button>`}
+            </td></tr>`}).join('')}
 
 async function createExam(){
     const name=document.getElementById('exam-name').value,date=document.getElementById('exam-date').value,time=document.getElementById('exam-time').value;
@@ -171,7 +178,12 @@ document.getElementById('edit-modal').addEventListener('click',e=>{if(e.target.c
 
 // MANAGE
 async function manage(id,name){
-    currentExamId=id;document.getElementById('detail-exam-name').textContent=name;document.getElementById('exam-detail').style.display='block';
+    currentExamId=id;currentExamLocked=false;document.getElementById('detail-exam-name').textContent=name;document.getElementById('exam-detail').style.display='block';
+    const exams=await(await fetch('/admin/exams/list')).json();
+    const thisExam=exams.find(x=>x.id===id);
+    currentExamLocked=thisExam?.is_locked===1;
+    document.getElementById('detail-edit-btn').style.display=currentExamLocked?'none':'';
+    document.getElementById('detail-addroom-btn').style.display=currentExamLocked?'none':'';
     await Promise.all([loadRepo(),loadFac(),loadAllRes()]);
     await loadRooms();
     document.getElementById('exam-detail').scrollIntoView({behavior:'smooth'})}
@@ -218,6 +230,7 @@ function catLabel(cat){
 
 function renderRoom(room){
     const rn=room.room_number;
+    const canEdit=!currentExamLocked;
     const topics=[...new Set(allRepoFiles.map(f=>f.specialty).filter(Boolean))].sort();
     // Get exam residents already linked to this exam (from room data or all assigned)
     const examResidentIds=new Set();
@@ -226,28 +239,28 @@ function renderRoom(room){
         <div class="room-card-header" onclick="toggleRoom(${rn})">
             <h3><span id="room-arrow-${rn}" style="margin-right:6px">▼</span>${H(room.room_name)||'Room '+rn}
                 <span style="font-weight:normal;font-size:12px;opacity:0.7;margin-left:10px">${room.files.length} files · ${room.examiners.length} examiner(s) · ${room.residents.length} resident(s)</span></h3>
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" onclick="event.stopPropagation();deleteRoom(${rn})">Delete Room</button>
+            ${canEdit?`<button class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)" onclick="event.stopPropagation();deleteRoom(${rn})">Delete Room</button>`:''}
         </div>
         <div class="room-card-body" id="room-body-${rn}">
             <!-- EXAMINER -->
             <div class="room-section">
                 <div class="room-section-title">Examiner(s)</div>
-                <div class="add-row">
+                ${canEdit?`<div class="add-row">
                     <select id="fac-${rn}" style="flex:1;min-width:200px"><option value="">-- Select Faculty --</option>
                         ${allFaculty.map(f=>`<option value="${parseInt(f.id)}">${H(f.name)}</option>`).join('')}</select>
                     <button class="btn btn-primary btn-xs" onclick="addExaminer(${rn})">Add</button>
-                </div>
+                </div>`:''}
                 ${room.examiners.length?room.examiners.map(ex=>`<div class="room-item"><span>${H(ex.name)} ${ex.email?`<small style="color:#888">(${H(ex.email)})</small>`:''}</span>
                     <span style="display:flex;align-items:center;gap:4px"><span class="cred-info">${H(ex.username)} / <span class="pw-mask" onclick="if(this.textContent==='••••••'){this.textContent=this.dataset.pw}else{this.textContent='••••••'}" data-pw="${H(ex.password)}" style="cursor:pointer" title="Click to reveal">••••••</span></span>
                     ${ex.email?`<button class="btn btn-xs btn-secondary" onclick="emailExaminerSingle(${parseInt(ex.id)})" title="Send email" style="font-size:10px">✉</button>`:''}
-                    <button class="btn btn-xs btn-danger" onclick="removeExaminer(${parseInt(ex.id)})">&times;</button></span></div>`).join('')
+                    ${canEdit?`<button class="btn btn-xs btn-danger" onclick="removeExaminer(${parseInt(ex.id)})">&times;</button>`:''}</span></div>`).join('')
                 :'<div style="color:#999;font-size:13px">No examiner assigned.</div>'}
             </div>
 
             <!-- CONTENT -->
             <div class="room-section">
                 <div class="room-section-title">Exam Content (Stems, Images, Scenarios)</div>
-                <div class="add-row">
+                ${canEdit?`<div class="add-row">
                     <select id="topic-${rn}" onchange="filterRepo(${rn})" style="min-width:120px">
                         <option value="">All Topics</option>${topics.map(t=>`<option value="${H(t)}">${H(t)}</option>`).join('')}</select>
                     <select id="catfilt-${rn}" onchange="filterRepo(${rn})" style="min-width:100px">
@@ -255,7 +268,7 @@ function renderRoom(room){
                     <select id="repo-${rn}" multiple size="4" style="flex:1;min-width:250px">
                         ${allRepoFiles.map(f=>`<option value="${parseInt(f.id)}">${H(f.display_name)} [${H(f.category)}]${f.specialty?' - '+H(f.specialty):''}</option>`).join('')}</select>
                     <button class="btn btn-primary btn-xs" onclick="addContent(${rn})">Add</button>
-                </div>
+                </div>`:''}
                 ${room.files.length?`${room.files.map(f=>{
                     const isScenario=f.item_type==='scenario';
                     const dupes=getDuplicateResidents(f.id,room.residents);
@@ -263,21 +276,21 @@ function renderRoom(room){
                         <span>${catLabel(f.item_type)} ${H(f.display_name)}
                             ${dupes.length?`<span style="background:#f8d7da;color:#721c24;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px" title="Previously tested: ${H(dupes.join(', '))}">Duplicate: ${H(dupes.join(', '))}</span>`:''}</span>
                         <span style="display:flex;align-items:center;gap:4px">
-                            ${isScenario&&room.examiners.length>1?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${parseInt(f.id)},this.value)">
+                            ${isScenario&&room.examiners.length>1&&canEdit?`<select style="font-size:11px;padding:1px 4px;border:1px solid #ddd;border-radius:3px" onchange="assignExaminerToQ(${parseInt(f.id)},this.value)">
                                 <option value="">Unassigned</option>
                                 ${room.examiners.map(ex=>`<option value="${parseInt(ex.id)}" ${f.assigned_examiner_id===ex.id||f.assigned_examiner_name===ex.name?'selected':''}>${H(ex.name)}</option>`).join('')}
                             </select>`:`${f.assigned_examiner_name?`<span style="font-size:11px;color:#888">${H(f.assigned_examiner_name)}</span>`:''}`}
-                            <button class="btn btn-xs btn-danger" onclick="removeFile(${parseInt(f.id)})">&times;</button>
+                            ${canEdit?`<button class="btn btn-xs btn-danger" onclick="removeFile(${parseInt(f.id)})">&times;</button>`:''}
                         </span>
                     </div>`}).join('')}
-                    <button class="btn btn-xs btn-danger" style="margin-top:8px" onclick="deleteAllContent(${rn})">Delete All Content</button>`
+                    ${canEdit?`<button class="btn btn-xs btn-danger" style="margin-top:8px" onclick="deleteAllContent(${rn})">Delete All Content</button>`:''}`
                 :'<div style="color:#999;font-size:13px">No content added.</div>'}
             </div>
 
             <!-- RESIDENTS -->
             <div class="room-section">
                 <div class="room-section-title">Residents</div>
-                <div class="add-row">
+                ${canEdit?`<div class="add-row">
                     <select id="res-${rn}" multiple size="3" style="flex:1;min-width:250px">
                         ${allResidents.map(r=>`<option value="${parseInt(r.id)}">${H(r.name)} (PGY-${parseInt(r.pgy_level)})</option>`).join('')}</select>
                     <button class="btn btn-primary btn-xs" onclick="assignRes(${rn})">Add to Room</button>
@@ -288,7 +301,7 @@ function renderRoom(room){
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},3)">PGY-3</button>
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},2)">PGY-2</button>
                     <button class="btn btn-xs btn-secondary" onclick="addPgyToRoom(${rn},1)">PGY-1</button>
-                </div>
+                </div>`:''}
                 ${room.residents.length?`<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:6px"><thead><tr style="text-align:left;border-bottom:1px solid #ddd"><th style="padding:4px 6px;width:25%">Resident</th><th style="padding:4px 6px;width:8%">PGY</th><th style="padding:4px 6px;width:16%">Username</th><th style="padding:4px 6px;width:16%">Password</th><th style="padding:4px 6px;width:10%">Status</th><th style="padding:4px 6px;width:25%"></th></tr></thead><tbody>
                     ${room.residents.map(a=>`<tr>
                         <td>${H(a.name)}</td>
@@ -299,7 +312,7 @@ function renderRoom(room){
                         <td style="white-space:nowrap">
                             ${a.is_used&&a.credential_id?`<button class="btn btn-xs btn-secondary" onclick="resetCred(${parseInt(a.credential_id)})" style="font-size:10px">Reset</button>`:''}
                             ${a.resident_id?`<button class="btn btn-xs btn-secondary" onclick="emailResident(${parseInt(a.resident_id)})" style="font-size:10px" title="Send email">✉</button>`:''}
-                            <button class="btn btn-xs btn-danger" onclick="removeRoomRes(${parseInt(a.id)})" style="font-size:10px">&times;</button>
+                            ${canEdit?`<button class="btn btn-xs btn-danger" onclick="removeRoomRes(${parseInt(a.id)})" style="font-size:10px">&times;</button>`:''}
                         </td>
                     </tr>`).join('')}
                     </tbody></table>`
@@ -397,7 +410,70 @@ async function emailResidents(){
         document.getElementById('email-status').innerHTML=d.success?`<span style="color:green">Sent to ${parseInt(d.sent)||0} resident(s).${d.errors?.length?' Errors: '+H(d.errors.join(', ')):''}</span>`:`<span style="color:red">${H(d.error)}</span>`;
     }catch(e){document.getElementById('email-status').innerHTML=`<span style="color:red">Error: ${H(e.message)}</span>`}}
 
+function toggleLock(id, isLocked) {
+    lockExamId = id;
+    document.getElementById('lock-modal-title').textContent = isLocked ? 'Unlock Exam' : 'Lock Exam';
+    document.getElementById('lock-modal-desc').textContent = isLocked
+        ? 'Enter admin credentials to unlock this exam for editing.'
+        : 'Enter admin credentials to lock this exam from changes.';
+    document.getElementById('lock-username').value = '';
+    document.getElementById('lock-password').value = '';
+    document.getElementById('lock-error').textContent = '';
+    document.getElementById('lock-modal').classList.add('active');
+}
+function closeLockModal() { document.getElementById('lock-modal').classList.remove('active'); }
+document.getElementById('lock-modal').addEventListener('click', e => { if (e.target.classList.contains('modal')) closeLockModal(); });
+
+async function submitLock() {
+    const username = document.getElementById('lock-username').value;
+    const password = document.getElementById('lock-password').value;
+    if (!username || !password) { document.getElementById('lock-error').textContent = 'Enter both fields'; return; }
+    const r = await fetch('/admin/exams/' + lockExamId + '/lock', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username, password })
+    });
+    const d = await r.json();
+    if (d.success) {
+        closeLockModal();
+        msg(d.is_locked ? 'Exam locked.' : 'Exam unlocked.', 'success');
+        loadExams();
+        if (currentExamId) loadRooms();
+    } else {
+        document.getElementById('lock-error').textContent = d.error || 'Failed';
+    }
+}
+
+async function toggleActive(id, currentlyActive, name) {
+    const exams = await (await fetch('/admin/exams/list')).json();
+    const exam = exams.find(x => x.id === id);
+    if (!exam) return;
+    const newActive = !currentlyActive;
+    if (newActive && !confirm('Set "' + name + '" as the active exam? This will deactivate all other exams.')) return;
+    const r = await fetch('/admin/exams/' + id, {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name: exam.name, date: exam.date, startTime: exam.start_time, is_active: newActive })
+    });
+    const d = await r.json();
+    if (d.error) { msg(d.error, 'error'); return; }
+    msg(newActive ? '"' + name + '" is now active.' : '"' + name + '" deactivated.', 'success');
+    loadExams();
+}
+
 loadExams();
 </script>
+
+    <!-- Lock Modal -->
+    <div class="modal" id="lock-modal">
+        <div class="modal-content" style="max-width:400px">
+            <div class="modal-header"><h3 id="lock-modal-title">Lock Exam</h3><button class="modal-close" onclick="closeLockModal()">&times;</button></div>
+            <div style="padding:20px">
+                <p style="margin-bottom:15px;color:#666" id="lock-modal-desc">Enter admin credentials to lock this exam.</p>
+                <div class="form-group"><label>Username</label><input type="text" id="lock-username" class="form-control"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="lock-password" class="form-control"></div>
+                <div id="lock-error" style="color:red;font-size:13px;margin-bottom:10px"></div>
+                <button class="btn btn-primary" onclick="submitLock()">Confirm</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

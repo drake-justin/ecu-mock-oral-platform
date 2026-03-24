@@ -244,6 +244,9 @@ async function initializeDatabase() {
     try {
         await db.execute('ALTER TABLE credentials ADD COLUMN resident_id INTEGER REFERENCES residents(id) ON DELETE SET NULL');
     } catch (e) { /* column may already exist */ }
+    try {
+        await db.execute('ALTER TABLE exams ADD COLUMN is_locked INTEGER DEFAULT 0');
+    } catch (e) { /* column may already exist */ }
 
     // Session store table
     await db.execute(`
