@@ -1068,8 +1068,8 @@ router.post('/files/from-repository', requireAdmin, async (req, res) => {
 
                         added.push({
                             id: Number(imgResult.lastInsertRowid),
-                            display_name: img.display_name,
-                            file_type: img.file_type
+                            display_name: linked.display_name,
+                            file_type: linked.file_type
                         });
 
                         sortOrder++;
