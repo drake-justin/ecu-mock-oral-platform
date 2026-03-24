@@ -422,7 +422,10 @@ function toggleLock(id, isLocked) {
     document.getElementById('lock-modal').classList.add('active');
 }
 function closeLockModal() { document.getElementById('lock-modal').classList.remove('active'); }
-document.getElementById('lock-modal').addEventListener('click', e => { if (e.target.classList.contains('modal')) closeLockModal(); });
+document.addEventListener('DOMContentLoaded', function() {
+    var lm = document.getElementById('lock-modal');
+    if (lm) lm.addEventListener('click', function(e) { if (e.target.classList.contains('modal')) closeLockModal(); });
+});
 
 async function submitLock() {
     const username = document.getElementById('lock-username').value;
