@@ -9,7 +9,7 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN
 });
 
-console.log('Database URL:', dbUrl.substring(0, 50) + '...');
+console.log('Database connected:', dbUrl.startsWith('https://') ? 'Turso (cloud)' : 'local file');
 
 // Initialize database schema
 async function initializeDatabase() {
@@ -261,7 +261,7 @@ async function initializeDatabase() {
             sql: 'INSERT INTO admins (username, password_hash) VALUES (?, ?)',
             args: ['admin', passwordHash]
         });
-        console.log('Default admin created - Username: admin, Password: admin123');
+        console.log('Default admin created — change the password immediately via Admin Settings.');
     }
 
     // Check for password reset via environment variable

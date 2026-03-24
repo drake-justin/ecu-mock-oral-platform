@@ -35,7 +35,7 @@ router.post('/login', rateLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
-        if (credential.password !== password) {
+        if (!bcrypt.compareSync(password, credential.password)) {
             recordLoginAttempt(req.ip);
             return res.status(401).json({ error: 'Invalid username or password' });
         }

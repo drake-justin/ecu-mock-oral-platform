@@ -142,6 +142,8 @@
     </div>
 
 <script>
+function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
 let portalData=null,pendingScores={},cases=[];
 
 function showTab(name){
@@ -232,27 +234,27 @@ function renderQuestions(grouped){
 
         return `<div class="case-card" style="${isClaimed&&!isMyQuestion?'opacity:0.6':''}">
             <div class="case-header">
-                <h3>Question ${qNum}: ${name}</h3>
+                <h3>Question ${qNum}: ${H(name)}</h3>
                 <div style="display:flex;align-items:center;gap:8px">
-                    ${assignedName?`<span style="background:rgba(255,255,255,0.2);color:white;padding:3px 10px;border-radius:12px;font-size:12px">${assignedName}</span>`:''}
+                    ${assignedName?`<span style="background:rgba(255,255,255,0.2);color:white;padding:3px 10px;border-radius:12px;font-size:12px">${H(assignedName)}</span>`:''}
                     <button onclick="claimQuestion(${c.stem?.id})" class="btn btn-sm" style="font-size:11px;padding:3px 10px;${isMyQuestion?'background:#28a745;color:white;border-color:#28a745':'background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.4)'}">
                         ${isMyQuestion?'My Question':isClaimed?'Reassign to Me':'Claim'}
                     </button>
                     <span class="masked-name" style="background:rgba(255,255,255,0.2);color:white">Examinee: "Q${qNum}"</span>
-                    ${c.specialty?`<span class="specialty" style="margin-left:4px">${c.specialty}</span>`:''}
+                    ${c.specialty?`<span class="specialty" style="margin-left:4px">${H(c.specialty)}</span>`:''}
                 </div>
             </div>
             <div class="case-body">
                 ${c.stem?`<div class="case-section">
                     <div class="case-section-title">Patient Stem <span class="masked-name">Examinee sees: "Question ${qNum}"</span></div>
-                    <img src="${c.stem.file_url}" alt="${name}" class="stem-image" onerror="this.parentElement.innerHTML+='<p style=color:red>Image failed to load. URL may be expired.</p>'">
+                    <img src="${c.stem.file_url}" alt="${H(name)}" class="stem-image" onerror="this.parentElement.innerHTML+='<p style=color:red>Image failed to load. URL may be expired.</p>'">
                 </div>`:''}
 
                 ${c.images.length?`<div class="case-section">
                     <div class="case-section-title">Clinical Images</div>
                     <div class="clinical-images">
                         ${c.images.map((img,j)=>`<div class="img-wrapper">
-                            <img src="${img.file_url}" alt="${img.display_name}" onclick="window.open('${img.file_url}','_blank')">
+                            <img src="${img.file_url}" alt="${H(img.display_name)}" onclick="window.open('${img.file_url}','_blank')">
                             <button class="remove-img-btn" onclick="removeFile(${img.id})" title="Remove from exam">&times;</button>
                             <div style="text-align:center;font-size:12px;color:#666;margin-top:4px">${imgLabels[j]} <span class="masked-name">Examinee sees: "${imgLabels[j]}"</span></div>
                         </div>`).join('')}
@@ -271,7 +273,7 @@ function renderQuestions(grouped){
     if(grouped.standalone.length){
         html+=`<div class="standalone-files"><h4>Additional Files</h4>
             ${grouped.standalone.map(f=>`<div class="standalone-file-item">
-                <a href="${f.file_url}" target="_blank">${f.display_name}</a> <small style="color:#888">[${f.file_type}]</small>
+                <a href="${f.file_url}" target="_blank">${H(f.display_name)}</a> <small style="color:#888">[${H(f.file_type)}]</small>
             </div>`).join('')}</div>`;
     }
 
@@ -285,10 +287,9 @@ function renderCredentials(){
         <h3 class="card-title">Examinee Login Credentials</h3>
         <p style="font-size:13px;color:#666;margin-bottom:15px">Give each examinee their username and password. Click Reset if they accidentally close their browser.</p>
         ${portalData.residents.map(r=>`<div class="cred-card">
-            <div style="flex:1"><span class="name">${r.name}</span><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></div>
+            <div style="flex:1"><span class="name">${H(r.name)}</span><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></div>
             <div style="display:flex;align-items:center;gap:8px">
-                <span class="cred-info">${r.username||'N/A'}</span>
-                <span class="cred-info">${r.password||'N/A'}</span>
+                <span class="cred-info">${H(r.username)||'N/A'}</span>
                 <button class="btn btn-sm ${r.is_used?'btn-danger':'btn-secondary'}" onclick="resetCredential(${r.credential_id},'${r.name.replace(/'/g,"\\'")}')" ${!r.is_used?'disabled':''} style="font-size:11px;padding:3px 10px">
                     ${r.is_used?'Reset':'Available'}</button>
             </div>
@@ -325,14 +326,14 @@ function renderScoring(){
 
     container.innerHTML=portalData.residents.map(r=>`
         <div class="score-section">
-            <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></h3>
+            <h3>${H(r.name)} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></h3>
             ${cases.map((c,i)=>{
                 const name=getCaseName(c);
                 const key=`${r.id}_${c.repoStemId}`;
                 const existing=pendingScores[key];
                 return `<div class="score-card-simple">
-                    <h4>Q${i+1}: ${name} ${existing?`<span class="existing-badge ${existing.score}">${existing.score.toUpperCase()}</span>`:''}
-                        ${c.specialty?`<small style="color:#888;margin-left:8px">${c.specialty}</small>`:''}</h4>
+                    <h4>Q${i+1}: ${H(name)} ${existing?`<span class="existing-badge ${existing.score}">${H(existing.score.toUpperCase())}</span>`:''}
+                        ${c.specialty?`<small style="color:#888;margin-left:8px">${H(c.specialty)}</small>`:''}</h4>
                     <div class="score-row">
                         <div class="score-select">
                             <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Pass</button>
@@ -341,7 +342,7 @@ function renderScoring(){
                         </div>
                         <div class="feedback-area">
                             <label>Feedback</label>
-                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Specific feedback for this case...">${existing?.comments||''}</textarea>
+                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Specific feedback for this case...">${H(existing?.comments||'')}</textarea>
                         </div>
                     </div>
                 </div>`;

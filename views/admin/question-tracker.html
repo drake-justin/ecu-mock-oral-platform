@@ -229,6 +229,8 @@
     </div>
 
     <script>
+        function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
         let allResidents = [];
         let allStems = [];
         let selectedResidentId = null;
@@ -282,7 +284,7 @@
             list.innerHTML = filtered.map(r => `
                 <div class="resident-item ${selectedResidentId === r.id ? 'active' : ''}"
                      onclick="selectResident(${r.id})">
-                    <div class="res-name">${r.name}</div>
+                    <div class="res-name">${H(r.name)}</div>
                     <div class="res-meta">
                         <span class="pgy-badge ${getPgyClass(r.pgy_level, r.status)}">${getPgyLabel(r.pgy_level, r.status)}</span>
                         <span>${r.question_count} Q / ${r.topic_count} topics</span>
@@ -320,7 +322,7 @@
                 // Topic grid
                 document.getElementById('topic-grid').innerHTML = data.allTopics.map(topic => {
                     const covered = data.testedTopics.includes(topic);
-                    return `<span class="topic-badge ${covered ? 'covered' : 'not-covered'}">${topic}</span>`;
+                    return `<span class="topic-badge ${covered ? 'covered' : 'not-covered'}">${H(topic)}</span>`;
                 }).join('');
 
                 // History by exam
@@ -339,12 +341,12 @@
                 } else {
                     historyDiv.innerHTML = Object.entries(historyByExam).map(([eid, exam]) => `
                         <div class="history-exam">
-                            <h4>${exam.examName} ${exam.examDate ? `(${new Date(exam.examDate).toLocaleDateString()})` : ''}</h4>
+                            <h4>${H(exam.examName)} ${exam.examDate ? `(${new Date(exam.examDate).toLocaleDateString()})` : ''}</h4>
                             ${exam.items.map(item => `
                                 <div class="history-item">
                                     <div>
-                                        ${item.stem_display_name}
-                                        ${item.specialty ? `<span class="specialty-tag">${item.specialty}</span>` : ''}
+                                        ${H(item.stem_display_name)}
+                                        ${item.specialty ? `<span class="specialty-tag">${H(item.specialty)}</span>` : ''}
                                     </div>
                                     <button class="delete-btn" onclick="deleteRecord(${item.id})" title="Remove">&times;</button>
                                 </div>
@@ -355,7 +357,7 @@
 
                 // Exam dropdown for adding records
                 document.getElementById('add-exam').innerHTML = '<option value="">-- Select Exam --</option>' +
-                    data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
+                    data.exams.map(e => `<option value="${e.id}">${H(e.name)} ${e.date ? `(${H(e.date)})` : ''}</option>`).join('');
 
             } catch (err) {
                 console.error('Failed to load resident data:', err);
@@ -369,7 +371,7 @@
                 allStems = data.stems;
                 const topics = [...new Set(allStems.map(s => s.specialty).filter(Boolean))].sort();
                 document.getElementById('add-topic-filter').innerHTML = '<option value="">-- All Topics --</option>' +
-                    topics.map(t => `<option value="${t}">${t}</option>`).join('');
+                    topics.map(t => `<option value="${H(t)}">${H(t)}</option>`).join('');
                 filterStems();
             } catch (err) {
                 console.error('Failed to load stems:', err);
@@ -380,7 +382,7 @@
             const topic = document.getElementById('add-topic-filter').value;
             const filtered = topic ? allStems.filter(s => s.specialty === topic) : allStems;
             document.getElementById('add-stem').innerHTML = '<option value="">-- Select Stem --</option>' +
-                filtered.map(s => `<option value="${s.id}">${s.display_name} ${s.specialty ? `[${s.specialty}]` : ''}</option>`).join('');
+                filtered.map(s => `<option value="${s.id}">${H(s.display_name)} ${s.specialty ? `[${H(s.specialty)}]` : ''}</option>`).join('');
         }
 
         async function addRecord() {
@@ -416,7 +418,7 @@
                 const res = await fetch('/admin/question-tracker/exams');
                 const data = await res.json();
                 document.getElementById('import-exam-select').innerHTML = '<option value="">-- Select Exam --</option>' +
-                    data.exams.map(e => `<option value="${e.id}">${e.name} ${e.date ? `(${e.date})` : ''}</option>`).join('');
+                    data.exams.map(e => `<option value="${e.id}">${H(e.name)} ${e.date ? `(${H(e.date)})` : ''}</option>`).join('');
             } catch (err) { console.error(err); }
         }
 

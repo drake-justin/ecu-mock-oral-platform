@@ -199,6 +199,8 @@
     </div>
 
     <script>
+        function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
         let currentExamId = null;
         let selectedRepoItems = new Set();
         let uploadFile = null;
@@ -256,10 +258,10 @@
                         <div class="repo-item" data-id="${stem.id}" onclick="toggleRepoItem(${stem.id})">
                             <input type="checkbox" id="repo-${stem.id}" ${selectedRepoItems.has(stem.id) ? 'checked' : ''}>
                             <div class="repo-item-info">
-                                <div class="repo-item-name">${stem.display_name}</div>
-                                <div class="repo-item-meta">${stem.file_type.toUpperCase()} - Question Stem</div>
+                                <div class="repo-item-name">${H(stem.display_name)}</div>
+                                <div class="repo-item-meta">${H(stem.file_type.toUpperCase())} - Question Stem</div>
                                 ${linkedImages.length > 0 ?
-                                    `<div class="repo-item-linked">+ ${linkedImages.length} linked image(s): ${linkedImages.join(', ')}</div>` :
+                                    `<div class="repo-item-linked">+ ${linkedImages.length} linked image(s): ${linkedImages.map(n => H(n)).join(', ')}</div>` :
                                     '<div class="repo-item-meta" style="color: #999;">No linked images</div>'}
                             </div>
                         </div>
@@ -335,9 +337,9 @@
                     <div class="file-row" data-id="${file.id}">
                         <div class="file-order">#${index + 1}</div>
                         <div class="file-info">
-                            <div class="file-name">${file.display_name}${aliasText}</div>
+                            <div class="file-name">${H(file.display_name)}${aliasText}</div>
                             <div class="file-meta">
-                                ${file.file_type.toUpperCase()} &bull; Order: ${file.sort_order}
+                                ${H(file.file_type.toUpperCase())} &bull; Order: ${file.sort_order}
                             </div>
                         </div>
                         <div class="file-actions">

@@ -12,6 +12,12 @@ const transporter = nodemailer.createTransport({
 const SITE_URL = process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || 'https://ecu-mock-oral-platform.onrender.com';
 const FROM = `"ECU Mock Oral Platform" <${process.env.GMAIL_USER}>`;
 
+// HTML escape helper to prevent injection in emails
+function esc(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Send email to an examiner with their credentials, examinees, and exam details
 async function sendExaminerEmail({ examinerName, examinerEmail, username, password, examName, examDate, roomNumber, examinees, siteUrl }) {
     const url = siteUrl || SITE_URL;
@@ -23,21 +29,21 @@ async function sendExaminerEmail({ examinerName, examinerEmail, username, passwo
                 <p style="margin: 8px 0 0; opacity: 0.8; font-size: 18px;">Examiner Assignment</p>
             </div>
             <div style="padding: 30px; border: 1px solid #ddd; border-top: none;">
-                <p style="font-size: 18px;">Dear Dr. ${examinerName.split(',')[0].split(' ').pop()},</p>
+                <p style="font-size: 18px;">Dear Dr. ${esc(examinerName.split(',')[0].split(' ').pop())},</p>
                 <p style="font-size: 16px;">You have been assigned as an examiner for the upcoming mock oral examination. You may log in at any time before the exam to review your question scenarios.</p>
 
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="color: #003366; margin: 0 0 12px; font-size: 20px;">Exam Details</h3>
-                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${examName}</p>
-                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
-                    ${roomNumber ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Room:</strong> ${roomNumber}</p>` : ''}
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${esc(examName)}</p>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${esc(examDate || 'TBD')}</p>
+                    ${roomNumber ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Room:</strong> ${esc(roomNumber)}</p>` : ''}
                 </div>
 
                 <div style="background: #003366; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin: 0 0 12px; font-size: 20px;">Your Examiner Login</h3>
-                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${url}/examiner/login" style="color: #7cb9e8; font-size: 16px;">${url}/examiner/login</a></p>
-                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 20px;">${username}</strong></p>
-                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 20px;">${password}</strong></p>
+                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${esc(url)}/examiner/login" style="color: #7cb9e8; font-size: 16px;">${esc(url)}/examiner/login</a></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 20px;">${esc(username)}</strong></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 20px;">${esc(password)}</strong></p>
                 </div>
 
                 ${examinees.length > 0 ? `
@@ -52,10 +58,10 @@ async function sendExaminerEmail({ examinerName, examinerEmail, username, passwo
                         </tr>
                         ${examinees.map(e => `
                             <tr style="border-bottom: 1px solid #ddd;">
-                                <td style="padding: 10px 12px; font-size: 15px;">${e.name}</td>
-                                <td style="padding: 10px 12px; font-size: 15px;">PGY-${e.pgy_level}</td>
-                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${e.username}</td>
-                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${e.password}</td>
+                                <td style="padding: 10px 12px; font-size: 15px;">${esc(e.name)}</td>
+                                <td style="padding: 10px 12px; font-size: 15px;">PGY-${esc(e.pgy_level)}</td>
+                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${esc(e.username)}</td>
+                                <td style="padding: 10px 12px; font-family: monospace; font-size: 15px;">${esc(e.password)}</td>
                             </tr>
                         `).join('')}
                     </table>
@@ -80,7 +86,7 @@ async function sendExaminerEmail({ examinerName, examinerEmail, username, passwo
     return transporter.sendMail({
         from: FROM,
         to: examinerEmail,
-        subject: `Mock Oral Exam Assignment — ${examName}${examDate ? ` (${examDate})` : ''}`,
+        subject: `Mock Oral Exam Assignment — ${String(examName).replace(/[<>]/g, '')}${examDate ? ` (${String(examDate).replace(/[<>]/g, '')})` : ''}`,
         html
     });
 }
@@ -96,21 +102,21 @@ async function sendResidentEmail({ residentName, residentEmail, username, passwo
                 <p style="margin: 8px 0 0; opacity: 0.8; font-size: 18px;">Examinee Credentials</p>
             </div>
             <div style="padding: 30px; border: 1px solid #ddd; border-top: none;">
-                <p style="font-size: 18px;">Dear ${residentName.split(',')[0]},</p>
+                <p style="font-size: 18px;">Dear ${esc(residentName.split(',')[0])},</p>
                 <p style="font-size: 16px;">You have been registered for the upcoming mock oral examination. Below are your login credentials.</p>
 
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="color: #003366; margin: 0 0 12px; font-size: 20px;">Exam Details</h3>
-                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${examName}</p>
-                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${examDate || 'TBD'}</p>
-                    ${startTime ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Access opens:</strong> ${startTime}</p>` : ''}
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Exam:</strong> ${esc(examName)}</p>
+                    <p style="margin: 6px 0; font-size: 16px;"><strong>Date:</strong> ${esc(examDate || 'TBD')}</p>
+                    ${startTime ? `<p style="margin: 6px 0; font-size: 16px;"><strong>Access opens:</strong> ${esc(startTime)}</p>` : ''}
                 </div>
 
                 <div style="background: #003366; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin: 0 0 12px; font-size: 20px;">Your Login Credentials</h3>
-                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${url}" style="color: #7cb9e8; font-size: 16px;">${url}</a></p>
-                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 22px;">${username}</strong></p>
-                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 22px;">${password}</strong></p>
+                    <p style="margin: 6px 0; font-size: 16px;">Website: <a href="${esc(url)}" style="color: #7cb9e8; font-size: 16px;">${esc(url)}</a></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Username: <strong style="font-size: 22px;">${esc(username)}</strong></p>
+                    <p style="margin: 6px 0; font-size: 18px;">Password: <strong style="font-size: 22px;">${esc(password)}</strong></p>
                 </div>
 
                 <h3 style="color: #003366; font-size: 18px;">Important:</h3>
@@ -132,7 +138,7 @@ async function sendResidentEmail({ residentName, residentEmail, username, passwo
     return transporter.sendMail({
         from: FROM,
         to: residentEmail,
-        subject: `Mock Oral Exam Credentials — ${examName}${examDate ? ` (${examDate})` : ''}`,
+        subject: `Mock Oral Exam Credentials — ${String(examName).replace(/[<>]/g, '')}${examDate ? ` (${String(examDate).replace(/[<>]/g, '')})` : ''}`,
         html
     });
 }

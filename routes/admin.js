@@ -159,7 +159,7 @@ router.get('/exams/:id/rooms', requireAdmin, async (req, res) => {
         });
 
         const assignments = await db.execute({
-            sql: `SELECT era.*, r.name, r.pgy_level, c.username, c.password, c.is_used, c.id as credential_id
+            sql: `SELECT era.*, r.name, r.pgy_level, c.username, c.is_used, c.id as credential_id
                   FROM exam_room_assignments era
                   JOIN residents r ON era.resident_id = r.id
                   LEFT JOIN exam_residents er2 ON er2.exam_id = era.exam_id AND er2.resident_id = era.resident_id
@@ -272,7 +272,7 @@ router.get('/exams/:id/residents', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute({
             sql: `SELECT er.id as link_id, er.credential_id, r.id as resident_id, r.name, r.pgy_level, r.status,
-                         c.username, c.password, c.is_used
+                         c.username, c.is_used
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -321,12 +321,13 @@ router.post('/exams/:id/residents', requireAdmin, async (req, res) => {
             if (!resident.rows[0]) continue;
             const residentName = resident.rows[0].name;
 
-            // Auto-create credential
+            // Auto-create credential (hash password for storage)
             const username = generateUsername(examId, credIndex);
             const password = generatePassword();
+            const passwordHash = bcrypt.hashSync(password, 10);
             const credResult = await db.execute({
                 sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name, resident_id) VALUES (?, ?, ?, ?, ?)',
-                args: [examId, username, password, residentName, parseInt(resId)]
+                args: [examId, username, passwordHash, residentName, parseInt(resId)]
             });
             const credentialId = credResult.lastInsertRowid;
             credIndex++;
@@ -387,9 +388,10 @@ router.post('/exams/:id/residents/by-pgy', requireAdmin, async (req, res) => {
 
             const username = generateUsername(examId, credIndex);
             const password = generatePassword();
+            const passwordHash = bcrypt.hashSync(password, 10);
             const credResult = await db.execute({
                 sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name, resident_id) VALUES (?, ?, ?, ?, ?)',
-                args: [examId, username, password, resident.rows[0].name, resId]
+                args: [examId, username, passwordHash, resident.rows[0].name, resId]
             });
 
             await db.execute({
@@ -587,25 +589,46 @@ router.post('/exams/:id/email-examiner/:examinerId', requireAdmin, async (req, r
         const examiner = await db.execute({ sql: 'SELECT * FROM examiners WHERE id = ?', args: [examinerId] });
         if (!examiner.rows[0]?.email) return res.status(400).json({ error: 'Examiner has no email address' });
 
+        // Regenerate examiner password for email (passwords are hashed in DB)
+        const newExaminerPassword = generatePassword();
+        const examinerHash = bcrypt.hashSync(newExaminerPassword, 10);
+        await db.execute({
+            sql: 'UPDATE examiners SET password = ? WHERE id = ?',
+            args: [examinerHash, examinerId]
+        });
+
+        // Get residents with usernames (regenerate their passwords too)
         const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.id as cred_id
                   FROM exam_residents er JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
                   WHERE er.exam_id = ? ORDER BY r.pgy_level DESC, r.name`,
             args: [examId]
         });
 
+        const examineesForEmail = [];
+        for (const r of residents.rows) {
+            if (r.cred_id) {
+                const newPass = generatePassword();
+                const hash = bcrypt.hashSync(newPass, 10);
+                await db.execute({ sql: 'UPDATE credentials SET password = ?, is_used = 0 WHERE id = ?', args: [hash, r.cred_id] });
+                examineesForEmail.push({ name: r.name, pgy_level: r.pgy_level, username: r.username, password: newPass });
+            } else {
+                examineesForEmail.push({ name: r.name, pgy_level: r.pgy_level, username: r.username || 'N/A', password: 'N/A' });
+            }
+        }
+
         await emailModule.sendExaminerEmail({
             examinerName: examiner.rows[0].name, examinerEmail: examiner.rows[0].email,
-            username: examiner.rows[0].username, password: examiner.rows[0].password,
+            username: examiner.rows[0].username, password: newExaminerPassword,
             examName: exam.rows[0].name, examDate: exam.rows[0].date,
-            roomNumber: examiner.rows[0].room_number, examinees: residents.rows,
+            roomNumber: examiner.rows[0].room_number, examinees: examineesForEmail,
             siteUrl: req.protocol + '://' + req.get('host')
         });
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to send email: ' + err.message });
+        res.status(500).json({ error: 'Failed to send email' });
     }
 });
 
@@ -617,7 +640,7 @@ router.post('/exams/:id/email-resident/:residentId', requireAdmin, async (req, r
     try {
         const exam = await db.execute({ sql: 'SELECT * FROM exams WHERE id = ?', args: [examId] });
         const resident = await db.execute({
-            sql: `SELECT r.*, c.username, c.password FROM exam_residents er
+            sql: `SELECT r.*, c.username, c.id as cred_id FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
                   WHERE er.exam_id = ? AND er.resident_id = ?`,
@@ -625,9 +648,17 @@ router.post('/exams/:id/email-resident/:residentId', requireAdmin, async (req, r
         });
         if (!resident.rows[0]?.email) return res.status(400).json({ error: 'Resident has no email address' });
 
+        // Regenerate password for email (passwords are hashed in DB)
+        let newPassword = 'N/A';
+        if (resident.rows[0].cred_id) {
+            newPassword = generatePassword();
+            const hash = bcrypt.hashSync(newPassword, 10);
+            await db.execute({ sql: 'UPDATE credentials SET password = ?, is_used = 0 WHERE id = ?', args: [hash, resident.rows[0].cred_id] });
+        }
+
         await emailModule.sendResidentEmail({
             residentName: resident.rows[0].name, residentEmail: resident.rows[0].email,
-            username: resident.rows[0].username, password: resident.rows[0].password,
+            username: resident.rows[0].username, password: newPassword,
             examName: exam.rows[0].name, examDate: exam.rows[0].date,
             startTime: exam.rows[0].start_time,
             siteUrl: req.protocol + '://' + req.get('host')
@@ -635,7 +666,7 @@ router.post('/exams/:id/email-resident/:residentId', requireAdmin, async (req, r
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to send email: ' + err.message });
+        res.status(500).json({ error: 'Failed to send email' });
     }
 });
 
@@ -735,10 +766,11 @@ router.post('/credentials/generate', requireAdmin, async (req, res) => {
                 `${prefix}${(startIndex + i).toString().padStart(3, '0')}` :
                 generateUsername(examId, startIndex + i);
             const password = generatePassword();
+            const passwordHash = bcrypt.hashSync(password, 10);
 
             await db.execute({
                 sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name) VALUES (?, ?, ?, ?)',
-                args: [examId, username, password, null]
+                args: [examId, username, passwordHash, null]
             });
             generated.push({ username, password });
         }
@@ -758,9 +790,10 @@ router.post('/credentials', requireAdmin, async (req, res) => {
     }
 
     try {
+        const passwordHash = bcrypt.hashSync(password, 10);
         await db.execute({
             sql: 'INSERT INTO credentials (exam_id, username, password, examinee_name) VALUES (?, ?, ?, ?)',
-            args: [examId, username.toUpperCase(), password, examineeName || null]
+            args: [examId, username.toUpperCase(), passwordHash, examineeName || null]
         });
         res.json({ success: true });
     } catch (err) {
@@ -1093,12 +1126,12 @@ router.get('/repository', requireAdmin, (req, res) => {
     res.sendFile('admin/repository.html', { root: './views' });
 });
 
-// Debug email endpoint - temporary
-router.get('/email-test/:examId', async (req, res) => {
+// Debug email endpoint - requires admin auth
+router.get('/email-test/:examId', requireAdmin, async (req, res) => {
     const examId = parseInt(req.params.examId);
     try {
-        const gmailUser = process.env.GMAIL_USER || 'NOT SET';
-        const gmailPass = process.env.GMAIL_APP_PASSWORD ? 'SET (' + process.env.GMAIL_APP_PASSWORD.length + ' chars)' : 'NOT SET';
+        const gmailUser = process.env.GMAIL_USER ? 'SET' : 'NOT SET';
+        const gmailPass = process.env.GMAIL_APP_PASSWORD ? 'SET' : 'NOT SET';
 
         const examiners = await db.execute({
             sql: "SELECT * FROM examiners WHERE exam_id = ? AND email IS NOT NULL AND email != ''",
@@ -1115,17 +1148,17 @@ router.get('/email-test/:examId', async (req, res) => {
             examinerEmails: examiners.rows.map(e => e.email),
         });
     } catch (err) {
-        res.json({ error: err.message, ok: false });
+        res.json({ error: 'Debug endpoint error', ok: false });
     }
 });
 
-// Repository data endpoint (no auth required - used as fallback)
-router.get('/repository/debug', async (req, res) => {
+// Repository data endpoint - requires admin auth
+router.get('/repository/debug', requireAdmin, async (req, res) => {
     try {
         const result = await db.execute('SELECT id, display_name, filename, file_url, public_id, file_type, category, related_stem_id, specialty, created_at FROM repo_files ORDER BY category, display_name');
         res.json({ files: result.rows, count: result.rows.length, ok: true });
     } catch (err) {
-        res.json({ error: err.message, ok: false });
+        res.json({ error: 'Debug endpoint error', ok: false });
     }
 });
 
@@ -1376,15 +1409,17 @@ router.post('/exams/:id/examiners', requireAdmin, async (req, res) => {
     if (!name) return res.status(400).json({ error: 'Examiner name is required' });
 
     try {
-        // Generate username and password
+        // Generate username and password (hash password for storage)
         const username = `EX${examId}R${roomNumber || 0}_${name.split(/[\s,]+/)[0].toUpperCase()}`;
         const password = generatePassword();
+        const passwordHash = bcrypt.hashSync(password, 10);
 
         await db.execute({
             sql: 'INSERT INTO examiners (exam_id, name, username, password, room_number, email) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [examId, name, username, password, roomNumber ? parseInt(roomNumber) : null, email || null]
+            args: [examId, name, username, passwordHash, roomNumber ? parseInt(roomNumber) : null, email || null]
         });
 
+        // Return plaintext password only at creation time (it's hashed in DB)
         res.json({ success: true, username, password });
     } catch (err) {
         if (err.message?.includes('UNIQUE')) {
@@ -1775,7 +1810,7 @@ router.post('/question-tracker/sync-residents', requireAdmin, async (req, res) =
         });
     } catch (err) {
         console.error('Sync residents error:', err);
-        res.status(500).json({ error: 'Failed to sync residents: ' + err.message });
+        res.status(500).json({ error: 'Failed to sync residents' });
     }
 });
 
@@ -1996,9 +2031,9 @@ router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'No examiners with email addresses found' });
         }
 
-        // Get all residents for this exam with credentials
-        const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password
+        // Regenerate resident credentials for email (passwords are hashed in DB)
+        const residentRows = await db.execute({
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.id as cred_id
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -2007,20 +2042,37 @@ router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
             args: [examId]
         });
 
+        const examineesForEmail = [];
+        for (const r of residentRows.rows) {
+            if (r.cred_id) {
+                const newPass = generatePassword();
+                const hash = bcrypt.hashSync(newPass, 10);
+                await db.execute({ sql: 'UPDATE credentials SET password = ?, is_used = 0 WHERE id = ?', args: [hash, r.cred_id] });
+                examineesForEmail.push({ name: r.name, pgy_level: r.pgy_level, username: r.username, password: newPass });
+            } else {
+                examineesForEmail.push({ name: r.name, pgy_level: r.pgy_level, username: r.username || 'N/A', password: 'N/A' });
+            }
+        }
+
         let sent = 0;
         let errors = [];
 
         for (const examiner of examiners.rows) {
             try {
+                // Regenerate examiner password for email
+                const newExPass = generatePassword();
+                const exHash = bcrypt.hashSync(newExPass, 10);
+                await db.execute({ sql: 'UPDATE examiners SET password = ? WHERE id = ?', args: [exHash, examiner.id] });
+
                 await emailModule.sendExaminerEmail({
                     examinerName: examiner.name,
                     examinerEmail: examiner.email,
                     username: examiner.username,
-                    password: examiner.password,
+                    password: newExPass,
                     examName: exam.rows[0].name,
                     examDate: exam.rows[0].date,
                     roomNumber: examiner.room_number,
-                    examinees: residents.rows,
+                    examinees: examineesForEmail,
                     siteUrl: req.protocol + '://' + req.get('host')
                 });
                 sent++;
@@ -2032,7 +2084,7 @@ router.post('/exams/:id/email-examiners', requireAdmin, async (req, res) => {
         res.json({ success: true, sent, errors });
     } catch (err) {
         console.error('Email examiner error:', err);
-        res.status(500).json({ error: 'Failed to send examiner emails: ' + err.message });
+        res.status(500).json({ error: 'Failed to send examiner emails' });
     }
 });
 
@@ -2047,7 +2099,7 @@ router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
 
         // Get residents with credentials and emails
         const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, r.email, c.username, c.password
+            sql: `SELECT r.id, r.name, r.pgy_level, r.email, c.username, c.id as cred_id
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -2064,11 +2116,19 @@ router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
 
         for (const resident of residents.rows) {
             try {
+                // Regenerate password for email (passwords are hashed in DB)
+                let newPassword = 'N/A';
+                if (resident.cred_id) {
+                    newPassword = generatePassword();
+                    const hash = bcrypt.hashSync(newPassword, 10);
+                    await db.execute({ sql: 'UPDATE credentials SET password = ?, is_used = 0 WHERE id = ?', args: [hash, resident.cred_id] });
+                }
+
                 await emailModule.sendResidentEmail({
                     residentName: resident.name,
                     residentEmail: resident.email,
                     username: resident.username,
-                    password: resident.password,
+                    password: newPassword,
                     examName: exam.rows[0].name,
                     examDate: exam.rows[0].date,
                     startTime: exam.rows[0].start_time,
@@ -2083,7 +2143,7 @@ router.post('/exams/:id/email-residents', requireAdmin, async (req, res) => {
         res.json({ success: true, sent, errors });
     } catch (err) {
         console.error('Email resident error:', err);
-        res.status(500).json({ error: 'Failed to send resident emails: ' + err.message });
+        res.status(500).json({ error: 'Failed to send resident emails' });
     }
 });
 

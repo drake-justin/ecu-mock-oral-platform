@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { db } = require('../database');
 const { requireExaminer, rateLimiter, recordLoginAttempt, clearLoginAttempts } = require('../middleware/auth');
@@ -27,7 +28,7 @@ router.post('/login', rateLimiter, async (req, res) => {
 
         const examiner = result.rows[0];
 
-        if (!examiner || examiner.password !== password) {
+        if (!examiner || !bcrypt.compareSync(password, examiner.password)) {
             recordLoginAttempt(req.ip);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -114,7 +115,7 @@ router.get('/data', requireExaminer, async (req, res) => {
 
         // Get residents assigned to this exam
         const residents = await db.execute({
-            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.password, c.id as credential_id, c.is_used
+            sql: `SELECT r.id, r.name, r.pgy_level, c.username, c.id as credential_id, c.is_used
                   FROM exam_residents er
                   JOIN residents r ON er.resident_id = r.id
                   LEFT JOIN credentials c ON er.credential_id = c.id
@@ -243,13 +244,17 @@ router.post('/claim-question/:fileId', requireExaminer, async (req, res) => {
 router.post('/remove-file/:fileId', requireExaminer, async (req, res) => {
     const fileId = parseInt(req.params.fileId);
     const examId = req.session.examiner.examId;
+    const roomNumber = req.session.examiner.roomNumber;
     try {
-        // Verify file belongs to examiner's exam and is a clinical image
+        // Verify file belongs to examiner's exam, their room, and is a clinical image
         const file = await db.execute({
             sql: 'SELECT * FROM files WHERE id = ? AND exam_id = ?',
             args: [fileId, examId]
         });
         if (!file.rows[0]) return res.status(404).json({ error: 'File not found' });
+        if (roomNumber && file.rows[0].room_number && file.rows[0].room_number !== roomNumber) {
+            return res.status(403).json({ error: 'Access denied — file is not in your room' });
+        }
         if (file.rows[0].item_type !== 'clinical_image') {
             return res.status(403).json({ error: 'Can only remove clinical images' });
         }
@@ -264,6 +269,7 @@ router.post('/remove-file/:fileId', requireExaminer, async (req, res) => {
 router.post('/reset-credential/:credentialId', requireExaminer, async (req, res) => {
     const credId = parseInt(req.params.credentialId);
     const examId = req.session.examiner.examId;
+    const roomNumber = req.session.examiner.roomNumber;
 
     try {
         // Verify this credential belongs to the examiner's exam
@@ -274,6 +280,17 @@ router.post('/reset-credential/:credentialId', requireExaminer, async (req, res)
 
         if (!cred.rows[0]) {
             return res.status(404).json({ error: 'Credential not found for this exam' });
+        }
+
+        // Verify the resident is assigned to this examiner's room
+        if (roomNumber && cred.rows[0].resident_id) {
+            const assignment = await db.execute({
+                sql: 'SELECT * FROM exam_room_assignments WHERE exam_id = ? AND resident_id = ? AND room_number = ?',
+                args: [examId, cred.rows[0].resident_id, roomNumber]
+            });
+            if (!assignment.rows[0]) {
+                return res.status(403).json({ error: 'Access denied — resident is not in your room' });
+            }
         }
 
         await db.execute({

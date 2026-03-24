@@ -96,6 +96,8 @@
     <div class="report" id="print-report"></div>
 
 <script>
+function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
 let examData=null,pendingScores={},scenarios=[];
 
 function showTab(name){
@@ -109,7 +111,7 @@ function showTab(name){
 async function loadExams(){
     const data=await(await fetch('/admin/question-tracker/exams')).json();
     document.getElementById('exam-select').innerHTML='<option value="">-- Select Exam --</option>'+
-        data.exams.map(e=>`<option value="${e.id}">${e.name} ${e.date?`(${e.date})`:''}</option>`).join('');
+        data.exams.map(e=>`<option value="${H(e.id)}">${H(e.name)} ${e.date?`(${H(e.date)})`:''}</option>`).join('');
 }
 
 function getCleanName(name){return(name||'').replace(/^Scenario_/,'').replace(/^\d+_/,'').replace(/_/g,' ')}
@@ -151,7 +153,7 @@ function renderSummary(){
 
         return `<div class="summary-card">
             <div class="summary-header">
-                <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span>
+                <h3>${H(r.name)} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${H(r.pgy_level)}</span>
                     <button class="btn btn-sm btn-secondary no-print" style="margin-left:10px;font-size:11px" onclick="printResidentReport(${r.id})">Print Report</button></h3>
                 ${scored?`<div class="score-pills">
                     <span class="score-pill pass">${pass} Pass</span>
@@ -162,14 +164,14 @@ function renderSummary(){
             </div>
             ${scored?`<div style="margin-top:8px">
                 ${resScores.map(s=>`<div class="score-detail">
-                    <span>${getCleanName(s.question_name)} ${s.room_number?`<small style="color:#888">Room ${s.room_number}</small>`:''}</span>
+                    <span>${H(getCleanName(s.question_name))} ${s.room_number?`<small style="color:#888">Room ${H(s.room_number)}</small>`:''}</span>
                     <span style="display:flex;align-items:center;gap:8px">
-                        ${s.examiner_name?`<small style="color:#888">by ${s.examiner_name}</small>`:''}
-                        <span class="score-badge ${s.score}">${s.score.toUpperCase()}</span>
+                        ${s.examiner_name?`<small style="color:#888">by ${H(s.examiner_name)}</small>`:''}
+                        <span class="score-badge ${H(s.score)}">${H(s.score.toUpperCase())}</span>
                     </span>
                 </div>`).join('')}
                 ${resScores.some(s=>s.comments)?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #eee">
-                    ${resScores.filter(s=>s.comments).map(s=>`<div style="font-size:12px;margin-bottom:4px"><strong>${getCleanName(s.question_name)}:</strong> <em style="color:#555">${s.comments}</em></div>`).join('')}
+                    ${resScores.filter(s=>s.comments).map(s=>`<div style="font-size:12px;margin-bottom:4px"><strong>${H(getCleanName(s.question_name))}:</strong> <em style="color:#555">${H(s.comments)}</em></div>`).join('')}
                 </div>`:''}
             </div>`:''}</div>`;
     }).join('');
@@ -181,23 +183,23 @@ function renderManualScoring(){
 
     container.innerHTML=examData.residents.map(r=>`
         <div class="resident-section">
-            <h3>${r.name} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></h3>
+            <h3>${H(r.name)} <span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${H(r.pgy_level)}</span></h3>
             ${scenarios.map((f,i)=>{
                 const key=`${r.id}_${f.id}`;
                 const existing=pendingScores[key];
                 const name=getCleanName(f.display_name);
                 return `<div class="score-card-simple">
-                    <h4>Q${i+1}: ${name} ${existing?`<span class="existing-badge ${existing.score}">${existing.score.toUpperCase()}${existing.examinerName?' by '+existing.examinerName:''}</span>`:''}
-                        ${f.specialty?`<small style="color:#888;margin-left:8px">${f.specialty}</small>`:''}</h4>
+                    <h4>Q${i+1}: ${H(name)} ${existing?`<span class="existing-badge ${H(existing.score)}">${H(existing.score.toUpperCase())}${existing.examinerName?' by '+H(existing.examinerName):''}</span>`:''}
+                        ${f.specialty?`<small style="color:#888;margin-left:8px">${H(f.specialty)}</small>`:''}</h4>
                     <div class="score-row">
                         <div class="score-select">
-                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Pass</button>
-                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Marginal</button>
-                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${f.id},'${f.related_stem_id||f.repo_stem_id||''}','${name.replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Fail</button>
+                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Pass</button>
+                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Marginal</button>
+                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Fail</button>
                         </div>
                         <div class="feedback-area">
                             <label>Feedback</label>
-                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Comments...">${existing?.comments||''}</textarea>
+                            <textarea id="comment-${key}" onchange="updateComment('${key}')" placeholder="Comments...">${H(existing?.comments||'')}</textarea>
                         </div>
                     </div>
                 </div>`;
@@ -244,11 +246,11 @@ function generateReportHTML(data){
     const p=scores.filter(s=>s.score==='pass').length,m=scores.filter(s=>s.score==='marginal').length,f=scores.filter(s=>s.score==='fail').length;
     return `<div style="border:2px solid #003366;padding:20px;margin:20px 0">
         <h1 style="font-size:18pt;color:#003366">ECU Department of Surgery — Mock Oral Exam Report</h1>
-        <table style="width:100%;margin:10px 0;border:none"><tr style="border:none"><td style="border:none"><strong>Resident:</strong> ${r.name}</td><td style="border:none"><strong>PGY:</strong> PGY-${r.pgy_level}</td></tr>
-        <tr style="border:none"><td style="border:none"><strong>Exam:</strong> ${e.name}</td><td style="border:none"><strong>Date:</strong> ${e.date||'N/A'}</td></tr></table>
+        <table style="width:100%;margin:10px 0;border:none"><tr style="border:none"><td style="border:none"><strong>Resident:</strong> ${H(r.name)}</td><td style="border:none"><strong>PGY:</strong> PGY-${H(r.pgy_level)}</td></tr>
+        <tr style="border:none"><td style="border:none"><strong>Exam:</strong> ${H(e.name)}</td><td style="border:none"><strong>Date:</strong> ${H(e.date||'N/A')}</td></tr></table>
         <h2 style="font-size:14pt;color:#003366;border-bottom:1px solid #003366">Exam Results — ${p} Pass, ${m} Marginal, ${f} Fail (${scores.length} questions)</h2>
         <table style="width:100%;border-collapse:collapse"><thead><tr><th style="background:#003366;color:white;padding:6px 8px">#</th><th style="background:#003366;color:white;padding:6px 8px">Question</th><th style="background:#003366;color:white;padding:6px 8px">Score</th><th style="background:#003366;color:white;padding:6px 8px">Examiner</th><th style="background:#003366;color:white;padding:6px 8px">Comments</th></tr></thead><tbody>
-        ${scores.map((s,i)=>`<tr><td style="border:1px solid #ccc;padding:6px">${i+1}</td><td style="border:1px solid #ccc;padding:6px">${getCleanName(s.question_name)}</td><td class="${s.score}-cell" style="border:1px solid #ccc;padding:6px;font-weight:bold;text-transform:uppercase">${s.score}</td><td style="border:1px solid #ccc;padding:6px">${s.examiner_name||''}</td><td style="border:1px solid #ccc;padding:6px">${s.comments||''}</td></tr>`).join('')}
+        ${scores.map((s,i)=>`<tr><td style="border:1px solid #ccc;padding:6px">${i+1}</td><td style="border:1px solid #ccc;padding:6px">${H(getCleanName(s.question_name))}</td><td class="${H(s.score)}-cell" style="border:1px solid #ccc;padding:6px;font-weight:bold;text-transform:uppercase">${H(s.score)}</td><td style="border:1px solid #ccc;padding:6px">${H(s.examiner_name||'')}</td><td style="border:1px solid #ccc;padding:6px">${H(s.comments||'')}</td></tr>`).join('')}
         </tbody></table>
         <h2 style="font-size:14pt;color:#003366;border-bottom:1px solid #003366;margin-top:20px">Longitudinal Summary</h2>
         <p>Pass: ${stats.pass||0} | Marginal: ${stats.marginal||0} | Fail: ${stats.fail||0} | Total: ${(stats.pass||0)+(stats.marginal||0)+(stats.fail||0)} questions across all exams</p>

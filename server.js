@@ -1,5 +1,7 @@
 const express = require('express');
 const session = require('express-session');
+const helmet = require('helmet');
+const crypto = require('crypto');
 const path = require('path');
 const { initializeDatabase } = require('./database');
 const TursoSessionStore = require('./session-store');
@@ -10,27 +12,81 @@ const PORT = process.env.PORT || 3000;
 // Trust proxy (required for Railway/Render/etc)
 app.set('trust proxy', 1);
 
+// Security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameSrc: ["'self'", "https://res.cloudinary.com"],
+        }
+    },
+    crossOriginEmbedderPolicy: false, // Allow Cloudinary embeds
+}));
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// Generate a random session secret if none provided (warn in production)
+const sessionSecret = process.env.SESSION_SECRET || (() => {
+    const generated = crypto.randomBytes(32).toString('hex');
+    console.warn('WARNING: No SESSION_SECRET set. Using a random secret — sessions will not survive restarts. Set SESSION_SECRET in your environment.');
+    return generated;
+})();
+
 // Session configuration with database-backed store (survives redeploys)
 const sessionStore = new TursoSessionStore();
 app.use(session({
     store: sessionStore,
-    secret: process.env.SESSION_SECRET || 'ecu-mock-oral-secret-key-change-in-production',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
+        sameSite: 'strict',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
 // Clean up expired sessions every hour
 setInterval(() => sessionStore.cleanup(), 60 * 60 * 1000);
+
+// CSRF protection: verify Origin/Referer on state-changing requests
+// Combined with sameSite: 'strict' cookies, this provides strong CSRF defense
+app.use((req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+
+    const origin = req.get('origin');
+    const referer = req.get('referer');
+    const host = req.get('host');
+
+    // Allow requests with matching origin or referer
+    if (origin) {
+        try {
+            const originHost = new URL(origin).host;
+            if (originHost === host) return next();
+        } catch (e) { /* invalid origin */ }
+    } else if (referer) {
+        try {
+            const refererHost = new URL(referer).host;
+            if (refererHost === host) return next();
+        } catch (e) { /* invalid referer */ }
+    } else {
+        // Allow requests with no origin/referer (same-origin requests from some browsers)
+        // The sameSite: 'strict' cookie already blocks cross-origin cookie sending
+        return next();
+    }
+
+    return res.status(403).json({ error: 'Request blocked — origin mismatch' });
+});
 
 // Routes
 const authRoutes = require('./routes/auth');

@@ -435,6 +435,8 @@
     </div>
 
     <script>
+        function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
         let stemFile = null;
         let clinicalFile = null;
         let singleFile = null;
@@ -594,7 +596,7 @@
                     allFiles = data.files || [];
                     renderFiles();
                 } catch (e) {
-                    document.getElementById('file-grid').innerHTML = `<p style="color:red;">Error loading repository: ${err.message}</p>`;
+                    document.getElementById('file-grid').innerHTML = `<p style="color:red;">Error loading repository: ${H(err.message)}</p>`;
                 }
             }
         }
@@ -619,17 +621,17 @@
 
             const catLabels = { stem: 'Question Stem', clinical_image: 'Clinical Image', scenario: 'Scenario' };
             grid.innerHTML = filtered.map(file => `
-                <div class="file-card ${file.category}">
+                <div class="file-card ${H(file.category)}">
                     <div class="file-card-header">
-                        <span class="file-card-title">${file.display_name}</span>
-                        <span class="file-card-category ${file.category}">
-                            ${catLabels[file.category] || file.category}
+                        <span class="file-card-title">${H(file.display_name)}</span>
+                        <span class="file-card-category ${H(file.category)}">
+                            ${catLabels[file.category] || H(file.category)}
                         </span>
                     </div>
                     <div class="file-card-meta">
-                        ${(file.file_type || '').toUpperCase()}
+                        ${H((file.file_type || '').toUpperCase())}
                         ${file.created_at ? '&bull; ' + new Date(file.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' }) : ''}
-                        ${file.specialty ? `&bull; <strong>${file.specialty}</strong>` : ''}
+                        ${file.specialty ? `&bull; <strong>${H(file.specialty)}</strong>` : ''}
                     </div>
                     ${file.related_stem_id ? `<div class="file-card-related">Linked to stem ID: ${file.related_stem_id}</div>` : ''}
                     <div class="file-card-actions">
@@ -728,7 +730,7 @@
                 const select = document.getElementById(selectId);
                 const currentVal = select.value;
                 select.innerHTML = '<option value="">-- None --</option>' +
-                    stems.map(s => `<option value="${s.id}">${s.display_name}</option>`).join('');
+                    stems.map(s => `<option value="${s.id}">${H(s.display_name)}</option>`).join('');
                 select.value = currentVal;
             } catch (err) {
                 console.error(err);

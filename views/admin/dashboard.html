@@ -76,6 +76,8 @@
     </div>
 
     <script>
+        function H(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+
         async function loadDashboard() {
             try {
                 const response = await fetch('/admin/dashboard-data');
@@ -106,14 +108,14 @@
 
                 tbody.innerHTML = data.stats.map(exam => `
                     <tr>
-                        <td>${exam.name}</td>
-                        <td>${exam.date || '-'}</td>
+                        <td>${H(exam.name)}</td>
+                        <td>${H(exam.date || '-')}</td>
                         <td>
                             ${data.activeExam && data.activeExam.id === exam.id
                                 ? '<span class="badge badge-success">Active</span>'
                                 : '<span class="badge badge-warning">Inactive</span>'}
                         </td>
-                        <td>${exam.used_credentials || 0} / ${exam.total_credentials || 0}</td>
+                        <td>${H(exam.used_credentials || 0)} / ${H(exam.total_credentials || 0)}</td>
                     </tr>
                 `).join('');
             } catch (err) {
