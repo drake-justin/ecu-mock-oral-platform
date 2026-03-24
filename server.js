@@ -85,6 +85,8 @@ app.use((req, res, next) => {
     // sameSite: 'strict' cookie already blocks cross-origin cookie sending
     if (!origin && !referer) return next();
 
+    // Log blocked requests for debugging
+    console.warn('CSRF blocked:', { method: req.method, path: req.path, origin, referer, host: req.get('host'), hostname: req.hostname });
     return res.status(403).json({ error: 'Request blocked — origin mismatch' });
 });
 
