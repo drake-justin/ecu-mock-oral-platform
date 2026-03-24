@@ -130,6 +130,7 @@
 let currentExamId=null, allRepoFiles=[], allFaculty=[], allResidents=[];
 
 function H(s){if(s==null)return'';var o={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return String(s).replace(/[&<>"']/g,function(c){return o[c]})}
+function J(s){return H(JSON.stringify(String(s||'')).slice(1,-1))}
 
 function msg(t,type){const m=document.getElementById('message');m.textContent=t;m.className=`alert alert-${type}`;m.style.display='block';setTimeout(()=>m.style.display='none',4000)}
 
@@ -142,9 +143,9 @@ async function loadExams(){
         const st=e.start_time?new Date(e.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'-';
         return `<tr><td>${H(e.name)}</td><td>${H(e.date)||'-'}</td><td>${H(st)}</td>
             <td>${e.is_active?'<span class="badge badge-success">Active</span>':'<span class="badge badge-warning">Inactive</span>'}</td>
-            <td><button class="btn btn-sm btn-primary" onclick="manage(${parseInt(e.id)},'${H(e.name).replace(/'/g,"\\'")}')">Manage</button></td>
+            <td><button class="btn btn-sm btn-primary" onclick="manage(${parseInt(e.id)},'${J(e.name)}')">Manage</button></td>
             <td><button class="btn btn-sm btn-secondary" onclick="editExam(${parseInt(e.id)})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="delExam(${parseInt(e.id)},'${H(e.name).replace(/'/g,"\\'")}')">Delete</button></td></tr>`}).join('')}
+                <button class="btn btn-sm btn-danger" onclick="delExam(${parseInt(e.id)},'${J(e.name)}')">Delete</button></td></tr>`}).join('')}
 
 async function createExam(){
     const name=document.getElementById('exam-name').value,date=document.getElementById('exam-date').value,time=document.getElementById('exam-time').value;

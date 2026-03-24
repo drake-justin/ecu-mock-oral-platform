@@ -97,6 +97,7 @@
 
 <script>
 function H(s){if(s==null)return'';var o={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return String(s).replace(/[&<>"']/g,function(c){return o[c]})}
+function J(s){return H(JSON.stringify(String(s||'')).slice(1,-1))}
 
 let examData=null,pendingScores={},scenarios=[];
 
@@ -193,9 +194,9 @@ function renderManualScoring(){
                         ${f.specialty?`<small style="color:#888;margin-left:8px">${H(f.specialty)}</small>`:''}</h4>
                     <div class="score-row">
                         <div class="score-select">
-                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Pass</button>
-                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Marginal</button>
-                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${f.id},'${H(f.related_stem_id||f.repo_stem_id||'')}','${H(name).replace(/'/g,"\\'")}',${f.room_number||'null'},this)">Fail</button>
+                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${f.id},'${J(f.related_stem_id||f.repo_stem_id||'')}','${J(name)}',${f.room_number||'null'},this)">Pass</button>
+                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${f.id},'${J(f.related_stem_id||f.repo_stem_id||'')}','${J(name)}',${f.room_number||'null'},this)">Marginal</button>
+                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${f.id},'${J(f.related_stem_id||f.repo_stem_id||'')}','${J(name)}',${f.room_number||'null'},this)">Fail</button>
                         </div>
                         <div class="feedback-area">
                             <label>Feedback</label>

@@ -143,6 +143,7 @@
 
 <script>
 function H(s){if(s==null)return'';var o={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return String(s).replace(/[&<>"']/g,function(c){return o[c]})}
+function J(s){return H(JSON.stringify(String(s||'')).slice(1,-1))}
 
 let portalData=null,pendingScores={},cases=[];
 
@@ -290,7 +291,7 @@ function renderCredentials(){
             <div style="flex:1"><span class="name">${H(r.name)}</span><span class="pgy-badge pgy-${Math.min(r.pgy_level,5)}">PGY-${r.pgy_level}</span></div>
             <div style="display:flex;align-items:center;gap:8px">
                 <span class="cred-info">${H(r.username)||'N/A'}</span>
-                <button class="btn btn-sm ${r.is_used?'btn-danger':'btn-secondary'}" onclick="resetCredential(${r.credential_id},'${r.name.replace(/'/g,"\\'")}')" ${!r.is_used?'disabled':''} style="font-size:11px;padding:3px 10px">
+                <button class="btn btn-sm ${r.is_used?'btn-danger':'btn-secondary'}" onclick="resetCredential(${r.credential_id},'${J(r.name)}')" ${!r.is_used?'disabled':''} style="font-size:11px;padding:3px 10px">
                     ${r.is_used?'Reset':'Available'}</button>
             </div>
         </div>`).join('')}</div>`;
@@ -336,9 +337,9 @@ function renderScoring(){
                         ${c.specialty?`<small style="color:#888;margin-left:8px">${H(c.specialty)}</small>`:''}</h4>
                     <div class="score-row">
                         <div class="score-select">
-                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Pass</button>
-                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Marginal</button>
-                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${name.replace(/'/g,"\\'")}',${c.stem?.room_number||'null'},this)">Fail</button>
+                            <button class="score-btn pass ${existing?.score==='pass'?'selected':''}" onclick="setScore('${key}','pass',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${J(name)}',${c.stem?.room_number||'null'},this)">Pass</button>
+                            <button class="score-btn marginal ${existing?.score==='marginal'?'selected':''}" onclick="setScore('${key}','marginal',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${J(name)}',${c.stem?.room_number||'null'},this)">Marginal</button>
+                            <button class="score-btn fail ${existing?.score==='fail'?'selected':''}" onclick="setScore('${key}','fail',${r.id},${c.stem?.id||'null'},${c.repoStemId||'null'},'${J(name)}',${c.stem?.room_number||'null'},this)">Fail</button>
                         </div>
                         <div class="feedback-area">
                             <label>Feedback</label>
